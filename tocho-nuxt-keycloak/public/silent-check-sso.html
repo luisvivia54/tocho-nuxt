@@ -1,0 +1,11 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8" /></head>
+  <body>
+    <script>
+      // Enviar al parent la URL completa con los parámetros (#state, #code, etc.)
+      // para que keycloak-js pueda resolver la promesa de kc.init(...)
+      parent.postMessage(location.href, location.origin);
+    </script>
+  </body>
+</html>
