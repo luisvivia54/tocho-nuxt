@@ -1,16 +1,11 @@
 // composables/useApi.ts
 import { useRuntimeConfig, useFetch } from '#imports'
 
-// Wrapper estable para llamar a tu backend (sin broncas de types)
+// Pequeño wrapper para llamar a tu backend
 export function useApi<T>(path: string) {
   const config = useRuntimeConfig()
 
-  const baseURL = String(config.public.apiBase || '').replace(/\/$/, '')
-  const url = path.startsWith('/') ? path : `/${path}`
-
-  return useFetch<T>(url, {
-    baseURL,
-    retry: 2,
-    retryDelay: 600,
+  return useFetch<T>(path, {
+    baseURL: config.public.apiBase,
   })
 }
