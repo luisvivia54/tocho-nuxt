@@ -6,8 +6,11 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      // 🌐 Backend de la liga
-      apiBase: 'http://tocho5-api.tochero5.mx/api',
+      /**
+       * 🌐 Backend de la liga (PUBLIC para que exista en cliente y no falle en navegación móvil)
+       * ✅ En CapRover pon: NUXT_PUBLIC_API_BASE=https://tocho5-api.tochero5.mx/api
+       */
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://tocho5-api.tochero5.mx/api',
 
       // 🔐 Config de Keycloak
       keycloakUrl: 'https://auth.tochero5.mx',
