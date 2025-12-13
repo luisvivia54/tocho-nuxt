@@ -52,23 +52,6 @@
     photoPreview: string | null
   }
   
-  // Opciones de liga / temporada / categoría (por ahora estático)
-  interface LeagueOption {
-    id: number
-    name: string
-  }
-  
-  interface SeasonOption {
-    id: number
-    name: string
-    leagueId: number
-  }
-  
-  interface CategoryOption {
-    id: number
-    name: string
-    seasonId: number
-  }
   
   // ================== ESTADO BACK (teams/mine) ==================
   const myTeams = ref<MyTeamsInfo | null>(null)
@@ -120,28 +103,84 @@
   }
   
   // ================== LIGA / TEMPORADA / CATEGORÍA ==================
-  const leagues = ref<LeagueOption[]>([{ id: 1, name: 'Liga Tochero5' }])
   
-  const seasons = ref<SeasonOption[]>([
-    { id: 1, name: 'Temporada Acatlán', leagueId: 1 }
-  ])
-  
-  const categories = ref<CategoryOption[]>([
-    { id: 1, name: 'Femenil U16', seasonId: 1 }
-  ])
-  
-  const selectedLeagueId = ref<number>(0)
-  const selectedSeasonId = ref<number>(0)
-  const selectedCategoryId = ref<number>(0)
-  
-  const availableSeasons = computed(() =>
-    seasons.value.filter((s) => !selectedLeagueId.value || s.leagueId === selectedLeagueId.value)
-  )
-  
-  const availableCategories = computed(() =>
-    categories.value.filter((c) => !selectedSeasonId.value || c.seasonId === selectedSeasonId.value)
-  )
-  
+// ================== LIGA / TEMPORADA / CATEGORÍA ==================
+import type { CategoryDto } from '@/composables/useCategoryService'
+import { useCatalogService } from '@/composables/useCategoryService'
+
+const catalog = useCatalogService()
+
+// (Tu liga es 1, pero dejo el select por si luego lo usas)
+interface LeagueOption {
+  id: number
+  name: string
+}
+
+interface SeasonOption {
+  id: number
+  name: string
+  leagueId: number
+}
+
+const leagues = ref<LeagueOption[]>([{ id: 1, name: 'Liga Tochero5' }])
+
+const seasons = ref<SeasonOption[]>([
+  { id: 1, name: 'Temporada Acatlán', leagueId: 1 }
+])
+
+// ✅ Ahora categorías vienen del BACK
+const categories = ref<CategoryDto[]>([])
+const categoriesLoading = ref(false)
+const categoriesError = ref<string | null>(null)
+
+const selectedLeagueId = ref<number>(0)
+const selectedSeasonId = ref<number>(0)
+const selectedCategoryId = ref<number>(0)
+
+const availableSeasons = computed(() =>
+  seasons.value.filter((s) => !selectedLeagueId.value || s.leagueId === selectedLeagueId.value)
+)
+
+// ✅ Ya NO filtramos por seasonId (tu CategoryModel no tiene seasonId)
+const availableCategories = computed(() =>
+  categories.value.filter((c) => !selectedLeagueId.value || c.leagueId === selectedLeagueId.value)
+)
+
+const fetchCategories = async () => {
+  categoriesError.value = null
+  try {
+    categoriesLoading.value = true
+
+    // Como solo hay una liga, si no hay seleccionado, usa 1
+    const leagueIdToUse = selectedLeagueId.value || 1
+
+    categories.value = await catalog.getCategories({ leagueId: leagueIdToUse })
+  } catch (e) {
+    console.error('Error cargando /categories', e)
+    categoriesError.value = 'No se pudieron cargar las categorías.'
+    categories.value = []
+  } finally {
+    categoriesLoading.value = false
+  }
+}
+
+watch(
+  () => selectedLeagueId.value,
+  async () => {
+    selectedSeasonId.value = 0
+    selectedCategoryId.value = 0
+    await fetchCategories()
+  }
+)
+
+watch(
+  () => selectedSeasonId.value,
+  () => {
+    // si cambias temporada, solo resetea la categoría (aunque no filtramos por season)
+    selectedCategoryId.value = 0
+  }
+)
+
   watch(
     () => selectedLeagueId.value,
     () => {
