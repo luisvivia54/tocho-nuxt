@@ -5,17 +5,27 @@
       class="navbar fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-[#111827] to-[#1F2937] text-white shadow-lg"
     >
       <nav class="max-w-6xl mx-auto container-pad px-6 py-4 flex items-center justify-between">
-        <!-- LOGO -->
-        <NuxtLink to="/" class="flex items-center gap-3" @click="closeMobile">
-          <span
-            class="w-9 h-9 rounded-xl grid place-items-center bg-[rgba(59,130,246,.25)] text-[13px] font-extrabold text-blue-300"
-          >
-            T5
-          </span>
-          <span class="font-display text-xl sm:text-2xl font-extrabold tracking-wide text-white">
-            tochero<span class="text-blue-400">5</span>liga
-          </span>
-        </NuxtLink>
+       <!-- LOGO -->
+<NuxtLink to="/" class="flex items-center gap-3" @click="closeMobile">
+  <!-- Imagen (reemplaza el T5) -->
+  <span
+    class="w-9 h-9 rounded-xl overflow-hidden bg-[rgba(59,130,246,.25)] ring-1 ring-white/10 shadow-sm"
+    aria-hidden="true"
+  >
+    <img
+      src="/img/sponsors/Tochero5.JPG"
+      alt="Tochero5"
+      class="w-full h-full object-cover"
+      loading="eager"
+      decoding="async"
+    />
+  </span>
+
+  <span class="font-display text-xl sm:text-2xl font-extrabold tracking-wide text-white">
+    tochero<span class="text-blue-400">5</span>liga
+  </span>
+</NuxtLink>
+
 
         <!-- NAV DESKTOP -->
         <div class="hidden sm:flex items-center gap-5 text-sm text-slate-100">

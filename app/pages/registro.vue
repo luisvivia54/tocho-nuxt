@@ -3,6 +3,9 @@
   import { useNuxtApp, useRuntimeConfig, useRouter } from '#imports'
   import { useAuthz } from '@/composables/useAuthz'
   
+  import type { CategoryDto } from '@/composables/useCategoryService'
+  import { useCatalogService } from '@/composables/useCategoryService'
+  
   const authz = useAuthz()
   const rawIsAuthenticated = (authz as any).isAuthenticated
   
@@ -52,7 +55,6 @@
     photoPreview: string | null
   }
   
-  
   // ================== ESTADO BACK (teams/mine) ==================
   const myTeams = ref<MyTeamsInfo | null>(null)
   const captainLoading = ref(false)
@@ -88,9 +90,7 @@
   
       const resp = await $fetch<MyTeamsInfo>('/teams/mine', {
         baseURL: config.public.apiBase,
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       })
   
       myTeams.value = resp
@@ -102,96 +102,130 @@
     }
   }
   
-  // ================== LIGA / TEMPORADA / CATEGORÍA ==================
+  // ================== LIGA / TEMPORADA / CATÁLOGO ==================
+  const catalog = useCatalogService()
   
-// ================== LIGA / TEMPORADA / CATEGORÍA ==================
-import type { CategoryDto } from '@/composables/useCategoryService'
-import { useCatalogService } from '@/composables/useCategoryService'
-
-const catalog = useCatalogService()
-
-// (Tu liga es 1, pero dejo el select por si luego lo usas)
-interface LeagueOption {
-  id: number
-  name: string
-}
-
-interface SeasonOption {
-  id: number
-  name: string
-  leagueId: number
-}
-
-const leagues = ref<LeagueOption[]>([{ id: 1, name: 'Liga Tochero5' }])
-
-const seasons = ref<SeasonOption[]>([
-  { id: 1, name: 'Temporada Acatlán', leagueId: 1 }
-])
-
-// ✅ Ahora categorías vienen del BACK
-const categories = ref<CategoryDto[]>([])
-const categoriesLoading = ref(false)
-const categoriesError = ref<string | null>(null)
-
-const selectedLeagueId = ref<number>(0)
-const selectedSeasonId = ref<number>(0)
-const selectedCategoryId = ref<number>(0)
-
-const availableSeasons = computed(() =>
-  seasons.value.filter((s) => !selectedLeagueId.value || s.leagueId === selectedLeagueId.value)
-)
-
-// ✅ Ya NO filtramos por seasonId (tu CategoryModel no tiene seasonId)
-const availableCategories = computed(() =>
-  categories.value.filter((c) => !selectedLeagueId.value || c.leagueId === selectedLeagueId.value)
-)
-
-const fetchCategories = async () => {
-  categoriesError.value = null
-  try {
-    categoriesLoading.value = true
-
-    // Como solo hay una liga, si no hay seleccionado, usa 1
-    const leagueIdToUse = selectedLeagueId.value || 1
-
-    categories.value = await catalog.getCategories({ leagueId: leagueIdToUse })
-  } catch (e) {
-    console.error('Error cargando /categories', e)
-    categoriesError.value = 'No se pudieron cargar las categorías.'
-    categories.value = []
-  } finally {
-    categoriesLoading.value = false
+  interface LeagueOption {
+    id: number
+    name: string
   }
-}
-
-watch(
-  () => selectedLeagueId.value,
-  async () => {
-    selectedSeasonId.value = 0
-    selectedCategoryId.value = 0
-    await fetchCategories()
+  interface SeasonOption {
+    id: number
+    name: string
+    leagueId: number
   }
-)
-
-watch(
-  () => selectedSeasonId.value,
-  () => {
-    // si cambias temporada, solo resetea la categoría (aunque no filtramos por season)
-    selectedCategoryId.value = 0
+  
+  const leagues = ref<LeagueOption[]>([{ id: 1, name: 'Liga Tochero5' }])
+  const seasons = ref<SeasonOption[]>([{ id: 1, name: 'Temporada Acatlán', leagueId: 1 }])
+  
+  const selectedLeagueId = ref<number>(0)
+  const selectedSeasonId = ref<number>(0)
+  
+  // catálogo real
+  const categories = ref<CategoryDto[]>([])
+  const categoriesLoading = ref(false)
+  const categoriesError = ref<string | null>(null)
+  
+  // lo que se manda al back
+  const selectedCategoryId = ref<number>(0)
+  
+  // NUEVO: selects que ve el usuario
+  const selectedGender = ref<string>('') // FEMENIL | VARONIL | MIXTO
+  const selectedRama = ref<string>('')   // U16 | SUB18 | etc
+  
+  const availableSeasons = computed(() =>
+    seasons.value.filter((s) => !selectedLeagueId.value || s.leagueId === selectedLeagueId.value)
+  )
+  
+  const norm = (v?: string | null) => (v ?? '').trim().toUpperCase()
+  
+  const prettyGender = (g: string) => {
+    const key = norm(g)
+    if (key === 'FEMENIL') return 'Femenil'
+    if (key === 'VARONIL') return 'Varonil'
+    if (key === 'MIXTO') return 'Mixto'
+    return g
   }
-)
-
+  
+  // opciones para “Categoría” (gender)
+  const genderOptions = computed(() => {
+    const set = new Map<string, string>()
+    for (const c of categories.value) {
+      const g = norm(c.gender)
+      if (g) set.set(g, prettyGender(g))
+    }
+    return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
+  })
+  
+  // opciones para “Rama” (code) filtrada por gender
+  const ramaOptions = computed(() => {
+    if (!selectedGender.value) return []
+    const set = new Map<string, string>()
+    for (const c of categories.value) {
+      if (norm(c.gender) !== selectedGender.value) continue
+      const codeKey = norm(c.code)
+      if (codeKey) set.set(codeKey, c.code) // label original
+    }
+    return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
+  })
+  
+  // resuelve la fila real (category) con gender+code => categoryId
+  const selectedCategory = computed(() => {
+    if (!selectedGender.value || !selectedRama.value) return null
+    return (
+      categories.value.find(
+        (c) => norm(c.gender) === selectedGender.value && norm(c.code) === selectedRama.value
+      ) ?? null
+    )
+  })
+  
+  // cuando ya hay match, llena categoryId
+  watch(selectedCategory, (c) => {
+    selectedCategoryId.value = c?.id ?? 0
+  })
+  
+  // carga categorías del back
+  const fetchCategories = async () => {
+    categoriesError.value = null
+    try {
+      categoriesLoading.value = true
+      const leagueIdToUse = selectedLeagueId.value || 1
+      categories.value = await catalog.getCategories({ leagueId: leagueIdToUse })
+    } catch (e) {
+      console.error('Error cargando /categories', e)
+      categoriesError.value = 'No se pudieron cargar las categorías.'
+      categories.value = []
+    } finally {
+      categoriesLoading.value = false
+    }
+  }
+  
+  // watchers de selects
   watch(
     () => selectedLeagueId.value,
-    () => {
+    async () => {
       selectedSeasonId.value = 0
+      selectedGender.value = ''
+      selectedRama.value = ''
       selectedCategoryId.value = 0
+      await fetchCategories()
     }
   )
   
   watch(
     () => selectedSeasonId.value,
     () => {
+      // no filtras por season en el catálogo, pero sí reseteas selección
+      selectedGender.value = ''
+      selectedRama.value = ''
+      selectedCategoryId.value = 0
+    }
+  )
+  
+  watch(
+    () => selectedGender.value,
+    () => {
+      selectedRama.value = ''
       selectedCategoryId.value = 0
     }
   )
@@ -219,9 +253,7 @@ watch(
   
   const initPlayers = () => {
     players.value = []
-    for (let i = 0; i < 5; i++) {
-      players.value.push(createEmptyPlayer(i + 1))
-    }
+    for (let i = 0; i < 5; i++) players.value.push(createEmptyPlayer(i + 1))
   }
   initPlayers()
   
@@ -242,8 +274,7 @@ watch(
   
   // Foto jugador
   const onPlayerPhotoChange = (index: number, event: Event) => {
-    const list = players.value
-    const player = list[index]
+    const player = players.value[index]
     if (!player) return
   
     const target = event.target as HTMLInputElement | null
@@ -260,17 +291,15 @@ watch(
   }
   
   const addPlayer = () => {
-    const list = players.value
-    const last = list[list.length - 1]
+    const last = players.value[players.value.length - 1]
     const nextId = last ? last.id + 1 : 1
-    list.push(createEmptyPlayer(nextId))
+    players.value.push(createEmptyPlayer(nextId))
   }
   
   const removePlayer = (index: number) => {
-    const list = players.value
-    if (index < 0 || index >= list.length) return
-    list.splice(index, 1)
-    if (list.length === 0) list.push(createEmptyPlayer(1))
+    if (index < 0 || index >= players.value.length) return
+    players.value.splice(index, 1)
+    if (players.value.length === 0) players.value.push(createEmptyPlayer(1))
   }
   
   // ================== BORRADOR LOCAL ==================
@@ -294,6 +323,8 @@ watch(
     leagueId?: number
     seasonId?: number
     categoryId?: number
+    gender?: string
+    rama?: string
     players?: DraftPlayer[]
   }
   
@@ -307,6 +338,8 @@ watch(
         leagueId: selectedLeagueId.value,
         seasonId: selectedSeasonId.value,
         categoryId: selectedCategoryId.value,
+        gender: selectedGender.value,
+        rama: selectedRama.value,
         players: players.value.map((p) => ({
           id: p.id,
           fullName: p.fullName,
@@ -314,6 +347,7 @@ watch(
           jerseyNumber: p.jerseyNumber === null ? undefined : p.jerseyNumber
         }))
       }
+  
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
         successMessage.value = 'Cambios guardados localmente. No se ha enviado aún a la liga.'
@@ -340,6 +374,9 @@ watch(
   
       selectedLeagueId.value = draft.leagueId ?? 0
       selectedSeasonId.value = draft.seasonId ?? 0
+  
+      selectedGender.value = draft.gender ?? ''
+      selectedRama.value = draft.rama ?? ''
       selectedCategoryId.value = draft.categoryId ?? 0
   
       const playersDraft = draft.players ?? []
@@ -368,6 +405,8 @@ watch(
   
     selectedLeagueId.value = 0
     selectedSeasonId.value = 0
+    selectedGender.value = ''
+    selectedRama.value = ''
     selectedCategoryId.value = 0
   
     initPlayers()
@@ -407,8 +446,9 @@ watch(
       return
     }
   
+    // ✅ ahora también exige rama/categoría real
     if (!selectedLeagueId.value || !selectedSeasonId.value || !selectedCategoryId.value) {
-      errorMessage.value = 'Selecciona liga, temporada y categoría antes de registrar el equipo.'
+      errorMessage.value = 'Selecciona liga, temporada, categoría y rama antes de registrar el equipo.'
       return
     }
   
@@ -456,9 +496,7 @@ watch(
           baseURL: config.public.apiBase,
           method: 'POST',
           body: formLogo,
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` }
         })
       }
   
@@ -471,40 +509,29 @@ watch(
           formPlayer.append('fullName', p.fullName)
           formPlayer.append('curp', p.curp)
   
-          if (
-            p.jerseyNumber !== null &&
-            p.jerseyNumber !== undefined &&
-            p.jerseyNumber !== ('' as any)
-          ) {
+          if (p.jerseyNumber !== null && p.jerseyNumber !== undefined && p.jerseyNumber !== ('' as any)) {
             formPlayer.append('jerseyNumber', String(p.jerseyNumber))
           }
   
-          if (p.photoFile) {
-            formPlayer.append('photo', p.photoFile)
-          }
+          if (p.photoFile) formPlayer.append('photo', p.photoFile)
   
           try {
             await $fetch(`/teams/${createdTeamId}/players`, {
               baseURL: config.public.apiBase,
               method: 'POST',
               body: formPlayer,
-              headers: {
-                Authorization: `Bearer ${token}`
-              }
+              headers: { Authorization: `Bearer ${token}` }
             })
           } catch (errPlayer: any) {
             const status = getStatusCode(errPlayer)
             if (status === 413) {
-              // Foto demasiado grande
               successMessage.value =
-                'El equipo se creó correctamente, pero una o más fotos de jugador pesan demasiado y no se pudieron subir. ' +
-                'Usa fotos más ligeras (por ejemplo < 5–10 MB) y súbelas después desde "Mi equipo".'
+                'El equipo se creó correctamente, pero una o más fotos pesan demasiado y no se pudieron subir. ' +
+                'Usa fotos más ligeras y súbelas después desde "Mi equipo".'
               errorMessage.value = ''
               break
             } else {
               console.error('Error creando jugador', errPlayer)
-              // puedes decidir si sigues con el resto o terminas aquí
-              // break
             }
           }
         }
@@ -517,9 +544,7 @@ watch(
       successMessage.value = `Equipo "${createdTeamName}" registrado correctamente.`
       errorMessage.value = ''
   
-      if (createdTeamId) {
-        await router.push(`/teams/${createdTeamId}`)
-      }
+      if (createdTeamId) await router.push(`/teams/${createdTeamId}`)
     } catch (err: any) {
       console.error('Error al enviar registro:', err)
       const status = getStatusCode(err)
@@ -543,8 +568,15 @@ watch(
   }
   
   // ================== CICLO DE VIDA ==================
-  onMounted(() => {
+  onMounted(async () => {
     loadDraft()
+  
+    // auto-selección si solo hay 1 liga/temporada
+    if (!selectedLeagueId.value) selectedLeagueId.value = leagues.value[0]?.id ?? 0
+    if (!selectedSeasonId.value) selectedSeasonId.value = seasons.value[0]?.id ?? 0
+  
+    await fetchCategories()
+  
     if (isAuthenticated.value) {
       fetchMyTeams()
     }
@@ -553,11 +585,8 @@ watch(
   watch(
     () => isAuthenticated.value,
     (value) => {
-      if (value) {
-        fetchMyTeams()
-      } else {
-        myTeams.value = null
-      }
+      if (value) fetchMyTeams()
+      else myTeams.value = null
     }
   )
   </script>
@@ -631,12 +660,9 @@ watch(
             class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
           >
             <div>
-              <p class="font-semibold mb-1">
-                Ya alcanzaste el límite de equipos registrados.
-              </p>
+              <p class="font-semibold mb-1">Ya alcanzaste el límite de equipos registrados.</p>
               <p class="text-sm">
-                Tienes
-                <strong>{{ myTeams.currentTeams }}</strong> de
+                Tienes <strong>{{ myTeams.currentTeams }}</strong> de
                 <strong>{{ myTeams.maxTeamsAllowed }}</strong> equipo(s) permitidos.
               </p>
             </div>
@@ -654,9 +680,7 @@ watch(
             class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
           >
             <!-- Header -->
-            <div
-              class="px-6 py-4 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] flex items-center justify-between"
-            >
+            <div class="px-6 py-4 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] flex items-center justify-between">
               <div>
                 <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
                   registro de capitán
@@ -705,15 +729,13 @@ watch(
                   </div>
                 </div>
   
-                <!-- Liga / Temporada / Categoría -->
-                <div class="grid md:grid-cols-3 gap-4 mt-2">
+                <!-- ✅ Liga / Temporada / Categoría / Rama -->
+                <div class="grid md:grid-cols-4 gap-4 mt-2">
                   <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
-                      Liga
-                    </label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Liga</label>
                     <select
                       v-model.number="selectedLeagueId"
-                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900"
                     >
                       <option :value="0" disabled>Selecciona liga</option>
                       <option v-for="league in leagues" :key="league.id" :value="league.id">
@@ -723,13 +745,11 @@ watch(
                   </div>
   
                   <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
-                      Temporada
-                    </label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Temporada</label>
                     <select
                       v-model.number="selectedSeasonId"
                       :disabled="!selectedLeagueId"
-                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70 disabled:bg-slate-100 disabled:text-slate-400"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
                     >
                       <option :value="0" disabled>
                         {{ selectedLeagueId ? 'Selecciona temporada' : 'Primero elige una liga' }}
@@ -741,40 +761,51 @@ watch(
                   </div>
   
                   <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
-                      Categoría
-                    </label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Categoría</label>
                     <select
-                      v-model.number="selectedCategoryId"
-                      :disabled="!selectedSeasonId"
-                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70 disabled:bg-slate-100 disabled:text-slate-400"
+                      v-model="selectedGender"
+                      :disabled="categoriesLoading || !selectedLeagueId"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
                     >
-                      <option :value="0" disabled>
-                        {{ selectedSeasonId ? 'Selecciona categoría' : 'Primero elige temporada' }}
+                      <option value="" disabled>
+                        {{ categoriesLoading ? 'Cargando…' : 'Selecciona categoría' }}
                       </option>
-                      <option
-                        v-for="category in availableCategories"
-                        :key="category.id"
-                        :value="category.id"
-                      >
-                        {{ category.name }}
+                      <option v-for="g in genderOptions" :key="g.value" :value="g.value">
+                        {{ g.label }}
+                      </option>
+                    </select>
+                    <p v-if="categoriesError" class="mt-1 text-[11px] text-red-600">
+                      {{ categoriesError }}
+                    </p>
+                  </div>
+  
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Rama</label>
+                    <select
+                      v-model="selectedRama"
+                      :disabled="!selectedGender"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="" disabled>
+                        {{ selectedGender ? 'Selecciona rama' : 'Primero elige categoría' }}
+                      </option>
+                      <option v-for="r in ramaOptions" :key="r.value" :value="r.value">
+                        {{ r.label }}
                       </option>
                     </select>
                   </div>
                 </div>
   
+                <div v-if="selectedCategory" class="mt-2 text-[11px] text-slate-500">
+                  Seleccionaste: <span class="font-semibold">{{ selectedCategory.name }}</span>
+                </div>
+  
                 <!-- Colores (solo adorno) -->
                 <div class="grid md:grid-cols-2 gap-4 mt-2">
                   <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
-                      Color primario
-                    </label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Color primario</label>
                     <div class="flex items-center gap-3">
-                      <input
-                        v-model="colorPrimary"
-                        type="color"
-                        class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer"
-                      />
+                      <input v-model="colorPrimary" type="color" class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer" />
                       <input
                         v-model="colorPrimary"
                         type="text"
@@ -782,21 +813,12 @@ watch(
                         placeholder="#1D4ED8 o blue"
                       />
                     </div>
-                    <p class="mt-1 text-[11px] text-slate-500">
-                      Se usa para fondos y acentos principales de tu equipo.
-                    </p>
                   </div>
   
                   <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
-                      Color secundario
-                    </label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Color secundario</label>
                     <div class="flex items-center gap-3">
-                      <input
-                        v-model="colorSecondary"
-                        type="color"
-                        class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer"
-                      />
+                      <input v-model="colorSecondary" type="color" class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer" />
                       <input
                         v-model="colorSecondary"
                         type="text"
@@ -804,20 +826,13 @@ watch(
                         placeholder="#FFFFFF o white"
                       />
                     </div>
-                    <p class="mt-1 text-[11px] text-slate-500">
-                      Se usa para detalles, números y contrastes.
-                    </p>
                   </div>
                 </div>
   
                 <!-- Logo del equipo -->
-                <div
-                  class="grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 items-start mt-2"
-                >
+                <div class="grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 items-start mt-2">
                   <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
-                      Logo del equipo
-                    </label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Logo del equipo</label>
                     <p class="text-[11px] text-slate-500 mb-2">
                       Sube el logo oficial de tu equipo (JPG o PNG, recomendado 512×512px).
                     </p>
@@ -830,18 +845,9 @@ watch(
                   </div>
   
                   <div class="flex justify-center md:justify-end">
-                    <div
-                      class="w-28 h-28 rounded-2xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden"
-                    >
-                      <img
-                        v-if="logoPreview"
-                        :src="logoPreview"
-                        alt="Logo del equipo"
-                        class="w-full h-full object-contain"
-                      />
-                      <span v-else class="text-[11px] text-slate-400 text-center px-2">
-                        Previsualización del logo
-                      </span>
+                    <div class="w-28 h-28 rounded-2xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
+                      <img v-if="logoPreview" :src="logoPreview" alt="Logo del equipo" class="w-full h-full object-contain" />
+                      <span v-else class="text-[11px] text-slate-400 text-center px-2">Previsualización del logo</span>
                     </div>
                   </div>
                 </div>
@@ -874,9 +880,7 @@ watch(
                   >
                     <div class="flex items-start justify-between gap-3 mb-3">
                       <div class="flex items-center gap-2 text-xs text-slate-500">
-                        <span
-                          class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white"
-                        >
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white">
                           {{ index + 1 }}
                         </span>
                         <span>Integrante</span>
@@ -891,10 +895,7 @@ watch(
                       </button>
                     </div>
   
-                    <div
-                      class="grid md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-4 items-start"
-                    >
-                      <!-- Datos -->
+                    <div class="grid md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-4 items-start">
                       <div class="space-y-3">
                         <div>
                           <label class="block text-[11px] font-semibold text-slate-700 mb-1">
@@ -936,7 +937,6 @@ watch(
                         </div>
                       </div>
   
-                      <!-- Foto -->
                       <div class="space-y-2">
                         <label class="block text-[11px] font-semibold text-slate-700 mb-1">
                           Foto del jugador(a)
@@ -951,15 +951,8 @@ watch(
                           @change="onPlayerPhotoChange(index, $event)"
                         />
   
-                        <div
-                          class="mt-2 w-full h-24 rounded-2xl border border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden"
-                        >
-                          <img
-                            v-if="player.photoPreview"
-                            :src="player.photoPreview"
-                            alt="Foto del jugador"
-                            class="w-full h-full object-cover"
-                          />
+                        <div class="mt-2 w-full h-24 rounded-2xl border border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden">
+                          <img v-if="player.photoPreview" :src="player.photoPreview" alt="Foto del jugador" class="w-full h-full object-cover" />
                           <span v-else class="text-[11px] text-slate-400 px-2 text-center">
                             Previsualización de la foto
                           </span>
@@ -970,8 +963,7 @@ watch(
                 </div>
   
                 <p class="text-[11px] text-slate-500">
-                  Puedes agregar más integrantes después desde la pantalla de
-                  <strong>"Mi equipo"</strong>.
+                  Puedes agregar más integrantes después desde la pantalla de <strong>"Mi equipo"</strong>.
                 </p>
               </div>
   

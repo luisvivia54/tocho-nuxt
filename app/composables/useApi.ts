@@ -1,11 +1,13 @@
 // composables/useApi.ts
+import type { MaybeRefOrGetter } from 'vue'
+import { toValue } from 'vue'
 import { useRuntimeConfig, useFetch } from '#imports'
 
-// Pequeño wrapper para llamar a tu backend
-export function useApi<T>(path: string) {
+export function useApi<T>(path: MaybeRefOrGetter<string>) {
   const config = useRuntimeConfig()
 
-  return useFetch<T>(path, {
+  // ✅ Pasamos un getter: useFetch lo reactiva cuando cambie un computed/ref dentro
+  return useFetch<T>(() => toValue(path), {
     baseURL: config.public.apiBase,
   })
 }

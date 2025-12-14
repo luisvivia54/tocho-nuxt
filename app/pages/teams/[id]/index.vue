@@ -94,8 +94,8 @@
                     v-if="team.category"
                     class="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 border border-white/10"
                   >
-                    Categoría:
-                    <span class="font-semibold">{{ team.category.name }}</span>
+                    Rama:
+                    <span class="font-semibold">{{ team.category.code }}</span>
                   </span>
 
                   <span
@@ -412,6 +412,8 @@ interface Season {
 interface Category {
   id: number
   name: string
+  code: string
+  gender: string
 }
 
 interface ApiTeam {
@@ -509,8 +511,8 @@ const teamActive = computed(() => true)
 
 const subtitleText = computed(() => {
   const season = team.value?.season?.name
-  const category = team.value?.category?.name
-  if (season && category) return `${season} · ${category}`
+  const category = team.value?.category?.gender
+  if (season && category) return `temporada ${season} · categoria ${category}`
   if (season) return season
   if (category) return category
   return 'Roster y resultados oficiales para esta temporada.'
