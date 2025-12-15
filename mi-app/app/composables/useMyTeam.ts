@@ -41,7 +41,7 @@ export function useMyTeam() {
 
       summary.value = data
     } catch (err: any) {
-      console.error('Error cargando /api/teams/mine:', err)
+      console.error('Error cargando /api/teams/mine: lol', err)
       error.value = String(err)
     } finally {
       loading.value = false
