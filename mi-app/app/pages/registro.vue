@@ -1,7 +1,10 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, watch } from 'vue'
-  import { useNuxtApp, useRuntimeConfig } from '#imports'
+  import { useNuxtApp, useRuntimeConfig, useRouter } from '#imports'
   import { useAuthz } from '@/composables/useAuthz'
+  
+  import type { CategoryDto } from '@/composables/useCategoryService'
+  import { useCatalogService } from '@/composables/useCategoryService'
   
   const authz = useAuthz()
   const rawIsAuthenticated = (authz as any).isAuthenticated
@@ -16,6 +19,7 @@
   
   const nuxtApp = useNuxtApp()
   const config = useRuntimeConfig()
+  const router = useRouter()
   
   // ================== TIPOS ==================
   interface MyTeamItem {
@@ -46,26 +50,9 @@
     id: number
     fullName: string
     curp: string
+    jerseyNumber: number | null
     photoFile: File | null
     photoPreview: string | null
-  }
-  
-  // Opciones de liga / temporada / categoría (de momento estático)
-  interface LeagueOption {
-    id: number
-    name: string
-  }
-  
-  interface SeasonOption {
-    id: number
-    name: string
-    leagueId: number
-  }
-  
-  interface CategoryOption {
-    id: number
-    name: string
-    seasonId: number
   }
   
   // ================== ESTADO BACK (teams/mine) ==================
@@ -76,7 +63,7 @@
   const mainTeam = computed<MyTeamItem | null>(() => myTeams.value?.teams?.[0] ?? null)
   
   const mainTeamLink = computed(() => {
-    return mainTeam.value ? `/equipos/${mainTeam.value.teamId}` : '/mi-equipo'
+    return mainTeam.value ? `/teams/${mainTeam.value.teamId}` : '/mi-equipo'
   })
   
   const canRegisterTeam = computed(() => {
@@ -103,9 +90,7 @@
   
       const resp = await $fetch<MyTeamsInfo>('/teams/mine', {
         baseURL: config.public.apiBase,
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       })
   
       myTeams.value = resp
@@ -117,48 +102,130 @@
     }
   }
   
-  // ================== LIGA / TEMPORADA / CATEGORÍA ==================
-  // De momento estático para que funcione. Luego puedes cambiarlos
-  // a llamadas reales al backend si quieres.
-  const leagues = ref<LeagueOption[]>([
-    { id: 1, name: 'Liga Tochero5' }
-    // Agrega más ligas si lo necesitas
-  ])
+  // ================== LIGA / TEMPORADA / CATÁLOGO ==================
+  const catalog = useCatalogService()
   
-  const seasons = ref<SeasonOption[]>([
-    { id: 1, name: 'Temporada Acatlán', leagueId: 1 }
-    // Agrega más temporadas
-  ])
+  interface LeagueOption {
+    id: number
+    name: string
+  }
+  interface SeasonOption {
+    id: number
+    name: string
+    leagueId: number
+  }
   
-  const categories = ref<CategoryOption[]>([
-    { id: 1, name: 'Femenil U16', seasonId: 1 }
-    // Agrega más categorías
-  ])
+  const leagues = ref<LeagueOption[]>([{ id: 1, name: 'Liga Tochero5' }])
+  const seasons = ref<SeasonOption[]>([{ id: 1, name: 'Temporada Acatlán', leagueId: 1 }])
   
   const selectedLeagueId = ref<number>(0)
   const selectedSeasonId = ref<number>(0)
+  
+  // catálogo real
+  const categories = ref<CategoryDto[]>([])
+  const categoriesLoading = ref(false)
+  const categoriesError = ref<string | null>(null)
+  
+  // lo que se manda al back
   const selectedCategoryId = ref<number>(0)
+  
+  // NUEVO: selects que ve el usuario
+  const selectedGender = ref<string>('') // FEMENIL | VARONIL | MIXTO
+  const selectedRama = ref<string>('')   // U16 | SUB18 | etc
   
   const availableSeasons = computed(() =>
     seasons.value.filter((s) => !selectedLeagueId.value || s.leagueId === selectedLeagueId.value)
   )
   
-  const availableCategories = computed(() =>
-    categories.value.filter((c) => !selectedSeasonId.value || c.seasonId === selectedSeasonId.value)
-  )
+  const norm = (v?: string | null) => (v ?? '').trim().toUpperCase()
   
+  const prettyGender = (g: string) => {
+    const key = norm(g)
+    if (key === 'FEMENIL') return 'Femenil'
+    if (key === 'VARONIL') return 'Varonil'
+    if (key === 'MIXTO') return 'Mixto'
+    return g
+  }
+  
+  // opciones para “Categoría” (gender)
+  const genderOptions = computed(() => {
+    const set = new Map<string, string>()
+    for (const c of categories.value) {
+      const g = norm(c.gender)
+      if (g) set.set(g, prettyGender(g))
+    }
+    return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
+  })
+  
+  // opciones para “Rama” (code) filtrada por gender
+  const ramaOptions = computed(() => {
+    if (!selectedGender.value) return []
+    const set = new Map<string, string>()
+    for (const c of categories.value) {
+      if (norm(c.gender) !== selectedGender.value) continue
+      const codeKey = norm(c.code)
+      if (codeKey) set.set(codeKey, c.code) // label original
+    }
+    return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
+  })
+  
+  // resuelve la fila real (category) con gender+code => categoryId
+  const selectedCategory = computed(() => {
+    if (!selectedGender.value || !selectedRama.value) return null
+    return (
+      categories.value.find(
+        (c) => norm(c.gender) === selectedGender.value && norm(c.code) === selectedRama.value
+      ) ?? null
+    )
+  })
+  
+  // cuando ya hay match, llena categoryId
+  watch(selectedCategory, (c) => {
+    selectedCategoryId.value = c?.id ?? 0
+  })
+  
+  // carga categorías del back
+  const fetchCategories = async () => {
+    categoriesError.value = null
+    try {
+      categoriesLoading.value = true
+      const leagueIdToUse = selectedLeagueId.value || 1
+      categories.value = await catalog.getCategories({ leagueId: leagueIdToUse })
+    } catch (e) {
+      console.error('Error cargando /categories', e)
+      categoriesError.value = 'No se pudieron cargar las categorías.'
+      categories.value = []
+    } finally {
+      categoriesLoading.value = false
+    }
+  }
+  
+  // watchers de selects
   watch(
     () => selectedLeagueId.value,
-    () => {
-      // reset cascada
+    async () => {
       selectedSeasonId.value = 0
+      selectedGender.value = ''
+      selectedRama.value = ''
       selectedCategoryId.value = 0
+      await fetchCategories()
     }
   )
   
   watch(
     () => selectedSeasonId.value,
     () => {
+      // no filtras por season en el catálogo, pero sí reseteas selección
+      selectedGender.value = ''
+      selectedRama.value = ''
+      selectedCategoryId.value = 0
+    }
+  )
+  
+  watch(
+    () => selectedGender.value,
+    () => {
+      selectedRama.value = ''
       selectedCategoryId.value = 0
     }
   )
@@ -170,8 +237,8 @@
   const logoPreview = ref<string | null>(null)
   
   // Colores: SOLO de adorno, no se mandan al back
-  const colorPrimary = ref('#1D4ED8') // azul
-  const colorSecondary = ref('#FFFFFF') // blanco
+  const colorPrimary = ref('#1D4ED8')
+  const colorSecondary = ref('#FFFFFF')
   
   const players = ref<PlayerForm[]>([])
   
@@ -179,15 +246,14 @@
     id,
     fullName: '',
     curp: '',
+    jerseyNumber: null,
     photoFile: null,
     photoPreview: null
   })
   
   const initPlayers = () => {
     players.value = []
-    for (let i = 0; i < 5; i++) {
-      players.value.push(createEmptyPlayer(i + 1))
-    }
+    for (let i = 0; i < 5; i++) players.value.push(createEmptyPlayer(i + 1))
   }
   initPlayers()
   
@@ -208,8 +274,7 @@
   
   // Foto jugador
   const onPlayerPhotoChange = (index: number, event: Event) => {
-    const list = players.value
-    const player = list[index]
+    const player = players.value[index]
     if (!player) return
   
     const target = event.target as HTMLInputElement | null
@@ -226,17 +291,15 @@
   }
   
   const addPlayer = () => {
-    const list = players.value
-    const last = list[list.length - 1]
+    const last = players.value[players.value.length - 1]
     const nextId = last ? last.id + 1 : 1
-    list.push(createEmptyPlayer(nextId))
+    players.value.push(createEmptyPlayer(nextId))
   }
   
   const removePlayer = (index: number) => {
-    const list = players.value
-    if (index < 0 || index >= list.length) return
-    list.splice(index, 1)
-    if (list.length === 0) list.push(createEmptyPlayer(1))
+    if (index < 0 || index >= players.value.length) return
+    players.value.splice(index, 1)
+    if (players.value.length === 0) players.value.push(createEmptyPlayer(1))
   }
   
   // ================== BORRADOR LOCAL ==================
@@ -244,6 +307,13 @@
   
   const successMessage = ref('')
   const errorMessage = ref('')
+  
+  interface DraftPlayer {
+    id: number
+    fullName?: string
+    curp?: string
+    jerseyNumber?: number
+  }
   
   interface DraftData {
     teamName?: string
@@ -253,7 +323,9 @@
     leagueId?: number
     seasonId?: number
     categoryId?: number
-    players?: { id: number; fullName?: string; curp?: string }[]
+    gender?: string
+    rama?: string
+    players?: DraftPlayer[]
   }
   
   const saveDraft = () => {
@@ -266,12 +338,16 @@
         leagueId: selectedLeagueId.value,
         seasonId: selectedSeasonId.value,
         categoryId: selectedCategoryId.value,
+        gender: selectedGender.value,
+        rama: selectedRama.value,
         players: players.value.map((p) => ({
           id: p.id,
           fullName: p.fullName,
-          curp: p.curp
+          curp: p.curp,
+          jerseyNumber: p.jerseyNumber === null ? undefined : p.jerseyNumber
         }))
       }
+  
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
         successMessage.value = 'Cambios guardados localmente. No se ha enviado aún a la liga.'
@@ -298,6 +374,9 @@
   
       selectedLeagueId.value = draft.leagueId ?? 0
       selectedSeasonId.value = draft.seasonId ?? 0
+  
+      selectedGender.value = draft.gender ?? ''
+      selectedRama.value = draft.rama ?? ''
       selectedCategoryId.value = draft.categoryId ?? 0
   
       const playersDraft = draft.players ?? []
@@ -306,6 +385,7 @@
           id: p.id ?? idx + 1,
           fullName: p.fullName ?? '',
           curp: p.curp ?? '',
+          jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
           photoFile: null,
           photoPreview: null
         }))
@@ -325,6 +405,8 @@
   
     selectedLeagueId.value = 0
     selectedSeasonId.value = 0
+    selectedGender.value = ''
+    selectedRama.value = ''
     selectedCategoryId.value = 0
   
     initPlayers()
@@ -347,6 +429,9 @@
   // ================== SUBMIT ==================
   const submitting = ref(false)
   
+  const getStatusCode = (err: any): number | undefined =>
+    err?.statusCode ?? err?.response?.status ?? err?.response?._data?.status
+  
   const onSubmit = async () => {
     errorMessage.value = ''
     successMessage.value = ''
@@ -361,10 +446,14 @@
       return
     }
   
+    // ✅ ahora también exige rama/categoría real
     if (!selectedLeagueId.value || !selectedSeasonId.value || !selectedCategoryId.value) {
-      errorMessage.value = 'Selecciona liga, temporada y categoría antes de registrar el equipo.'
+      errorMessage.value = 'Selecciona liga, temporada, categoría y rama antes de registrar el equipo.'
       return
     }
+  
+    let createdTeamId: number | null = null
+    let createdTeamName = ''
   
     try {
       submitting.value = true
@@ -379,7 +468,7 @@
         return
       }
   
-      // 1) Crear equipo (solo mandamos lo que pide el back: name, leagueId, seasonId, categoryId)
+      // 1) Crear equipo
       const createdTeam = await $fetch<CreatedTeam>('/teams/mine', {
         baseURL: config.public.apiBase,
         method: 'POST',
@@ -395,61 +484,99 @@
         }
       })
   
-      const teamId = createdTeam.teamId
+      createdTeamId = createdTeam.teamId
+      createdTeamName = createdTeam.name
   
       // 2) Subir logo (si hay)
-      if (logoFile.value) {
+      if (logoFile.value && createdTeamId) {
         const formLogo = new FormData()
         formLogo.append('logo', logoFile.value)
   
-        await $fetch(`/teams/${teamId}/logo`, {
+        await $fetch(`/teams/${createdTeamId}/logo`, {
           baseURL: config.public.apiBase,
           method: 'POST',
           body: formLogo,
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` }
         })
       }
   
-      // 3) Crear jugadores (fullName + curp + foto; jersey/birthdate opcionales)
-      for (const p of players.value) {
-        if (!p.fullName.trim() || !p.curp.trim()) continue
+      // 3) Crear jugadores
+      if (createdTeamId) {
+        for (const p of players.value) {
+          if (!p.fullName.trim() || !p.curp.trim()) continue
   
-        const formPlayer = new FormData()
-        formPlayer.append('fullName', p.fullName)
-        formPlayer.append('curp', p.curp)
-        if (p.photoFile) {
-          formPlayer.append('photo', p.photoFile)
+          const formPlayer = new FormData()
+          formPlayer.append('fullName', p.fullName)
+          formPlayer.append('curp', p.curp)
+  
+          if (p.jerseyNumber !== null && p.jerseyNumber !== undefined && p.jerseyNumber !== ('' as any)) {
+            formPlayer.append('jerseyNumber', String(p.jerseyNumber))
+          }
+  
+          if (p.photoFile) formPlayer.append('photo', p.photoFile)
+  
+          try {
+            await $fetch(`/teams/${createdTeamId}/players`, {
+              baseURL: config.public.apiBase,
+              method: 'POST',
+              body: formPlayer,
+              headers: { Authorization: `Bearer ${token}` }
+            })
+          } catch (errPlayer: any) {
+            const status = getStatusCode(errPlayer)
+            if (status === 413) {
+              successMessage.value =
+                'El equipo se creó correctamente, pero una o más fotos pesan demasiado y no se pudieron subir. ' +
+                'Usa fotos más ligeras y súbelas después desde "Mi equipo".'
+              errorMessage.value = ''
+              break
+            } else {
+              console.error('Error creando jugador', errPlayer)
+            }
+          }
         }
-  
-        await $fetch(`/teams/${teamId}/players`, {
-          baseURL: config.public.apiBase,
-          method: 'POST',
-          body: formPlayer,
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
       }
   
-      successMessage.value =
-        'Equipo registrado correctamente. La organización revisará los datos de tu equipo.'
-      errorMessage.value = ''
-      clearProgress()
+      // 4) Refrescar info + limpiar
       await fetchMyTeams()
+      clearProgress()
+  
+      successMessage.value = `Equipo "${createdTeamName}" registrado correctamente.`
+      errorMessage.value = ''
+  
+      if (createdTeamId) await router.push(`/teams/${createdTeamId}`)
     } catch (err: any) {
       console.error('Error al enviar registro:', err)
-      errorMessage.value =
-        'Ocurrió un error al subir la información. Verifica tus datos o inténtalo más tarde.'
+      const status = getStatusCode(err)
+  
+      const rawMessage: string | undefined =
+        err?.data?.message ?? err?.response?._data?.message ?? err?.message
+  
+      if (rawMessage && rawMessage.includes('uq_team_league_name')) {
+        errorMessage.value =
+          'Ya existe un equipo con ese nombre en esta liga. Elige otro nombre o contacta al administrador.'
+      } else if (status === 413) {
+        errorMessage.value =
+          'La información enviada (logo o fotos) supera el tamaño máximo permitido. Intenta con archivos más ligeros.'
+      } else {
+        errorMessage.value =
+          'Ocurrió un error al subir la información. Verifica tus datos o inténtalo más tarde.'
+      }
     } finally {
       submitting.value = false
     }
   }
   
   // ================== CICLO DE VIDA ==================
-  onMounted(() => {
+  onMounted(async () => {
     loadDraft()
+  
+    // auto-selección si solo hay 1 liga/temporada
+    if (!selectedLeagueId.value) selectedLeagueId.value = leagues.value[0]?.id ?? 0
+    if (!selectedSeasonId.value) selectedSeasonId.value = seasons.value[0]?.id ?? 0
+  
+    await fetchCategories()
+  
     if (isAuthenticated.value) {
       fetchMyTeams()
     }
@@ -458,346 +585,433 @@
   watch(
     () => isAuthenticated.value,
     (value) => {
-      if (value) {
-        fetchMyTeams()
-      } else {
-        myTeams.value = null
-      }
+      if (value) fetchMyTeams()
+      else myTeams.value = null
     }
   )
   </script>
-<template>
-  <main class="bg-[#F3F4FF] text-slate-900 min-h-screen pt-24 md:pt-28 lg:pt-32">
-    <div class="max-w-5xl mx-auto container-pad px-6 pb-16">
-      <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2">
-        Registro de equipo
-      </h1>
-      <p class="text-sm text-slate-600 mb-6">
-        Completa la información de tu equipo. Esta información será visible para la organización de la liga.
-      </p>
-
-      <!-- Si NO está autenticado, pedimos login -->
-      <div
-        v-if="!isAuthenticated"
-        class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-      >
-        <div>
-          <h2 class="font-semibold text-slate-900 mb-1">Inicia sesión para registrar tu equipo</h2>
-          <p class="text-sm text-slate-600">
-            Necesitas entrar con tu cuenta para ligar el equipo a tu usuario de Keycloak.
-          </p>
-        </div>
-        <button
-          type="button"
-          class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-sm"
-          @click="onLoginClick"
-        >
-          Entrar con mi cuenta
-        </button>
-      </div>
-
-      <!-- BLOQUE PARA USUARIOS AUTENTICADOS -->
-      <div v-else class="mt-6 space-y-4">
-        <!-- Estado de capitán / capacidad -->
+  
+  <template>
+    <main class="bg-[#F3F4FF] text-slate-900 min-h-screen pt-24 md:pt-28 lg:pt-32">
+      <div class="max-w-5xl mx-auto container-pad px-6 pb-16">
+        <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2">
+          Registro de equipo
+        </h1>
+        <p class="text-sm text-slate-600 mb-6">
+          Completa la información de tu equipo. Esta información será visible para la organización de la liga.
+        </p>
+  
+        <!-- Login -->
         <div
-          v-if="captainLoading"
-          class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm"
-        >
-          Validando que tengas permisos para registrar un equipo...
-        </div>
-
-        <div
-          v-else-if="captainError"
-          class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm"
-        >
-          {{ captainError }}
-        </div>
-
-        <!-- No es capitán -->
-        <div
-          v-else-if="myTeams && !myTeams.hasCaptainPrivileges"
-          class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm"
-        >
-          <p class="font-semibold text-slate-900 mb-1">
-            Tu usuario no tiene rol de capitán.
-          </p>
-          <p class="text-sm text-slate-600">
-            Solo los usuarios con rol de <strong>capitán</strong> pueden registrar equipos. Ponte en
-            contacto con la organización para que actualicen tu rol.
-          </p>
-        </div>
-
-        <!-- Es capitán pero ya no puede crear más equipos -->
-        <div
-          v-else-if="myTeams && !myTeams.canCreateTeam"
-          class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          v-if="!isAuthenticated"
+          class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
         >
           <div>
-            <p class="font-semibold mb-1">
-              Ya alcanzaste el límite de equipos registrados.
-            </p>
-            <p class="text-sm">
-              Tienes
-              <strong>{{ myTeams.currentTeams }}</strong> de
-              <strong>{{ myTeams.maxTeamsAllowed }}</strong> equipo(s) permitidos.
+            <h2 class="font-semibold text-slate-900 mb-1">
+              Inicia sesión para registrar tu equipo
+            </h2>
+            <p class="text-sm text-slate-600">
+              Necesitas entrar con tu cuenta para ligar el equipo a tu usuario de Keycloak.
             </p>
           </div>
-          <NuxtLink
-            :to="mainTeamLink"
-            class="inline-flex items-center rounded-xl border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+          <button
+            type="button"
+            class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-sm"
+            @click="onLoginClick"
           >
-            Ver mi equipo
-          </NuxtLink>
+            Entrar con mi cuenta
+          </button>
         </div>
-
-        <!-- Formulario de registro SOLO si puede crear equipo -->
-        <section
-          v-if="canRegisterTeam"
-          class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
-        >
-          <!-- Header -->
-          <div class="px-6 py-4 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] flex items-center justify-between">
-            <div>
-              <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
-                registro de capitán
-              </p>
-              <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">
-                Datos del equipo e integrantes
-              </h2>
-            </div>
-            <div class="hidden sm:block text-xs text-blue-50/85 text-right">
-              <p>Guarda cambios antes de salir.</p>
-              <p>Sube la información cuando esté completa.</p>
-            </div>
+  
+        <!-- BLOQUE PARA USUARIOS AUTENTICADOS -->
+        <div v-else class="mt-6 space-y-4">
+          <!-- Estado de capitán / capacidad -->
+          <div
+            v-if="captainLoading"
+            class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm"
+          >
+            Validando que tengas permisos para registrar un equipo...
           </div>
-
-          <form class="px-6 py-8 space-y-8" @submit.prevent="onSubmit">
-            <!-- Datos del equipo -->
-            <div class="space-y-4">
-              <h3 class="font-semibold text-slate-900 text-lg">Datos del equipo</h3>
-              <p class="text-xs text-slate-500">
-                Estos datos identifican a tu equipo dentro de la liga.
+  
+          <div
+            v-else-if="captainError"
+            class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm"
+          >
+            {{ captainError }}
+          </div>
+  
+          <!-- No es capitán -->
+          <div
+            v-else-if="myTeams && !myTeams.hasCaptainPrivileges"
+            class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm"
+          >
+            <p class="font-semibold text-slate-900 mb-1">
+              Tu usuario no tiene rol de capitán.
+            </p>
+            <p class="text-sm text-slate-600">
+              Solo los usuarios con rol de <strong>capitán</strong> pueden registrar equipos. Ponte en
+              contacto con la organización para que actualicen tu rol.
+            </p>
+          </div>
+  
+          <!-- Es capitán pero ya no puede crear más equipos -->
+          <div
+            v-else-if="myTeams && !myTeams.canCreateTeam"
+            class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          >
+            <div>
+              <p class="font-semibold mb-1">Ya alcanzaste el límite de equipos registrados.</p>
+              <p class="text-sm">
+                Tienes <strong>{{ myTeams.currentTeams }}</strong> de
+                <strong>{{ myTeams.maxTeamsAllowed }}</strong> equipo(s) permitidos.
               </p>
-
-              <div class="grid md:grid-cols-3 gap-4">
-                <div class="md:col-span-2">
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">
-                    Nombre del equipo
-                  </label>
-                  <input
-                    v-model="teamName"
-                    type="text"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
-                    placeholder="Ej. Tigres del Norte"
-                  />
-                </div>
-
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">
-                    Nombre corto
-                  </label>
-                  <input
-                    v-model="teamShortName"
-                    type="text"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
-                    placeholder="Ej. TIG"
-                  />
-                </div>
+            </div>
+            <NuxtLink
+              :to="mainTeamLink"
+              class="inline-flex items-center rounded-xl border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+            >
+              Ver mi equipo
+            </NuxtLink>
+          </div>
+  
+          <!-- Formulario de registro SOLO si puede crear equipo -->
+          <section
+            v-if="canRegisterTeam"
+            class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
+          >
+            <!-- Header -->
+            <div class="px-6 py-4 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] flex items-center justify-between">
+              <div>
+                <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
+                  registro de capitán
+                </p>
+                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">
+                  Datos del equipo e integrantes
+                </h2>
               </div>
-
-              <!-- Liga / Temporada / Categoría -->
-              <div class="grid md:grid-cols-3 gap-4 mt-2">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">
-                    Liga
-                  </label>
-                  <select
-                    v-model.number="selectedLeagueId"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
-                  >
-                    <option :value="0" disabled>Selecciona liga</option>
-                    <option v-for="league in leagues" :key="league.id" :value="league.id">
-                      {{ league.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">
-                    Temporada
-                  </label>
-                  <select
-                    v-model.number="selectedSeasonId"
-                    :disabled="!selectedLeagueId"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70 disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    <option :value="0" disabled>
-                      {{ selectedLeagueId ? 'Selecciona temporada' : 'Primero elige una liga' }}
-                    </option>
-                    <option
-                      v-for="season in availableSeasons"
-                      :key="season.id"
-                      :value="season.id"
-                    >
-                      {{ season.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">
-                    Categoría
-                  </label>
-                  <select
-                    v-model.number="selectedCategoryId"
-                    :disabled="!selectedSeasonId"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70 disabled:bg-slate-100 disabled:text-slate-400"
-                  >
-                    <option :value="0" disabled>
-                      {{ selectedSeasonId ? 'Selecciona categoría' : 'Primero elige temporada' }}
-                    </option>
-                    <option
-                      v-for="category in availableCategories"
-                      :key="category.id"
-                      :value="category.id"
-                    >
-                      {{ category.name }}
-                    </option>
-                  </select>
-                </div>
+              <div class="hidden sm:block text-xs text-blue-50/85 text-right">
+                <p>Guarda cambios antes de salir.</p>
+                <p>Sube la información cuando esté completa.</p>
               </div>
-
-              <!-- Colores (solo adorno, no van al back) -->
-              <div class="grid md:grid-cols-2 gap-4 mt-2">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">
-                    Color primario
-                  </label>
-                  <div class="flex items-center gap-3">
+            </div>
+  
+            <form class="px-6 py-8 space-y-8" @submit.prevent="onSubmit">
+              <!-- Datos del equipo -->
+              <div class="space-y-4">
+                <h3 class="font-semibold text-slate-900 text-lg">Datos del equipo</h3>
+                <p class="text-xs text-slate-500">
+                  Estos datos identifican a tu equipo dentro de la liga.
+                </p>
+  
+                <div class="grid md:grid-cols-3 gap-4">
+                  <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      Nombre del equipo
+                    </label>
                     <input
-                      v-model="colorPrimary"
-                      type="color"
-                      class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer"
-                    />
-                    <input
-                      v-model="colorPrimary"
+                      v-model="teamName"
                       type="text"
-                      class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
-                      placeholder="#1D4ED8 o blue"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
+                      placeholder="Ej. Tigres del Norte"
                     />
                   </div>
-                  <p class="mt-1 text-[11px] text-slate-500">
-                    Se usa para fondos y acentos principales de tu equipo.
-                  </p>
-                </div>
-
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">
-                    Color secundario
-                  </label>
-                  <div class="flex items-center gap-3">
+  
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      Nombre corto
+                    </label>
                     <input
-                      v-model="colorSecondary"
-                      type="color"
-                      class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer"
-                    />
-                    <input
-                      v-model="colorSecondary"
+                      v-model="teamShortName"
                       type="text"
-                      class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
-                      placeholder="#FFFFFF o white"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
+                      placeholder="Ej. TIG"
                     />
                   </div>
-                  <p class="mt-1 text-[11px] text-slate-500">
-                    Se usa para detalles, números y contrastes.
-                  </p>
+                </div>
+  
+                <!-- ✅ Liga / Temporada / Categoría / Rama -->
+                <div class="grid md:grid-cols-4 gap-4 mt-2">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Liga</label>
+                    <select
+                      v-model.number="selectedLeagueId"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900"
+                    >
+                      <option :value="0" disabled>Selecciona liga</option>
+                      <option v-for="league in leagues" :key="league.id" :value="league.id">
+                        {{ league.name }}
+                      </option>
+                    </select>
+                  </div>
+  
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Temporada</label>
+                    <select
+                      v-model.number="selectedSeasonId"
+                      :disabled="!selectedLeagueId"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option :value="0" disabled>
+                        {{ selectedLeagueId ? 'Selecciona temporada' : 'Primero elige una liga' }}
+                      </option>
+                      <option v-for="season in availableSeasons" :key="season.id" :value="season.id">
+                        {{ season.name }}
+                      </option>
+                    </select>
+                  </div>
+  
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Categoría</label>
+                    <select
+                      v-model="selectedGender"
+                      :disabled="categoriesLoading || !selectedLeagueId"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="" disabled>
+                        {{ categoriesLoading ? 'Cargando…' : 'Selecciona categoría' }}
+                      </option>
+                      <option v-for="g in genderOptions" :key="g.value" :value="g.value">
+                        {{ g.label }}
+                      </option>
+                    </select>
+                    <p v-if="categoriesError" class="mt-1 text-[11px] text-red-600">
+                      {{ categoriesError }}
+                    </p>
+                  </div>
+  
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Rama</label>
+                    <select
+                      v-model="selectedRama"
+                      :disabled="!selectedGender"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="" disabled>
+                        {{ selectedGender ? 'Selecciona rama' : 'Primero elige categoría' }}
+                      </option>
+                      <option v-for="r in ramaOptions" :key="r.value" :value="r.value">
+                        {{ r.label }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+  
+                <div v-if="selectedCategory" class="mt-2 text-[11px] text-slate-500">
+                  Seleccionaste: <span class="font-semibold">{{ selectedCategory.name }}</span>
+                </div>
+  
+                <!-- Colores (solo adorno) -->
+                <div class="grid md:grid-cols-2 gap-4 mt-2">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Color primario</label>
+                    <div class="flex items-center gap-3">
+                      <input v-model="colorPrimary" type="color" class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer" />
+                      <input
+                        v-model="colorPrimary"
+                        type="text"
+                        class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
+                        placeholder="#1D4ED8 o blue"
+                      />
+                    </div>
+                  </div>
+  
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Color secundario</label>
+                    <div class="flex items-center gap-3">
+                      <input v-model="colorSecondary" type="color" class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer" />
+                      <input
+                        v-model="colorSecondary"
+                        type="text"
+                        class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
+                        placeholder="#FFFFFF o white"
+                      />
+                    </div>
+                  </div>
+                </div>
+  
+                <!-- Logo del equipo -->
+                <div class="grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 items-start mt-2">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Logo del equipo</label>
+                    <p class="text-[11px] text-slate-500 mb-2">
+                      Sube el logo oficial de tu equipo (JPG o PNG, recomendado 512×512px).
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      class="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+                      @change="onLogoChange"
+                    />
+                  </div>
+  
+                  <div class="flex justify-center md:justify-end">
+                    <div class="w-28 h-28 rounded-2xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
+                      <img v-if="logoPreview" :src="logoPreview" alt="Logo del equipo" class="w-full h-full object-contain" />
+                      <span v-else class="text-[11px] text-slate-400 text-center px-2">Previsualización del logo</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <!-- Logo del equipo -->
-              <div class="grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 items-start mt-2">
-                <div>
-                  <label class="block text-xs font-semibold text-slate-700 mb-1">
-                    Logo del equipo
-                  </label>
-                  <p class="text-[11px] text-slate-500 mb-2">
-                    Sube el logo oficial de tu equipo (JPG o PNG, recomendado 512×512px).
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    class="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
-                    @change="onLogoChange"
-                  />
+  
+              <!-- Integrantes -->
+              <div class="space-y-4 mt-8">
+                <div class="flex items-center justify-between gap-2">
+                  <div>
+                    <h3 class="font-semibold text-slate-900 text-lg">Integrantes del equipo</h3>
+                    <p class="text-xs text-slate-500">
+                      Registra mínimo 5 jugadoras/jugadores. Solo se enviarán los que tengan
+                      <strong>nombre</strong>, <strong>CURP</strong> y (recomendado) <strong>foto</strong>.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                    @click="addPlayer"
+                  >
+                    + Agregar integrante
+                  </button>
                 </div>
-
-                <div class="flex justify-center md:justify-end">
+  
+                <div class="space-y-3">
                   <div
-                    class="w-28 h-28 rounded-2xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden"
+                    v-for="(player, index) in players"
+                    :key="player.id"
+                    class="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 sm:px-5 sm:py-4"
                   >
-                    <img
-                      v-if="logoPreview"
-                      :src="logoPreview"
-                      alt="Logo del equipo"
-                      class="w-full h-full object-contain"
-                    />
-                    <span v-else class="text-[11px] text-slate-400 text-center px-2">
-                      Previsualización del logo
-                    </span>
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                      <div class="flex items-center gap-2 text-xs text-slate-500">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white">
+                          {{ index + 1 }}
+                        </span>
+                        <span>Integrante</span>
+                      </div>
+                      <button
+                        v-if="players.length > 1"
+                        type="button"
+                        class="text-[11px] text-slate-500 hover:text-red-500"
+                        @click="removePlayer(index)"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+  
+                    <div class="grid md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-4 items-start">
+                      <div class="space-y-3">
+                        <div>
+                          <label class="block text-[11px] font-semibold text-slate-700 mb-1">
+                            Nombre completo <span class="text-red-500">*</span>
+                          </label>
+                          <input
+                            v-model="player.fullName"
+                            type="text"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
+                            placeholder="Ej. María López"
+                          />
+                        </div>
+  
+                        <div class="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+                          <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">
+                              CURP <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                              v-model="player.curp"
+                              type="text"
+                              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 uppercase tracking-[0.08em] focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
+                              placeholder="CURP"
+                            />
+                          </div>
+  
+                          <div>
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-1">
+                              # Jersey (opcional)
+                            </label>
+                            <input
+                              v-model.number="player.jerseyNumber"
+                              type="number"
+                              min="0"
+                              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
+                              placeholder="Ej. 10"
+                            />
+                          </div>
+                        </div>
+                      </div>
+  
+                      <div class="space-y-2">
+                        <label class="block text-[11px] font-semibold text-slate-700 mb-1">
+                          Foto del jugador(a)
+                        </label>
+                        <p class="text-[11px] text-slate-500">
+                          De preferencia foto frontal tipo credencial o uniforme.
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          class="block w-full text-[11px] text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+                          @change="onPlayerPhotoChange(index, $event)"
+                        />
+  
+                        <div class="mt-2 w-full h-24 rounded-2xl border border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden">
+                          <img v-if="player.photoPreview" :src="player.photoPreview" alt="Foto del jugador" class="w-full h-full object-cover" />
+                          <span v-else class="text-[11px] text-slate-400 px-2 text-center">
+                            Previsualización de la foto
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
+  
+                <p class="text-[11px] text-slate-500">
+                  Puedes agregar más integrantes después desde la pantalla de <strong>"Mi equipo"</strong>.
+                </p>
               </div>
-            </div>
-
-            <!-- Integrantes -->
-            <!-- (resto igual que ya tenías: lista de players, mensajes y botones) -->
-            <!-- ... tu bloque de integrantes + mensajes + botones exactamente como lo pegaste antes ... -->
-
-            <!-- Mensajes -->
-            <div
-              v-if="successMessage"
-              class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800"
-            >
-              {{ successMessage }}
-            </div>
-            <div
-              v-if="errorMessage"
-              class="mt-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700"
-            >
-              {{ errorMessage }}
-            </div>
-
-            <!-- Botones de acción -->
-            <div class="mt-6 flex flex-wrap justify-end gap-3">
-              <button
-                type="button"
-                class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                @click="saveDraft"
+  
+              <!-- Mensajes -->
+              <div
+                v-if="successMessage"
+                class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800"
               >
-                Guardar cambios
-              </button>
-
-              <button
-                type="button"
-                class="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
-                @click="clearProgress"
+                {{ successMessage }}
+              </div>
+              <div
+                v-if="errorMessage"
+                class="mt-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700"
               >
-                Borrar progreso
-              </button>
-
-              <button
-                type="submit"
-                class="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                :disabled="submitting || !canRegisterTeam"
-              >
-                <span v-if="submitting">Subiendo información…</span>
-                <span v-else>Registrar equipo</span>
-              </button>
-            </div>
-          </form>
-        </section>
+                {{ errorMessage }}
+              </div>
+  
+              <!-- Botones -->
+              <div class="mt-6 flex flex-wrap justify-end gap-3">
+                <button
+                  type="button"
+                  class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  @click="saveDraft"
+                >
+                  Guardar cambios
+                </button>
+  
+                <button
+                  type="button"
+                  class="inline-flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
+                  @click="clearProgress"
+                >
+                  Borrar progreso
+                </button>
+  
+                <button
+                  type="submit"
+                  class="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  :disabled="submitting || !canRegisterTeam"
+                >
+                  <span v-if="submitting">Subiendo información…</span>
+                  <span v-else>Registrar equipo</span>
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
       </div>
-    </div>
-  </main>
-</template>
+    </main>
+  </template>
   

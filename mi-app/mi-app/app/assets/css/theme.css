@@ -1,0 +1,160 @@
+/* assets/css/theme.css */
+
+/* ====== BASE ====== */
+:root {
+  --bg-body: #020617;         /* fondo general */
+  --bg-panel: #020b1f;        /* paneles */
+  --bg-soft: #020c26;
+  --border-soft: rgba(148, 163, 184, 0.35);
+
+  --brand-primary: #2563eb;   /* azul principal */
+  --brand-primary-soft: #1d4ed8;
+
+  --text-main: #e5e7eb;
+  --text-muted: #9ca3af;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #0b1120 0, #020617 60%, #000 100%);
+  color: var(--text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+}
+
+/* ====== CONTENEDORES ====== */
+
+.container-pad {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.hero-pad {
+  padding-top: 5.5rem; /* para dejar espacio al navbar fixed */
+}
+
+/* ====== NAVBAR ====== */
+
+.navbar {
+  backdrop-filter: blur(18px);
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88));
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+/* ====== CARDS / PANELES ====== */
+
+.soft {
+  border-radius: 1rem;
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  box-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.7),
+    0 0 0 1px rgba(15, 23, 42, 0.9);
+}
+
+.panel-gradient {
+  background: radial-gradient(circle at top left, #1d4ed8 0, #020617 45%, #020617 100%);
+}
+
+/* ====== BOTONES ====== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.55rem 1.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.16s ease-out;
+}
+
+.btn-primary {
+  background: var(--brand-primary);
+  color: white;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.55);
+}
+
+.btn-primary:hover {
+  background: var(--brand-primary-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.65);
+}
+
+.btn-ghost {
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--text-main);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.btn-ghost:hover {
+  background: rgba(15, 23, 42, 1);
+}
+
+/* ====== CHIPS / DETALLES ====== */
+
+.pill {
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+/* Tarjetas de equipos */
+.team-card {
+  border-radius: 1rem;
+  padding: 1rem;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.96),
+    rgba(15, 23, 42, 0.9),
+    rgba(37, 99, 235, 0.16)
+  );
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+/* FOOTER */
+.footer-sec {
+  background: radial-gradient(circle at top, #020617 0, #020617 40%, #000 100%);
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+/* ====== CARRUSEL HERO ====== */
+
+.carousel-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.6);
+  transition: all 0.15s ease-out;
+}
+
+.carousel-dot--active {
+  width: 22px;
+  background: #3b82f6;
+}
+
+.carousel-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.16s ease-out;
+}
+
+.carousel-arrow:hover {
+  transform: translateY(-1px);
+  background: rgba(15, 23, 42, 1);
+}

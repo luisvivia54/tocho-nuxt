@@ -32,7 +32,7 @@ export function useMyTeam() {
         return
       }
 
-      const data = await $fetch<MyTeamSummary>('http://tocho5-api.tochero5.mx/api/teams/mine', {
+      const data = await $fetch<MyTeamSummary>('https://tocho5-api.tochero5.mx/api/teams/mine', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,

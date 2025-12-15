@@ -121,17 +121,22 @@
 
                   <div class="mt-3 flex gap-2">
                     <NuxtLink
-                      :to="`/equipos/${team.id}`"
+                      :to="`/equipos`"
                       class="inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500"
                     >
                       Ver equipo
                     </NuxtLink>
+                    <p class="mt-1 text-xs text-slate-500">
+                      ID: {{ team.teamId }} · Liga: {{ team.leagueId ?? 'N/A' }}
+                    </p>
+
                     <NuxtLink
-                      to="/registro"
+                      :to="`/teams/${team.teamId}/editar`"
                       class="inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200"
                     >
                       Editar datos
                     </NuxtLink>
+
                   </div>
                 </article>
               </div>

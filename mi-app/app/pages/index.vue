@@ -8,11 +8,7 @@
         <!-- Carrusel con IMG real -->
         <div class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900">
           <div class="relative w-full" style="aspect-ratio: 16/5;">
-            <img
-              :src="currentSlideSrc"
-              alt="tochero5liga"
-              class="w-full h-full object-cover"
-            />
+            <img :src="currentSlideSrc" alt="tochero5liga" class="w-full h-full object-cover" />
           </div>
         </div>
 
@@ -95,8 +91,84 @@
           class="mt-8 rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
         >
           <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
-            <h3 class="font-display font-extrabold text-white">Top 5 · Posiciones</h3>
-            <span class="text-xs text-white/80 font-medium">ACTUALIZADO</span>
+            <div class="flex items-center gap-3">
+              <h3 class="font-display font-extrabold text-white">Top 5 · Posiciones</h3>
+              <span class="hidden sm:inline text-xs text-white/80 font-medium">ACTUALIZADO</span>
+            </div>
+
+            <button
+              type="button"
+              class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15"
+              @click="refresh()"
+            >
+              Refrescar
+            </button>
+          </div>
+
+          <!-- Filtros -->
+          <div class="px-5 py-4 bg-white border-b border-slate-200/70">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+              <!-- Categoría -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                  Categoría (code)
+                </label>
+                <select
+                  v-model="selectedCategoryCode"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">Todas</option>
+                  <option v-for="cat in categoryOptions" :key="cat.value" :value="cat.value">
+                    {{ cat.label }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Rama -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                  Rama (gender)
+                </label>
+                <select
+                  v-model="selectedGender"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">Todas</option>
+                  <option value="VARONIL">Varonil</option>
+                  <option value="FEMENIL">Femenil</option>
+                  <option value="MIXTO">Mixto</option>
+                </select>
+              </div>
+
+              <!-- Acciones -->
+              <div class="flex gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  @click="clearFilters"
+                >
+                  Limpiar
+                </button>
+
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+                  @click="refresh()"
+                >
+                  Refrescar
+                </button>
+              </div>
+            </div>
+
+            <!-- Ruta actual -->
+            <div class="mt-3 flex flex-wrap gap-2 items-center">
+              <span class="text-[11px] text-slate-500">Consultando:</span>
+              <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
+                {{ pointsUrl }}
+              </span>
+            </div>
           </div>
 
           <div class="bg-white overflow-x-auto">
@@ -106,6 +178,7 @@
             <div v-else-if="error" class="px-4 py-3 text-sm text-red-600">
               Error al cargar las posiciones.
             </div>
+
             <template v-else>
               <table class="min-w-[880px] w-full text-sm">
                 <thead>
@@ -119,6 +192,7 @@
                     <th class="px-3 py-2">Índice</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   <tr
                     v-for="row in topPositions"
@@ -132,9 +206,7 @@
                     <td class="px-3 py-2">{{ row.goalsFor }}</td>
                     <td class="px-3 py-2">{{ row.points }}</td>
                     <td class="px-3 py-2">
-                      <span
-                        class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700"
-                      >
+                      <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
                         {{ formatEfficiency(row.wins, row.gamesPlayed) }}
                       </span>
                     </td>
@@ -142,7 +214,7 @@
 
                   <tr v-if="topPositions.length === 0">
                     <td colspan="7" class="px-3 py-3 text-sm text-slate-500">
-                      Aún no hay posiciones registradas.
+                      Aún no hay posiciones registradas (o no hay datos para esos filtros).
                     </td>
                   </tr>
                 </tbody>
@@ -157,18 +229,12 @@
             class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
           >
             <!-- Header con MISMO gradient que Top 5 -->
-            <div
-              class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]"
-            >
+            <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
               <div>
-                <p
-                  class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase"
-                >
+                <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
                   aliados de la liga
                 </p>
-                <h2
-                  class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1"
-                >
+                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">
                   Patrocinadores oficiales
                 </h2>
               </div>
@@ -184,14 +250,10 @@
                 <!-- Texto + CTA -->
                 <div class="md:col-span-2 flex flex-col justify-between gap-4">
                   <div>
-                    <p
-                      class="text-xs font-semibold tracking-[0.2em] text-blue-500 uppercase"
-                    >
+                    <p class="text-xs font-semibold tracking-[0.2em] text-blue-500 uppercase">
                       Patrocinador destacado
                     </p>
-                    <h4
-                      class="mt-2 font-display text-2xl sm:text-3xl font-extrabold text-slate-900"
-                    >
+                    <h4 class="mt-2 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">
                       {{ activeSponsor.name }}
                     </h4>
                     <p class="mt-2 text-sm text-slate-700">
@@ -240,37 +302,22 @@
                       class="max-w-[70%] max-h-[70%] object-contain"
                       loading="lazy"
                     />
-                    <span
-                      v-else
-                      class="text-sm font-display font-bold text-slate-900"
-                    >
+                    <span v-else class="text-sm font-display font-bold text-slate-900">
                       {{ activeSponsor.name }}
                     </span>
                   </div>
 
                   <div class="grid grid-cols-3 gap-2 w-full text-[10px] text-slate-700">
-                    <div
-                      class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center"
-                    >
-                      <div class="font-semibold text-xs text-slate-900">
-                        Promos
-                      </div>
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center">
+                      <div class="font-semibold text-xs text-slate-900">Promos</div>
                       <div class="mt-1 opacity-80">Jugadores y staff</div>
                     </div>
-                    <div
-                      class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center"
-                    >
-                      <div class="font-semibold text-xs text-slate-900">
-                        Activaciones
-                      </div>
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center">
+                      <div class="font-semibold text-xs text-slate-900">Activaciones</div>
                       <div class="mt-1 opacity-80">En campo</div>
                     </div>
-                    <div
-                      class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center"
-                    >
-                      <div class="font-semibold text-xs text-slate-900">
-                        MVP
-                      </div>
+                    <div class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center">
+                      <div class="font-semibold text-xs text-slate-900">MVP</div>
                       <div class="mt-1 opacity-80">Premios especiales</div>
                     </div>
                   </div>
@@ -288,16 +335,10 @@
                     :key="sponsor.id"
                     type="button"
                     class="group flex items-center gap-3 rounded-2xl border px-3 py-2 min-w-[190px] transition-all"
-                    :class="
-                      idx === activeSponsorIndex
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-slate-200 bg-white hover:bg-slate-50'
-                    "
+                    :class="idx === activeSponsorIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'"
                     @click="setActiveSponsor(idx)"
                   >
-                    <div
-                      class="w-9 h-9 rounded-xl bg-white flex items-center justify-center overflow-hidden"
-                    >
+                    <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center overflow-hidden">
                       <img
                         v-if="sponsor.logo"
                         :src="sponsor.logo"
@@ -305,20 +346,13 @@
                         class="w-full h-full object-contain"
                         loading="lazy"
                       />
-                      <span
-                        v-else
-                        class="text-[11px] font-semibold text-slate-700"
-                      >
+                      <span v-else class="text-[11px] font-semibold text-slate-700">
                         {{ sponsor.name }}
                       </span>
                     </div>
                     <div class="text-left">
-                      <div class="text-xs font-semibold text-slate-900">
-                        {{ sponsor.name }}
-                      </div>
-                      <div class="text-[11px] text-slate-500">
-                        {{ sponsor.tagline }}
-                      </div>
+                      <div class="text-xs font-semibold text-slate-900">{{ sponsor.name }}</div>
+                      <div class="text-[11px] text-slate-500">{{ sponsor.tagline }}</div>
                     </div>
                   </button>
                 </div>
@@ -388,21 +422,74 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useApi } from '@/composables/useApi'
 
-/* ========= RAW DEL BACKEND (/points) ========= */
-interface ApiStanding {
+/* ===================== FILTROS (rama y categoría) ===================== */
+type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
+
+const categoryOptions = [
+  { label: 'Libre', value: 'Libre' },
+  { label: '+35', value: '+35' },
+  { label: 'U-8', value: 'U8' },
+  { label: 'U-10', value: 'U10' },
+  { label: 'U-12', value: 'U12' },
+  { label: 'U-14', value: 'U14' },
+  { label: 'U-16', value: 'U16' }
+]
+
+const selectedCategoryCode = ref<'all' | string>('all')
+const selectedGender = ref<'all' | Gender>('all')
+
+const pointsUrl = computed(() => {
+  const params = new URLSearchParams()
+  if (selectedCategoryCode.value !== 'all') params.set('categoryCode', selectedCategoryCode.value)
+  if (selectedGender.value !== 'all') params.set('gender', selectedGender.value)
+  const qs = params.toString()
+  return qs ? `/points?${qs}` : '/points'
+})
+
+const clearFilters = () => {
+  selectedCategoryCode.value = 'all'
+  selectedGender.value = 'all'
+}
+
+/* ===================== RAW DEL BACKEND (/points) ===================== */
+/**
+ * Soporta camelCase y snake_case para que “se vea” aunque tu back esté mezclado.
+ * (Aun así, abajo te dejo cómo ajustar el back bien con filtros.)
+ */
+type ApiStandingAny = Partial<{
+  // snake_case
   standing_id: number
   season_id: number
   category_id: number
   team_id: number
-  gp: number
-  wins: number
-  losses: number
-  draws: number
   points_for: number
   points_against: number
   table_points: number
   team_name: string
-}
+
+  // camelCase
+  standingId: number
+  seasonId: number
+  categoryId: number
+  teamId: number
+  pointsFor: number
+  pointsAgainst: number
+  tablePoints: number
+  teamName: string
+
+  // filtros (ideal que el back lo mande)
+  gender: string
+  categoryCode: string
+
+  // comunes
+  gp: number
+  wins: number
+  losses: number
+  draws: number
+}>
+
+/* Fetch reactivo por filtros */
+const { data: standings, pending, error, refresh } = useApi<ApiStandingAny[]>(pointsUrl)
 
 /* ========= VIEW MODEL PARA LA TABLA ========= */
 interface StandingRow {
@@ -414,29 +501,32 @@ interface StandingRow {
   points: number
 }
 
-const { data: standings, pending, error } = useApi<ApiStanding[]>('/points')
-
 const topPositions = computed<StandingRow[]>(() => {
   const raw = standings.value as unknown
   if (!Array.isArray(raw)) return []
-  const rows = raw as ApiStanding[]
+  const rows = raw as ApiStandingAny[]
+
+  const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
 
   return rows
     .slice()
     .sort((a, b) => {
-      if (b.table_points !== a.table_points) {
-        return b.table_points - a.table_points
-      }
-      return b.points_for - a.points_for
+      const aPts = toNum(a.table_points ?? a.tablePoints)
+      const bPts = toNum(b.table_points ?? b.tablePoints)
+      if (bPts !== aPts) return bPts - aPts
+
+      const aFor = toNum(a.points_for ?? a.pointsFor)
+      const bFor = toNum(b.points_for ?? b.pointsFor)
+      return bFor - aFor
     })
     .slice(0, 5)
     .map((row, idx) => ({
       rank: idx + 1,
-      teamName: row.team_name,
-      gamesPlayed: row.gp ?? 0,
-      wins: row.wins ?? 0,
-      goalsFor: row.points_for ?? 0,
-      points: row.table_points ?? 0,
+      teamName: (row.team_name ?? row.teamName ?? '—') as string,
+      gamesPlayed: toNum(row.gp),
+      wins: toNum(row.wins),
+      goalsFor: toNum(row.points_for ?? row.pointsFor),
+      points: toNum(row.table_points ?? row.tablePoints)
     }))
 })
 
@@ -461,7 +551,7 @@ interface HeroSlide {
 }
 
 const heroSlides = ref<HeroSlide[]>([
-  { id: 'slide-1', src: '/img/sponsors/foto_1.jpg' },
+  { id: 'slide-1', src: '/img/sponsors/foto_1.jpg' }
 ])
 
 const currentSlide = ref(0)
@@ -515,33 +605,11 @@ const sponsors = ref<Sponsor[]>([
     description:
       'Dicass acompaña a jugadores y familias con activaciones, alimentos y experiencias dentro del deportivo.',
     url: 'https://dicass.com.mx/',
-    label: 'Patrocinador principal',
-  },
-  {
-    id: 'marti',
-    name: 'Martí',
-    logo: '/img/sponsors/marti-logo.png',
-    tagline: 'Todo para vivir el deporte.',
-    description:
-      'Martí equipa a la liga con uniformes, tenis y artículos deportivos para cada jornada.',
-    url: 'https://www.marti.mx/',
-    label: 'Aliado deportivo',
-  },
-  {
-    id: 'ruffles',
-    name: 'Ruffles',
-    logo: '/img/sponsors/ruffles-logo.png',
-    tagline: 'La botana oficial del tocho.',
-    description:
-      'Ruffles está presente en las gradas y sidelines con las papas oficiales de la liga.',
-    url: 'https://www.ruffles.com.mx/lmx/',
-    label: 'Patrocinador oficial',
-  },
+    label: 'Patrocinador principal'
+  }
 ])
 
 const activeSponsorIndex = ref(0)
-
-// Siempre devolvemos un Sponsor (sabemos que el array tiene elementos)
 const activeSponsor = computed<Sponsor>(() => sponsors.value[activeSponsorIndex.value]!)
 
 const setActiveSponsor = (idx: number) => {
@@ -560,8 +628,6 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  if (sponsorsIntervalId) {
-    clearInterval(sponsorsIntervalId)
-  }
+  if (sponsorsIntervalId) clearInterval(sponsorsIntervalId)
 })
 </script>
