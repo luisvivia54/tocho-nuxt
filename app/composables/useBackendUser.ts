@@ -28,7 +28,7 @@ export function useBackendUser() {
         return
       }
 
-      await $fetch('https://tocho5-api.tochero5.mx/api/me', {
+      await $fetch('http://tocho5-api.tochero5.mx/api/me', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
