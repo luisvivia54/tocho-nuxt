@@ -262,21 +262,30 @@
               </section>
 
               <!-- Últimos partidos -->
-              <section
-                class="rounded-2xl border border-slate-800 bg-slate-950/90 p-4 md:p-5"
-              >
+              <section class="rounded-2xl border border-slate-800 bg-slate-950/90 p-4 md:p-5">
                 <div class="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h2 class="font-display text-lg font-semibold text-white">
                       Últimos partidos
                     </h2>
                     <p class="text-xs text-slate-400">
-                      Resumen de los últimos 3 juegos registrados.
+                      Últimos 3 juegos del equipo (programados o finalizados).
                     </p>
                   </div>
                 </div>
 
-                <div v-if="lastGames.length === 0" class="text-xs text-slate-400 py-4">
+                <div v-if="pendingLast3" class="text-xs text-slate-400 py-4">
+                  Cargando últimos partidos...
+                </div>
+
+                <div
+                  v-else-if="last3Error"
+                  class="rounded-2xl bg-rose-950/50 border border-rose-500/40 px-4 py-3 text-xs text-rose-100"
+                >
+                  No se pudieron cargar los partidos. Revisa /games y /gamesFinal.
+                </div>
+
+                <div v-else-if="lastGames.length === 0" class="text-xs text-slate-400 py-4">
                   Aún no hay partidos registrados para este equipo.
                 </div>
 
@@ -287,7 +296,7 @@
                         <th class="py-2 pr-3 text-left font-medium">Fecha</th>
                         <th class="py-2 px-3 text-left font-medium">Rival</th>
                         <th class="py-2 px-3 text-center font-medium">Marcador</th>
-                        <th class="py-2 pl-3 text-right font-medium">Resultado</th>
+                        <th class="py-2 pl-3 text-right font-medium">Estado</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -302,8 +311,8 @@
                         <td class="py-2 px-3 text-slate-200">
                           {{ game.opponentName }}
                         </td>
-                        <td class="py-2 px-3 text-center text-slate-100 font-semibold">
-                          {{ game.scoreFor }} - {{ game.scoreAgainst }}
+                        <td class="py-2 px-3 text-center text-slate-100 font-semibold tabular-nums">
+                          {{ game.scoreFor ?? '—' }} - {{ game.scoreAgainst ?? '—' }}
                         </td>
                         <td class="py-2 pl-3 text-right">
                           <span
@@ -437,13 +446,27 @@ interface Player {
   photoUrl: string | null
 }
 
+/** Lo que vamos a renderizar en “Últimos partidos” (3 últimos, sin importar status) */
 interface LastGame {
   gameId: number
   opponentName: string
   date: string
-  result: 'G' | 'P' | 'E' | string
-  scoreFor: number
-  scoreAgainst: number
+  scoreFor: number | null
+  scoreAgainst: number | null
+  result: 'G' | 'P' | 'E' | 'S' | 'F' | string // S=Programado, F=Final (sin cálculo)
+}
+
+/** Forma esperada de juegos del API (scheduled + finals) */
+type TeamLite = { teamId: number; name?: string | null }
+type GameApi = {
+  game_id: number
+  season_id: number
+  status: string
+  match_date_utc: string
+  homeTeam?: TeamLite | null
+  awayTeam?: TeamLite | null
+  homeScore?: number | null
+  awayScore?: number | null
 }
 
 interface TeamPhoto {
@@ -455,19 +478,23 @@ interface TeamPhoto {
 interface TeamDetailResponse {
   team: ApiTeam
   players: Player[]
-  lastGames: LastGame[]
+  lastGames: any[] // ya no lo usamos para la tabla
   gallery: TeamPhoto[]
 }
 
 const route = useRoute()
 const teamId = route.params.id as string
+const teamIdNum = computed(() => {
+  const n = Number(teamId)
+  return Number.isFinite(n) ? n : 0
+})
+
+const config = useRuntimeConfig()
+const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
 
 const { data, pending, error } = useApi<TeamDetailResponse>(`/teams/${teamId}/detail`)
 
-const detail = computed<TeamDetailResponse | null>(
-  () => (data.value as TeamDetailResponse) ?? null
-)
-
+const detail = computed<TeamDetailResponse | null>(() => (data.value as TeamDetailResponse) ?? null)
 const team = computed<ApiTeam | null>(() => detail.value?.team ?? null)
 
 const normalizeUrl = (url: string | null): string | null => {
@@ -477,14 +504,70 @@ const normalizeUrl = (url: string | null): string | null => {
 
 const players = computed<Player[]>(() => {
   const list = detail.value?.players ?? []
-  return list.map((p) => ({
-    ...p,
-    photoUrl: normalizeUrl(p.photoUrl)
-  }))
+  return list.map((p) => ({ ...p, photoUrl: normalizeUrl(p.photoUrl) }))
 })
 
+/** ✅ NUEVO: traer juegos y sacar últimos 3 (scheduled + final) */
+const {
+  data: last3Raw,
+  pending: pendingLast3,
+  error: last3Error
+} = useAsyncData<GameApi[]>(
+  () => `team-last3-${teamId}`,
+  async () => {
+    const [scheduled, finals] = await Promise.all([
+      $fetch<GameApi[]>(`${API_BASE}/games`).catch(() => []),
+      $fetch<GameApi[]>(`${API_BASE}/gamesFinal`).catch(() => [])
+    ])
+    const map = new Map<number, GameApi>()
+    for (const g of [...scheduled, ...finals]) map.set(g.game_id, g)
+    return Array.from(map.values())
+  }
+)
+
 const lastGames = computed<LastGame[]>(() => {
-  return detail.value?.lastGames?.slice(0, 3) ?? []
+  const id = teamIdNum.value
+  const list = last3Raw.value ?? []
+
+  const mine = list.filter((g) => {
+    const h = g.homeTeam?.teamId ?? 0
+    const a = g.awayTeam?.teamId ?? 0
+    return h === id || a === id
+  })
+
+  mine.sort((a, b) => toUtcMs(b.match_date_utc) - toUtcMs(a.match_date_utc))
+
+  return mine.slice(0, 3).map((g) => {
+    const st = upper(g.status)
+    const isHome = (g.homeTeam?.teamId ?? 0) === id
+    const opp = isHome ? (g.awayTeam?.name ?? 'Rival') : (g.homeTeam?.name ?? 'Rival')
+
+    // marcador (si es FINAL y hay scores)
+    const finalHasScore = st === 'FINAL' && (g.homeScore != null || g.awayScore != null)
+    const scoreFor = finalHasScore ? (isHome ? (g.homeScore ?? null) : (g.awayScore ?? null)) : null
+    const scoreAgainst = finalHasScore ? (isHome ? (g.awayScore ?? null) : (g.homeScore ?? null)) : null
+
+    // etiqueta de resultado
+    let result: LastGame['result'] = 'S' // programado por default
+    if (st === 'FINAL') {
+      if (scoreFor != null && scoreAgainst != null) {
+        if (scoreFor > scoreAgainst) result = 'G'
+        else if (scoreFor < scoreAgainst) result = 'P'
+        else result = 'E'
+      } else {
+        result = 'F'
+      }
+    }
+
+    return {
+      gameId: g.game_id,
+      opponentName: String(opp || 'Rival'),
+      date: g.match_date_utc,
+      scoreFor,
+      scoreAgainst,
+      result
+    }
+  })
 })
 
 const gallery = computed<string[]>(() => {
@@ -522,19 +605,18 @@ const currentSlide = ref(0)
 
 const showPrevSlide = () => {
   if (!gallery.value.length) return
-  currentSlide.value =
-    currentSlide.value === 0 ? gallery.value.length - 1 : currentSlide.value - 1
+  currentSlide.value = currentSlide.value === 0 ? gallery.value.length - 1 : currentSlide.value - 1
 }
 
 const showNextSlide = () => {
   if (!gallery.value.length) return
-  currentSlide.value =
-    currentSlide.value === gallery.value.length - 1 ? 0 : currentSlide.value + 1
+  currentSlide.value = currentSlide.value === gallery.value.length - 1 ? 0 : currentSlide.value + 1
 }
 
+/** Para el resumen, cuenta solo juegos con resultado real (G/P/E) */
 const recordSummary = computed(() => {
-  const games = lastGames.value
-  if (!games.length) return 'Sin partidos recientes'
+  const games = lastGames.value.filter((g) => g.result === 'G' || g.result === 'P' || g.result === 'E')
+  if (!games.length) return 'Sin resultados recientes'
   const wins = games.filter((g) => g.result === 'G').length
   const losses = games.filter((g) => g.result === 'P').length
   const draws = games.filter((g) => g.result === 'E').length
@@ -543,7 +625,7 @@ const recordSummary = computed(() => {
 })
 
 const formatGameDate = (iso: string) => {
-  const date = new Date(iso)
+  const date = new Date(toUtcMs(iso))
   if (Number.isNaN(date.getTime())) return iso
   return date.toLocaleDateString('es-MX', {
     day: '2-digit',
@@ -553,6 +635,8 @@ const formatGameDate = (iso: string) => {
 }
 
 const getResultLabel = (code: string) => {
+  if (code === 'S') return 'Programado'
+  if (code === 'F') return 'Final'
   if (code === 'G') return 'Ganado'
   if (code === 'P') return 'Perdido'
   if (code === 'E') return 'Empate'
@@ -560,15 +644,11 @@ const getResultLabel = (code: string) => {
 }
 
 const getResultClass = (code: string) => {
-  if (code === 'G') {
-    return 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/40'
-  }
-  if (code === 'P') {
-    return 'bg-rose-500/15 text-rose-200 border border-rose-400/40'
-  }
-  if (code === 'E') {
-    return 'bg-amber-500/15 text-amber-200 border border-amber-400/40'
-  }
+  if (code === 'S') return 'bg-blue-500/15 text-blue-200 border border-blue-400/40'
+  if (code === 'F') return 'bg-emerald-500/10 text-emerald-200 border border-emerald-400/30'
+  if (code === 'G') return 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/40'
+  if (code === 'P') return 'bg-rose-500/15 text-rose-200 border border-rose-400/40'
+  if (code === 'E') return 'bg-amber-500/15 text-amber-200 border border-amber-400/40'
   return 'bg-slate-500/15 text-slate-200 border border-slate-400/40'
 }
 
@@ -579,9 +659,18 @@ const getAgeFromBirthdate = (birthdate: string | null): number | null => {
   const now = new Date()
   let age = now.getFullYear() - date.getFullYear()
   const monthDiff = now.getMonth() - date.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) {
-    age -= 1
-  }
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) age -= 1
   return age
+}
+
+/* helpers */
+function upper(v: any) {
+  return String(v ?? '').toUpperCase()
+}
+function toUtcMs(matchUtc: string) {
+  const s = String(matchUtc || '').trim()
+  if (!s) return 0
+  const hasTZ = s.endsWith('Z') || /[+-]\d\d:\d\d$/.test(s)
+  return new Date(hasTZ ? s : `${s}Z`).getTime()
 }
 </script>
