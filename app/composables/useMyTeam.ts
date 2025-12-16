@@ -32,7 +32,7 @@ export function useMyTeam() {
         return
       }
 
-      const data = await $fetch<MyTeamSummary>('http://tocho5-api.tochero5.mx/api/teams/mine', {
+      const data = await $fetch<MyTeamSummary>('https://tocho5-api.tochero5.mx/api/teams/mine', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -41,7 +41,7 @@ export function useMyTeam() {
 
       summary.value = data
     } catch (err: any) {
-      console.error('Error cargando /api/teams/mine:', err)
+      console.error('Error cargando /api/teams/mine: lol', err)
       error.value = String(err)
     } finally {
       loading.value = false
