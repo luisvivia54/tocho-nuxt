@@ -181,6 +181,10 @@
                     de
                     <span class="text-slate-100 font-semibold">{{ filteredTotal }}</span>
                     partido(s)
+                    <span v-if="filteredTotal > 0" class="text-slate-600">·</span>
+                    <span v-if="filteredTotal > 0" class="text-slate-300">
+                      Página <span class="text-slate-100 font-semibold">{{ page }}</span>/<span class="text-slate-100 font-semibold">{{ totalPages }}</span>
+                    </span>
                   </span>
                 </p>
 
@@ -284,13 +288,29 @@
                   </div>
                 </div>
 
-                <!-- Centro -->
+                <!-- Centro (SCHEDULED = hora / FINAL = score) -->
                 <div class="flex flex-col items-center justify-center min-w-[120px]">
-                  <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Horario</p>
-                  <p class="text-lg md:text-xl font-bold text-slate-50">{{ g.timeLabel }}</p>
-                  <p class="text-[11px] mt-0.5 text-slate-500">
-                    {{ upper(g.status) === 'FINAL' ? 'Partido finalizado' : 'A la espera de kickoff' }}
-                  </p>
+                  <template v-if="g.isFinal">
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Marcador</p>
+                    <div
+                      class="inline-flex items-center gap-3 rounded-2xl border border-emerald-400/35 bg-emerald-500/10 px-4 py-2"
+                    >
+                      <span class="text-2xl md:text-3xl font-extrabold text-slate-50 tabular-nums">
+                        {{ g.homeScore ?? '—' }}
+                      </span>
+                      <span class="text-slate-500 font-bold">-</span>
+                      <span class="text-2xl md:text-3xl font-extrabold text-slate-50 tabular-nums">
+                        {{ g.awayScore ?? '—' }}
+                      </span>
+                    </div>
+                    <p class="text-[11px] mt-1 text-slate-500">Partido finalizado</p>
+                  </template>
+
+                  <template v-else>
+                    <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Horario</p>
+                    <p class="text-lg md:text-xl font-bold text-slate-50">{{ g.timeLabel }}</p>
+                    <p class="text-[11px] mt-0.5 text-slate-500">A la espera de kickoff</p>
+                  </template>
                 </div>
 
                 <!-- Visitante -->
@@ -320,7 +340,7 @@
                 </div>
               </div>
 
-              <!-- Footer (sin botón detalle) -->
+              <!-- Footer -->
               <div class="mt-4 flex items-center justify-between gap-3 text-[11px] text-slate-400">
                 <p class="truncate">
                   ID: <span class="text-slate-200 font-semibold">{{ g.id }}</span>
@@ -329,21 +349,61 @@
                 </p>
 
                 <span class="text-slate-500">
-                  {{ upper(g.status) === 'FINAL' ? 'Final' : 'Programado' }}
+                  {{ g.isFinal ? 'Final' : 'Programado' }}
                 </span>
               </div>
             </article>
           </div>
 
-          <!-- LOAD MORE -->
-          <div v-if="!pending && filteredTotal > renderedCount" class="pt-2">
-            <button
-              type="button"
-              @click="renderLimit += 80"
-              class="w-full rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition"
-            >
-              Cargar más ({{ Math.min(80, filteredTotal - renderedCount) }})
-            </button>
+          <!-- PAGINACIÓN (5 por página) -->
+          <div v-if="!pending && filteredTotal > 0" class="pt-2">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+              <p class="text-[11px] text-slate-400">
+                Mostrando
+                <span class="text-slate-100 font-semibold">{{ pageRangeLabel }}</span>
+                de
+                <span class="text-slate-100 font-semibold">{{ filteredTotal }}</span>
+              </p>
+
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="prevPage()"
+                  :disabled="page <= 1"
+                  class="rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ← Anterior
+                </button>
+
+                <div class="flex items-center gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2">
+                  <span class="text-[11px] text-slate-400">Página</span>
+                  <input
+                    v-model.trim="pageInput"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-12 bg-transparent outline-none text-xs text-slate-100 text-center tabular-nums"
+                    @keydown.enter.prevent="applyPageInput()"
+                  />
+                  <span class="text-[11px] text-slate-500">/ {{ totalPages }}</span>
+                  <button
+                    type="button"
+                    class="text-[11px] font-semibold text-blue-200 hover:text-blue-100 underline underline-offset-4"
+                    @click="applyPageInput()"
+                  >
+                    Ir
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  @click="nextPage()"
+                  :disabled="page >= totalPages"
+                  class="rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Siguiente →
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       </div>
@@ -382,6 +442,10 @@ type Game = {
   category?: Category | null
   home_team?: string | null
   away_team?: string | null
+
+  // viene en /gamesFinal
+  homeScore?: number | null
+  awayScore?: number | null
 }
 
 type VMGame = {
@@ -402,6 +466,10 @@ type VMGame = {
   awayShort: string
   homeLogo: string | null
   awayLogo: string | null
+
+  isFinal: boolean
+  homeScore: number | null
+  awayScore: number | null
 }
 
 type Group = { key: string; label: string; items: VMGame[] }
@@ -422,11 +490,17 @@ watch(categoria, () => {
   rama.value = 'ALL'
 })
 
-/** rendimiento DOM */
-const renderLimit = ref(80)
-watch([roundPick, categoria, rama], () => (renderLimit.value = 80))
+/** paginación (5 por página) */
+const pageSize = ref(5)
+const page = ref(1)
+const pageInput = ref('1')
 
-/** “ahora” controlado (evita Date.now() por item y reduce jank) */
+watch([roundPick, categoria, rama], () => {
+  page.value = 1
+  pageInput.value = '1'
+})
+
+/** “ahora” controlado */
 const nowMs = ref(0)
 let tmr: any = null
 onMounted(() => {
@@ -437,7 +511,7 @@ onBeforeUnmount(() => {
   if (tmr) clearInterval(tmr)
 })
 
-/** formatters (instancia única) */
+/** formatters */
 const timeFmt = new Intl.DateTimeFormat('es-MX', {
   timeZone: 'America/Mexico_City',
   hour: '2-digit',
@@ -454,9 +528,9 @@ const dateFmt = new Intl.DateTimeFormat('es-MX', {
   year: 'numeric',
 })
 
-/** fetch 1 vez: scheduled + finals */
+/** fetch: scheduled + finals (se combinan por game_id) */
 const { data, pending, error, refresh } = useAsyncData<Game[]>(
-  'games-calendar-fast-v2',
+  'games-calendar-paged-5',
   async () => {
     const [scheduled, finals] = await Promise.all([
       $fetch<Game[]>(`${API_BASE}/games`).catch(() => []),
@@ -468,9 +542,15 @@ const { data, pending, error, refresh } = useAsyncData<Game[]>(
   }
 )
 
+watch([pending], () => {
+  // cuando refresca, evita que se quede en página inválida
+  page.value = 1
+  pageInput.value = '1'
+})
+
 const errorMsg = computed(() => (error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''))
 
-/** VM + contadores precalculados (1 sola vez por carga) */
+/** VM + contadores */
 const vmAll = shallowRef<VMGame[]>(markRaw([]))
 const roundCounts = shallowRef<Record<string, number>>(markRaw({}))
 const genderCounts = shallowRef<Record<string, number>>(markRaw({}))
@@ -506,11 +586,16 @@ watch(
       if (round) rc[round] = (rc[round] ?? 0) + 1
       if (gen) gc[gen] = (gc[gen] ?? 0) + 1
       if (gen && code) {
-  const bucket = (rbg[gen] ??= {}) // asegura el objeto
-  bucket[code] = (bucket[code] ?? 0) + 1
-}
+        const bucket = (rbg[gen] ??= {})
+        bucket[code] = (bucket[code] ?? 0) + 1
+      }
+
       const homeName = (g.home_team ?? g.homeTeam?.name ?? 'Local').trim()
       const awayName = (g.away_team ?? g.awayTeam?.name ?? 'Visitante').trim()
+
+      const isFinal = upper(g.status) === 'FINAL'
+      const homeScore = isFinal ? (g.homeScore ?? null) : null
+      const awayScore = isFinal ? (g.awayScore ?? null) : null
 
       out.push({
         id: g.game_id,
@@ -530,6 +615,9 @@ watch(
         awayShort: (g.awayTeam?.shortName ?? '').trim(),
         homeLogo: g.homeTeam?.logoUrl ?? null,
         awayLogo: g.awayTeam?.logoUrl ?? null,
+        isFinal,
+        homeScore,
+        awayScore,
       })
     }
 
@@ -539,16 +627,19 @@ watch(
     roundCounts.value = markRaw(rc)
     genderCounts.value = markRaw(gc)
     ramaCountsByGender.value = markRaw(rbg)
+
+    // reset paginación al cargar data nueva
+    page.value = 1
+    pageInput.value = '1'
   },
   { immediate: true }
 )
 
 /** opciones */
 const roundOptions = computed(() => {
-  const entries = Object.entries(roundCounts.value)
+  return Object.entries(roundCounts.value)
     .map(([round, count]) => ({ round, count }))
     .sort((a, b) => Number(a.round) - Number(b.round))
-  return entries
 })
 
 const categoriaOptions = computed(() => {
@@ -566,30 +657,45 @@ const ramaOptions = computed(() => {
     .sort((a, b) => a.value.localeCompare(b.value))
 })
 
-/** agrupado + contadores SIN side-effects */
-const groupedState = computed(() => {
+/** filtros -> lista plana (para paginar) */
+const filteredAll = computed(() => {
   const rp = roundPick.value === 'ALL' ? null : normalizeRound(roundPick.value)
   const cg = categoria.value === 'ALL' ? null : upper(categoria.value)
   const rc = rama.value === 'ALL' ? null : upper(rama.value)
 
-  // si eligió categoría pero no rama -> no render
-  if (needsRama.value) return { groups: [] as Group[], total: 0, rendered: 0 }
+  if (needsRama.value) return [] as VMGame[]
 
-  const limit = renderLimit.value
-  const groups: Group[] = []
-  const byKey: Record<string, Group> = {}
-
-  let total = 0
-  let rendered = 0
-
+  const out: VMGame[] = []
   for (const g of vmAll.value) {
     if (rp && normalizeRound(g.round ?? '') !== rp) continue
     if (cg && upper(g.gender ?? '') !== cg) continue
     if (cg && rc && upper(g.code ?? '') !== rc) continue
+    out.push(g)
+  }
+  return out
+})
 
-    total++
-    if (rendered >= limit) continue
+const filteredTotal = computed(() => filteredAll.value.length)
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredTotal.value / pageSize.value)))
 
+watch([filteredTotal, totalPages], () => {
+  if (page.value > totalPages.value) page.value = totalPages.value
+  if (page.value < 1) page.value = 1
+  pageInput.value = String(page.value)
+})
+
+const pageSlice = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredAll.value.slice(start, end)
+})
+
+/** agrupar SOLO lo de la página actual */
+const grouped = computed(() => {
+  const groups: Group[] = []
+  const byKey: Record<string, Group> = {}
+
+  for (const g of pageSlice.value) {
     let grp = byKey[g.dateKey]
     if (!grp) {
       grp = { key: g.dateKey, label: g.dayLabel, items: [] }
@@ -597,15 +703,19 @@ const groupedState = computed(() => {
       groups.push(grp)
     }
     grp.items.push(g)
-    rendered++
   }
 
-  return { groups, total, rendered }
+  return groups
 })
 
-const grouped = computed(() => groupedState.value.groups)
-const filteredTotal = computed(() => groupedState.value.total)
-const renderedCount = computed(() => groupedState.value.rendered)
+const renderedCount = computed(() => pageSlice.value.length)
+
+const pageRangeLabel = computed(() => {
+  if (filteredTotal.value === 0) return '0–0'
+  const start = (page.value - 1) * pageSize.value + 1
+  const end = Math.min(page.value * pageSize.value, filteredTotal.value)
+  return `${start}–${end}`
+})
 
 /** acciones */
 function resetFilters() {
@@ -613,7 +723,8 @@ function resetFilters() {
   roundInput.value = ''
   categoria.value = 'ALL'
   rama.value = 'ALL'
-  renderLimit.value = 80
+  page.value = 1
+  pageInput.value = '1'
 }
 
 function applyRoundInput() {
@@ -625,6 +736,23 @@ function applyRoundInput() {
   const digits = v.replace(/\D+/g, '')
   const n = digits ? String(parseInt(digits, 10)) : v
   roundPick.value = n
+}
+
+function prevPage() {
+  page.value = Math.max(1, page.value - 1)
+  pageInput.value = String(page.value)
+}
+function nextPage() {
+  page.value = Math.min(totalPages.value, page.value + 1)
+  pageInput.value = String(page.value)
+}
+function applyPageInput() {
+  const raw = (pageInput.value ?? '').trim()
+  const digits = raw.replace(/\D+/g, '')
+  const n = digits ? parseInt(digits, 10) : 1
+  const safe = Math.min(totalPages.value, Math.max(1, n))
+  page.value = safe
+  pageInput.value = String(safe)
 }
 
 /* ---------- helpers UI ---------- */

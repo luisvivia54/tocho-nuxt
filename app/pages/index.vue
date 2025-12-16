@@ -372,13 +372,15 @@
           <div class="grid md:grid-cols-5 gap-6 items-start">
             <div class="md:col-span-2 space-y-2">
               <h2 class="font-display text-2xl font-extrabold text-slate-900">Ubicación</h2>
-              <p class="opacity-95 text-slate-800">Deportivo Miguel Alemán</p>
+              <p class="opacity-95 text-slate-800">FES Acatlán · Entrada Principal (peatonal)</p>
               <p class="text-sm opacity-90 text-slate-700">
-                Lindavista S/N, Gustavo A. Madero, CDMX
+                Abre el mapa para ver la ruta exacta.
               </p>
+
+              <!-- ✅ Botón apuntando a TU shortlink -->
               <a
                 class="inline-flex items-center gap-2 mt-3 rounded-xl px-3 py-2 text-sm bg-white text-blue-600 border border-blue-200 hover:bg-blue-50"
-                href="https://www.google.com/maps?q=deportivo%20miguel%20alem%C3%A1n&output=embed"
+                :href="mapsOpenUrl"
                 target="_blank"
                 rel="noopener"
               >
@@ -388,11 +390,14 @@
 
             <div class="md:col-span-3">
               <div class="aspect-video rounded-[26px] overflow-hidden border border-white/70 shadow-lg bg-black/10">
+                <!-- ✅ IFRAME usando embed real (no el shortlink) -->
                 <iframe
                   class="w-full h-full"
-                  src="https://www.google.com/maps?q=deportivo%20miguel%20alem%C3%A1n&output=embed"
+                  :src="mapsEmbedSrc"
                   style="border:0"
                   loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  allowfullscreen
                 ></iframe>
               </div>
             </div>
@@ -421,6 +426,21 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useApi } from '@/composables/useApi'
+
+/* ===================== MAPA (apunta al shortlink) ===================== */
+const mapsShortUrl = 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9'
+
+// ✅ Coordenadas del destino real de ese shortlink (para que el iframe SÍ cargue)
+const mapsLat = 19.4820973
+const mapsLng = -99.2446694
+
+// ✅ Esto sí funciona en iframe
+const mapsEmbedSrc = computed(() => {
+  return `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`
+})
+
+// ✅ Botón abre tu shortlink tal cual
+const mapsOpenUrl = mapsShortUrl
 
 /* ===================== FILTROS (rama y categoría) ===================== */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
@@ -452,10 +472,6 @@ const clearFilters = () => {
 }
 
 /* ===================== RAW DEL BACKEND (/points) ===================== */
-/**
- * Soporta camelCase y snake_case para que “se vea” aunque tu back esté mezclado.
- * (Aun así, abajo te dejo cómo ajustar el back bien con filtros.)
- */
 type ApiStandingAny = Partial<{
   // snake_case
   standing_id: number
