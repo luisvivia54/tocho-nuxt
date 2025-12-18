@@ -145,7 +145,7 @@
                   <div class="space-y-1">
                     <p class="text-[11px] text-slate-400">Capitán</p>
                     <p class="text-sm font-semibold text-white">
-                      {{ team.captain || 'Por definir' }}
+                      {{ (team as any)?.captain?.fullName || team?.captain || 'Por definir' }}
                     </p>
                   </div>
 
@@ -212,13 +212,24 @@
                 </div>
 
                 <div v-else class="space-y-3">
-                  <div
-                    class="relative overflow-hidden rounded-2xl bg-slate-900/80 border border-slate-800 aspect-[16/9]"
-                  >
+                  <div class="relative overflow-hidden rounded-2xl bg-slate-900/80 border border-slate-800 aspect-[16/9]">
+                    <!-- fondo -->
+                    <img
+                      :src="gallery[currentSlide]"
+                      alt=""
+                      aria-hidden="true"
+                      class="absolute inset-0 h-full w-full object-cover blur-2xl scale-110 opacity-35"
+                      loading="lazy"
+                      decoding="async"
+                    />
+
+                    <!-- imagen real -->
                     <img
                       :src="gallery[currentSlide]"
                       :alt="`Foto ${currentSlide + 1} de ${team.name}`"
-                      class="h-full w-full object-cover"
+                      class="relative z-10 h-full w-full object-contain p-2"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
 
@@ -426,6 +437,7 @@ interface Category {
 }
 
 interface ApiTeam {
+  
   teamId: number
   season: Season | null
   category: Category | null
@@ -434,7 +446,7 @@ interface ApiTeam {
   logoUrl: string | null
   colorPrimary: string | null
   colorSecondary: string | null
-  captain: string | null
+  captain: CaptainDto | string | null
 }
 
 interface Player {
@@ -455,7 +467,7 @@ interface LastGame {
   scoreAgainst: number | null
   result: 'G' | 'P' | 'E' | 'S' | 'F' | string // S=Programado, F=Final (sin cálculo)
 }
-
+type CaptainDto = { id: number; fullName: string }
 /** Forma esperada de juegos del API (scheduled + finals) */
 type TeamLite = { teamId: number; name?: string | null }
 type GameApi = {
