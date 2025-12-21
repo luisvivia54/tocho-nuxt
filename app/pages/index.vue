@@ -222,6 +222,171 @@
             </template>
           </div>
         </div>
+                <!-- ========== REGLAMENTOS (3) ========== -->
+                <section id="reglamentos" class="mt-12">
+          <div
+            class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
+          >
+            <!-- Header con el MISMO gradient que Top 5 -->
+            <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
+              <div>
+                <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
+                  reglamentos oficiales
+                </p>
+                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">
+                  Reglas y normativa de la liga
+                </h2>
+              </div>
+
+              <div class="hidden sm:flex items-center gap-2">
+                <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white">
+                  3 documentos
+                </span>
+                <a
+                  href="#patrocinadores"
+                  class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15"
+                >
+                  Ver patrocinadores →
+                </a>
+              </div>
+            </div>
+
+            <!-- Contenido -->
+            <div class="px-6 py-8">
+              <div class="grid gap-4 md:grid-cols-3">
+                <article
+                  v-for="doc in reglamentos"
+                  :key="doc.id"
+                  class="group relative rounded-2xl border border-slate-200 bg-white overflow-hidden
+                         shadow-[0_14px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]
+                         transition-shadow"
+                >
+                  <!-- Accent top bar -->
+                  <div class="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500"></div>
+
+                  <div class="p-5">
+                    <!-- Header row -->
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 font-semibold">
+                          {{ doc.category }}
+                        </p>
+                        <h3 class="mt-1 font-display text-lg font-extrabold text-slate-900 leading-tight">
+                          {{ doc.title }}
+                        </h3>
+                        <p class="mt-2 text-sm text-slate-600">
+                          {{ doc.subtitle }}
+                        </p>
+                      </div>
+
+                      <!-- File badge -->
+                      <div class="shrink-0 flex flex-col items-end gap-2">
+                        <span
+                          class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
+                          :class="doc.type === 'PDF'
+                            ? 'border-rose-200 bg-rose-50 text-rose-700'
+                            : 'border-sky-200 bg-sky-50 text-sky-700'"
+                        >
+                          <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white border border-slate-200">
+                            <!-- icon -->
+                            <svg v-if="doc.type === 'PDF'" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                              <path d="M7 3h7l3 3v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.7"/>
+                              <path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="1.7"/>
+                              <path d="M8 14h8M8 17h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                            </svg>
+                            <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                              <path d="M7 3h7l3 3v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.7"/>
+                              <path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="1.7"/>
+                              <path d="M8 15h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                            </svg>
+                          </span>
+                          {{ doc.type }}
+                        </span>
+
+                        <span class="text-[11px] text-slate-500">
+                          {{ doc.meta }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Chips -->
+                    <div class="mt-4 flex flex-wrap gap-2">
+                      <span
+                        v-for="tag in doc.tags"
+                        :key="tag"
+                        class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-700"
+                      >
+                        {{ tag }}
+                      </span>
+                    </div>
+
+                    <!-- Resumen colapsable -->
+                    <details class="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                      <summary class="cursor-pointer select-none text-xs font-semibold text-slate-700">
+                        Resumen rápido
+                        <span class="text-[11px] text-slate-500 font-medium">· (toca para ver)</span>
+                      </summary>
+                      <ul class="mt-3 space-y-2 text-sm text-slate-600">
+                        <li v-for="b in doc.bullets" :key="b" class="flex gap-2">
+                          <span class="mt-1.5 inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                          <span>{{ b }}</span>
+                        </li>
+                      </ul>
+                    </details>
+
+                    <!-- CTAs -->
+                    <!-- CTAs -->
+                    <div class="mt-4 flex items-center gap-2">
+                      <NuxtLink
+                        :to="doc.href"
+                        external
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold
+                              bg-blue-600 hover:bg-blue-500 text-white
+                              shadow-[0_10px_25px_rgba(37,99,235,0.35)]
+                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      >
+                        Ver reglamento
+                        <span class="ml-1 text-xs">↗</span>
+                      </NuxtLink>
+
+                      <NuxtLink
+                        :to="doc.href"
+                        external
+                        :download="doc.downloadName"
+                        class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold
+                              bg-white border border-slate-200 text-slate-800 hover:bg-slate-50
+                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        title="Descargar"
+                      >
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 3v10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                          <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                      </NuxtLink>
+                    </div>
+
+                  </div>
+                </article>
+              </div>
+
+              <!-- Nota UX -->
+              <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p class="text-sm text-slate-700">
+                  Tip: si estás en celular, usa <span class="font-semibold">“Ver reglamento”</span> para abrirlo en una pestaña nueva.
+                  También puedes descargarlo con el ícono.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p class="mt-3 text-[11px] text-slate-500 text-right">
+            Si tienes dudas de reglas, pregunta al staff o revisa el documento correspondiente.
+          </p>
+        </section>
+
 
         <!-- ========== PATROCINADORES (mismo color que Top 5) ========== -->
         <section id="patrocinadores" class="mt-12">
@@ -646,4 +811,71 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (sponsorsIntervalId) clearInterval(sponsorsIntervalId)
 })
+/* ========= REGLAMENTOS (3 documentos) ========= */
+type ReglamentoType = 'PDF' | 'DOCX'
+
+interface ReglamentoDoc {
+  id: string
+  title: string
+  subtitle: string
+  category: string
+  type: ReglamentoType
+  meta: string
+  tags: string[]
+  bullets: string[]
+  href: string
+  downloadName: string
+}
+
+const reglamentos = ref<ReglamentoDoc[]>([
+  {
+    id: 'flag-2023',
+    title: 'Reglamento Flag (2023) · Español',
+    subtitle: 'Reglas base del juego: fundamentos, definiciones y dinámica.',
+    category: 'Juego',
+    type: 'PDF',
+    meta: 'Lectura recomendada',
+    tags: ['Reglas', 'Arbitraje', 'Juego limpio'],
+    bullets: [
+      'Ideal para jugadores nuevos y capitanes.',
+      'Úsalo como referencia rápida de reglas generales.',
+      'Recomendado antes del primer partido.'
+    ],
+    href: '/reglamentos/FlagRules2023_spa.pdf',
+    downloadName: 'FlagRules2023_spa.pdf'
+  },
+  {
+    id: 'admin',
+    title: 'Reglamento Administrativo',
+    subtitle: 'Uniformes, cédula, rosters, pagos y sanciones administrativas.',
+    category: 'Administración',
+    type: 'DOCX',
+    meta: 'Operación de liga',
+    tags: ['Rosters', 'Pagos', 'Sanciones'],
+    bullets: [
+      'Define lineamientos de uniforme y control de jugadores.',
+      'Explica manejo de cédula y validación de rosters.',
+      'Incluye sanciones económicas y disciplina.'
+    ],
+    href: '/reglamentos/REGLAMENTO_ADMINISTRATIVO.docx',
+    downloadName: 'REGLAMENTO_ADMINISTRATIVO.docx'
+  },
+  {
+    id: 'mixto',
+    title: 'Reglamento Flag Mixto',
+    subtitle: 'Reglas específicas para la modalidad mixto y criterios de juego.',
+    category: 'Mixto',
+    type: 'PDF',
+    meta: 'Modalidad oficial',
+    tags: ['Mixto', 'Formato', 'Reglas específicas'],
+    bullets: [
+      'Reglas enfocadas a modalidad mixta.',
+      'Incluye criterios y mecánicas de juego propias.',
+      'Recomendado para capitanes y QBs.'
+    ],
+    href: '/reglamentos/REGLAMENTO_FLAG_MIXTO_TOCHERO5.pdf',
+    downloadName: 'REGLAMENTO_FLAG_MIXTO_TOCHERO5.pdf'
+  }
+])
+
 </script>
