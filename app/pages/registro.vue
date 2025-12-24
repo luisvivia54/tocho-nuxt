@@ -131,7 +131,7 @@
   
   // selects que ve el usuario
   const selectedGender = ref<string>('') // FEMENIL | VARONIL | MIXTO
-  const selectedRama = ref<string>('') // U16 | SUB18 | etc
+  const selectedRama = ref<string>('')   // U16 | SUB18 | etc
   
   const availableSeasons = computed(() =>
     seasons.value.filter((s) => !selectedLeagueId.value || s.leagueId === selectedLeagueId.value)
@@ -147,7 +147,6 @@
     return g
   }
   
-  // opciones para “Categoría” (gender)
   const genderOptions = computed(() => {
     const set = new Map<string, string>()
     for (const c of categories.value) {
@@ -157,19 +156,17 @@
     return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
   })
   
-  // opciones para “Rama” (code) filtrada por gender
   const ramaOptions = computed(() => {
     if (!selectedGender.value) return []
     const set = new Map<string, string>()
     for (const c of categories.value) {
       if (norm(c.gender) !== selectedGender.value) continue
       const codeKey = norm(c.code)
-      if (codeKey) set.set(codeKey, c.code) // label original
+      if (codeKey) set.set(codeKey, c.code)
     }
     return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
   })
   
-  // resuelve la fila real (category) con gender+code => categoryId
   const selectedCategory = computed(() => {
     if (!selectedGender.value || !selectedRama.value) return null
     return (
@@ -179,12 +176,10 @@
     )
   })
   
-  // cuando ya hay match, llena categoryId
   watch(selectedCategory, (c) => {
     selectedCategoryId.value = c?.id ?? 0
   })
   
-  // carga categorías del back
   const fetchCategories = async () => {
     categoriesError.value = null
     try {
@@ -200,7 +195,6 @@
     }
   }
   
-  // watchers de selects
   watch(
     () => selectedLeagueId.value,
     async () => {
@@ -235,10 +229,11 @@
   const logoFile = ref<File | null>(null)
   const logoPreview = ref<string | null>(null)
   
-  // Colores: SOLO de adorno, no se mandan al back
+  // Colores: adorno
   const colorPrimary = ref('#1D4ED8')
   const colorSecondary = ref('#FFFFFF')
   
+  // ✅ AHORA puedes tener 0 jugadores
   const players = ref<PlayerForm[]>([])
   
   const createEmptyPlayer = (id: number): PlayerForm => ({
@@ -250,33 +245,36 @@
     photoPreview: null
   })
   
-  const safeRevoke = (url: string | null) => {
-    try {
-      if (url) URL.revokeObjectURL(url)
-    } catch {}
+  const nextPlayerId = () => {
+    const maxId = players.value.reduce((mx, p) => Math.max(mx, p.id), 0)
+    return maxId + 1
   }
   
-  // ✅ Ahora NO hay mínimo de integrantes (arranca vacío)
-  const initPlayers = () => {
-    players.value = []
+  const addPlayer = () => {
+    players.value.push(createEmptyPlayer(nextPlayerId()))
   }
-  initPlayers()
+  
+  const removePlayer = (index: number) => {
+    if (index < 0 || index >= players.value.length) return
+    const p = players.value[index]
+    if (p?.photoPreview) URL.revokeObjectURL(p.photoPreview)
+    players.value.splice(index, 1)
+  }
   
   // Logo
   const onLogoChange = (event: Event) => {
     const target = event.target as HTMLInputElement | null
     const file = target?.files?.[0] ?? null
   
-    // limpia preview anterior
-    safeRevoke(logoPreview.value)
-  
     if (!file) {
       logoFile.value = null
+      if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
       logoPreview.value = null
       return
     }
   
     logoFile.value = file
+    if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
     logoPreview.value = URL.createObjectURL(file)
   }
   
@@ -288,30 +286,22 @@
     const target = event.target as HTMLInputElement | null
     const file = target?.files?.[0] ?? null
   
-    // limpia preview anterior
-    safeRevoke(player.photoPreview)
-  
     if (!file) {
       player.photoFile = null
+      if (player.photoPreview) URL.revokeObjectURL(player.photoPreview)
       player.photoPreview = null
       return
     }
   
     player.photoFile = file
+    if (player.photoPreview) URL.revokeObjectURL(player.photoPreview)
     player.photoPreview = URL.createObjectURL(file)
   }
   
-  const addPlayer = () => {
-    const maxId = players.value.reduce((m, p) => Math.max(m, p.id), 0)
-    players.value.push(createEmptyPlayer(maxId + 1))
-  }
-  
-  const removePlayer = (index: number) => {
-    if (index < 0 || index >= players.value.length) return
-    const p = players.value[index]
-    if (p?.photoPreview) safeRevoke(p.photoPreview)
-    players.value.splice(index, 1) // ✅ ya NO forza dejar 1
-  }
+  // ✅ Solo estos se mandan
+  const sendablePlayers = computed(() =>
+    players.value.filter((p) => !!p.fullName.trim() && !!p.curp.trim() && !!p.photoFile)
+  )
   
   // ================== BORRADOR LOCAL ==================
   const DRAFT_KEY = 'registroEquipoDraft'
@@ -325,7 +315,6 @@
     curp?: string
     jerseyNumber?: number
   }
-  
   interface DraftData {
     teamName?: string
     teamShortName?: string
@@ -391,18 +380,14 @@
       selectedCategoryId.value = draft.categoryId ?? 0
   
       const playersDraft = draft.players ?? []
-      if (playersDraft.length > 0) {
-        players.value = playersDraft.map((p, idx) => ({
-          id: p.id ?? idx + 1,
-          fullName: p.fullName ?? '',
-          curp: p.curp ?? '',
-          jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
-          photoFile: null,
-          photoPreview: null
-        }))
-      } else {
-        players.value = []
-      }
+      players.value = playersDraft.map((p, idx) => ({
+        id: p.id ?? idx + 1,
+        fullName: p.fullName ?? '',
+        curp: p.curp ?? '',
+        jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
+        photoFile: null,      // ⚠️ archivos no se pueden restaurar desde localStorage
+        photoPreview: null
+      }))
     } catch (e) {
       console.error('Error cargando borrador:', e)
     }
@@ -414,9 +399,8 @@
     colorPrimary.value = '#1D4ED8'
     colorSecondary.value = '#FFFFFF'
   
-    // limpia logo preview
-    safeRevoke(logoPreview.value)
     logoFile.value = null
+    if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
     logoPreview.value = null
   
     selectedLeagueId.value = 0
@@ -425,9 +409,9 @@
     selectedRama.value = ''
     selectedCategoryId.value = 0
   
-    // limpia player previews
-    for (const p of players.value) safeRevoke(p.photoPreview)
-    players.value = [] // ✅ ahora queda vacío, no fuerza mínimo
+    // ✅ ahora sí puede quedar vacío
+    for (const p of players.value) if (p.photoPreview) URL.revokeObjectURL(p.photoPreview)
+    players.value = []
   
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem(DRAFT_KEY)
@@ -464,7 +448,6 @@
       return
     }
   
-    // ✅ exige liga/temporada/categoría
     if (!selectedLeagueId.value || !selectedSeasonId.value || !selectedCategoryId.value) {
       errorMessage.value = 'Selecciona liga, temporada, categoría y rama antes de registrar el equipo.'
       return
@@ -482,7 +465,6 @@
   
       if (!token) {
         errorMessage.value = 'No se encontró un token de sesión. Vuelve a iniciar sesión.'
-        submitting.value = false
         return
       }
   
@@ -518,15 +500,9 @@
         })
       }
   
-      // 3) Crear jugadores (solo completos: nombre + CURP + foto)
-      // ✅ Si no hay ninguno completo: NO es error, simplemente no se envía nada.
-      const isComplete = (p: PlayerForm) =>
-        !!p.fullName?.trim() && !!p.curp?.trim() && !!p.photoFile
-  
-      const completePlayers = players.value.filter(isComplete)
-  
-      if (createdTeamId && completePlayers.length > 0) {
-        for (const p of completePlayers) {
+      // 3) Crear jugadores: SOLO completos (nombre + curp + foto). Si no hay, NO PASA NADA.
+      if (createdTeamId && sendablePlayers.value.length > 0) {
+        for (const p of sendablePlayers.value) {
           const formPlayer = new FormData()
           formPlayer.append('fullName', p.fullName.trim())
           formPlayer.append('curp', p.curp.trim())
@@ -560,7 +536,6 @@
         }
       }
   
-      // 4) Refrescar info + limpiar
       await fetchMyTeams()
       clearProgress()
   
@@ -582,8 +557,9 @@
         errorMessage.value =
           'La información enviada (logo o fotos) supera el tamaño máximo permitido. Intenta con archivos más ligeros.'
       } else {
+        // OJO: si aquí sigue saliendo 500, es back/BD (como tu error de team_enrollment)
         errorMessage.value =
-          'Ocurrió un error al subir la información. Verifica tus datos o inténtalo más tarde.'
+          'Ocurrió un error al subir la información. Si ves 500, revisa los logs del back/BD.'
       }
     } finally {
       submitting.value = false
@@ -594,7 +570,6 @@
   onMounted(async () => {
     loadDraft()
   
-    // auto-selección si solo hay 1 liga/temporada
     if (!selectedLeagueId.value) selectedLeagueId.value = leagues.value[0]?.id ?? 0
     if (!selectedSeasonId.value) selectedSeasonId.value = seasons.value[0]?.id ?? 0
   
@@ -621,7 +596,7 @@
           Registro de equipo
         </h1>
         <p class="text-sm text-slate-600 mb-6">
-          Completa la información de tu equipo. Esta información será visible para la organización de la liga.
+          Completa la información de tu equipo. Puedes registrar el equipo aunque aún no cargues integrantes.
         </p>
   
         <!-- Login -->
@@ -630,7 +605,9 @@
           class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
         >
           <div>
-            <h2 class="font-semibold text-slate-900 mb-1">Inicia sesión para registrar tu equipo</h2>
+            <h2 class="font-semibold text-slate-900 mb-1">
+              Inicia sesión para registrar tu equipo
+            </h2>
             <p class="text-sm text-slate-600">
               Necesitas entrar con tu cuenta para ligar el equipo a tu usuario de Keycloak.
             </p>
@@ -646,7 +623,6 @@
   
         <!-- BLOQUE PARA USUARIOS AUTENTICADOS -->
         <div v-else class="mt-6 space-y-4">
-          <!-- Estado de capitán / capacidad -->
           <div
             v-if="captainLoading"
             class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm"
@@ -661,19 +637,18 @@
             {{ captainError }}
           </div>
   
-          <!-- No es capitán -->
           <div
             v-else-if="myTeams && !myTeams.hasCaptainPrivileges"
             class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm"
           >
-            <p class="font-semibold text-slate-900 mb-1">Tu usuario no tiene rol de capitán.</p>
+            <p class="font-semibold text-slate-900 mb-1">
+              Tu usuario no tiene rol de capitán.
+            </p>
             <p class="text-sm text-slate-600">
-              Solo los usuarios con rol de <strong>capitán</strong> pueden registrar equipos. Ponte en
-              contacto con la organización para que actualicen tu rol.
+              Solo los usuarios con rol de <strong>capitán</strong> pueden registrar equipos.
             </p>
           </div>
   
-          <!-- Es capitán pero ya no puede crear más equipos -->
           <div
             v-else-if="myTeams && !myTeams.canCreateTeam"
             class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
@@ -693,15 +668,11 @@
             </NuxtLink>
           </div>
   
-          <!-- Formulario de registro SOLO si puede crear equipo -->
           <section
             v-if="canRegisterTeam"
             class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
           >
-            <!-- Header -->
-            <div
-              class="px-6 py-4 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] flex items-center justify-between"
-            >
+            <div class="px-6 py-4 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] flex items-center justify-between">
               <div>
                 <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
                   registro de capitán
@@ -710,21 +681,18 @@
                   Datos del equipo e integrantes
                 </h2>
               </div>
-              <div class="hidden sm:block text-xs text-blue-50/85 text-right">
-                <p>Guarda cambios antes de salir.</p>
-                <p>Sube la información cuando esté completa.</p>
-              </div>
             </div>
   
             <form class="px-6 py-8 space-y-8" @submit.prevent="onSubmit">
               <!-- Datos del equipo -->
               <div class="space-y-4">
                 <h3 class="font-semibold text-slate-900 text-lg">Datos del equipo</h3>
-                <p class="text-xs text-slate-500">Estos datos identifican a tu equipo dentro de la liga.</p>
   
                 <div class="grid md:grid-cols-3 gap-4">
                   <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre del equipo</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      Nombre del equipo
+                    </label>
                     <input
                       v-model="teamName"
                       type="text"
@@ -734,7 +702,9 @@
                   </div>
   
                   <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre corto</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                      Nombre corto
+                    </label>
                     <input
                       v-model="teamShortName"
                       type="text"
@@ -744,7 +714,6 @@
                   </div>
                 </div>
   
-                <!-- ✅ Liga / Temporada / Categoría / Rama -->
                 <div class="grid md:grid-cols-4 gap-4 mt-2">
                   <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Liga</label>
@@ -815,21 +784,16 @@
                   Seleccionaste: <span class="font-semibold">{{ selectedCategory.name }}</span>
                 </div>
   
-                <!-- Colores (solo adorno) -->
                 <div class="grid md:grid-cols-2 gap-4 mt-2">
                   <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Color primario</label>
                     <div class="flex items-center gap-3">
-                      <input
-                        v-model="colorPrimary"
-                        type="color"
-                        class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer"
-                      />
+                      <input v-model="colorPrimary" type="color" class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer" />
                       <input
                         v-model="colorPrimary"
                         type="text"
                         class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
-                        placeholder="#1D4ED8 o blue"
+                        placeholder="#1D4ED8"
                       />
                     </div>
                   </div>
@@ -837,27 +801,22 @@
                   <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Color secundario</label>
                     <div class="flex items-center gap-3">
-                      <input
-                        v-model="colorSecondary"
-                        type="color"
-                        class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer"
-                      />
+                      <input v-model="colorSecondary" type="color" class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer" />
                       <input
                         v-model="colorSecondary"
                         type="text"
                         class="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70"
-                        placeholder="#FFFFFF o white"
+                        placeholder="#FFFFFF"
                       />
                     </div>
                   </div>
                 </div>
   
-                <!-- Logo del equipo -->
                 <div class="grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 items-start mt-2">
                   <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Logo del equipo</label>
                     <p class="text-[11px] text-slate-500 mb-2">
-                      Sube el logo oficial de tu equipo (JPG o PNG, recomendado 512×512px).
+                      Sube el logo oficial (JPG o PNG).
                     </p>
                     <input
                       type="file"
@@ -868,18 +827,9 @@
                   </div>
   
                   <div class="flex justify-center md:justify-end">
-                    <div
-                      class="w-28 h-28 rounded-2xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden"
-                    >
-                      <img
-                        v-if="logoPreview"
-                        :src="logoPreview"
-                        alt="Logo del equipo"
-                        class="w-full h-full object-contain"
-                      />
-                      <span v-else class="text-[11px] text-slate-400 text-center px-2">
-                        Previsualización del logo
-                      </span>
+                    <div class="w-28 h-28 rounded-2xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
+                      <img v-if="logoPreview" :src="logoPreview" alt="Logo del equipo" class="w-full h-full object-contain" />
+                      <span v-else class="text-[11px] text-slate-400 text-center px-2">Previsualización</span>
                     </div>
                   </div>
                 </div>
@@ -891,11 +841,13 @@
                   <div>
                     <h3 class="font-semibold text-slate-900 text-lg">Integrantes del equipo</h3>
                     <p class="text-xs text-slate-500">
-                      Solo se registrarán los integrantes que tengan <strong>todos sus datos personales completos</strong>
-                      y <strong>foto</strong>. Los integrantes incompletos <strong>no se enviarán</strong>.
+                      Solo se registrarán los integrantes que tengan <strong>Nombre + CURP + Foto</strong>.
+                      Los incompletos <strong>se ignoran</strong>. El jersey es opcional.
+                    </p>
+                    <p class="mt-1 text-[11px] text-slate-500">
+                      Se enviarán: <strong>{{ sendablePlayers.length }}</strong> / {{ players.length }}
                     </p>
                   </div>
-  
                   <button
                     type="button"
                     class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
@@ -905,12 +857,8 @@
                   </button>
                 </div>
   
-                <!-- ✅ Empty state -->
-                <div
-                  v-if="players.length === 0"
-                  class="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600"
-                >
-                  Aún no agregas integrantes (opcional). Usa <strong>“Agregar integrante”</strong> cuando quieras.
+                <div v-if="players.length === 0" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                  No has agregado integrantes. Puedes registrar el equipo así y después subirlos en “Mi equipo”.
                 </div>
   
                 <div v-else class="space-y-3">
@@ -921,15 +869,11 @@
                   >
                     <div class="flex items-start justify-between gap-3 mb-3">
                       <div class="flex items-center gap-2 text-xs text-slate-500">
-                        <span
-                          class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white"
-                        >
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white">
                           {{ index + 1 }}
                         </span>
                         <span>Integrante</span>
                       </div>
-  
-                      <!-- ✅ Siempre puedes eliminar, aunque sea el primero -->
                       <button
                         type="button"
                         class="text-[11px] text-slate-500 hover:text-red-500"
@@ -943,7 +887,7 @@
                       <div class="space-y-3">
                         <div>
                           <label class="block text-[11px] font-semibold text-slate-700 mb-1">
-                            Nombre completo <span class="text-red-500">*</span>
+                            Nombre completo (solo si lo vas a registrar)
                           </label>
                           <input
                             v-model="player.fullName"
@@ -956,7 +900,7 @@
                         <div class="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
                           <div>
                             <label class="block text-[11px] font-semibold text-slate-700 mb-1">
-                              CURP <span class="text-red-500">*</span>
+                              CURP (solo si lo vas a registrar)
                             </label>
                             <input
                               v-model="player.curp"
@@ -983,12 +927,11 @@
   
                       <div class="space-y-2">
                         <label class="block text-[11px] font-semibold text-slate-700 mb-1">
-                          Foto del jugador(a) <span class="text-red-500">*</span>
+                          Foto (solo si lo vas a registrar)
                         </label>
                         <p class="text-[11px] text-slate-500">
-                          De preferencia foto frontal tipo credencial o uniforme.
+                          Si no hay foto, este integrante no se enviará.
                         </p>
-  
                         <input
                           type="file"
                           accept="image/*"
@@ -996,15 +939,8 @@
                           @change="onPlayerPhotoChange(index, $event)"
                         />
   
-                        <div
-                          class="mt-2 w-full h-24 rounded-2xl border border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden"
-                        >
-                          <img
-                            v-if="player.photoPreview"
-                            :src="player.photoPreview"
-                            alt="Foto del jugador"
-                            class="w-full h-full object-cover"
-                          />
+                        <div class="mt-2 w-full h-24 rounded-2xl border border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden">
+                          <img v-if="player.photoPreview" :src="player.photoPreview" alt="Foto del jugador" class="w-full h-full object-cover" />
                           <span v-else class="text-[11px] text-slate-400 px-2 text-center">
                             Previsualización de la foto
                           </span>
@@ -1015,7 +951,7 @@
                 </div>
   
                 <p class="text-[11px] text-slate-500">
-                  Puedes agregar más integrantes después desde la pantalla de <strong>"Mi equipo"</strong>.
+                  Puedes agregar más integrantes después desde <strong>"Mi equipo"</strong>.
                 </p>
               </div>
   
