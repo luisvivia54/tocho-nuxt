@@ -142,7 +142,11 @@
                     Ficha rápida
                   </p>
 
-                  <div class="space-y-1">
+                  <!-- Capitán solo para admins -->
+                  <div
+                    v-if="isAdmin"
+                    class="space-y-1"
+                  >
                     <p class="text-[11px] text-slate-400">Capitán</p>
                     <p class="text-sm font-semibold text-white">
                       {{ team.captain || 'Por definir' }}
@@ -263,7 +267,7 @@
                 </div>
               </section>
 
-              <!-- Últimos partidos -->
+              <!-- Últimos partidos (solo resumen, sin admin aquí) -->
               <section
                 class="rounded-2xl border border-slate-800 bg-slate-950/90 p-4 md:p-5"
               >
@@ -390,7 +394,11 @@
                         {{ getAgeFromBirthdate(player.birthdate) }} años
                       </span>
                     </p>
-                    <p class="text-[10px] text-slate-500 truncate">
+                    <!-- CURP solo para admins -->
+                    <p
+                      v-if="isAdmin"
+                      class="text-[10px] text-slate-500 truncate"
+                    >
                       CURP: {{ player.curp }}
                     </p>
                   </div>
@@ -408,6 +416,10 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '@/composables/useApi'
+<<<<<<< HEAD:mi-app/mi-app/app/pages/teams/[id].vue
+=======
+import { useAuthz } from '@/composables/useAuthz'
+>>>>>>> 529f021 (Cambios admin partidos + ajustes):mi-app/app/pages/teams/[id].vue
 
 interface Season {
   id: number
@@ -459,7 +471,14 @@ interface TeamDetailResponse {
 const route = useRoute()
 const teamId = route.params.id as string
 
+<<<<<<< HEAD:mi-app/mi-app/app/pages/teams/[id].vue
 // OJO: tu useApi ya mete el `/api`, así que aquí usamos `/teams/:id/detail`
+=======
+// Auth: saber si es admin
+const { isAdmin } = useAuthz()
+
+// API detalle equipo
+>>>>>>> 529f021 (Cambios admin partidos + ajustes):mi-app/app/pages/teams/[id].vue
 const { data, pending, error } = useApi<TeamDetailResponse>(`/teams/${teamId}/detail`)
 
 const detail = computed<TeamDetailResponse | null>(
@@ -507,7 +526,7 @@ const heroGradientStyle = computed(() => {
   }
 })
 
-const teamActive = computed(() => true) // si luego tienes isActive en detail, cámbialo
+const teamActive = computed(() => true) // cuando tengas isActive, actualízalo
 
 const subtitleText = computed(() => {
   const season = team.value?.season?.name
@@ -545,6 +564,7 @@ const recordSummary = computed(() => {
 })
 
 const formatGameDate = (iso: string) => {
+  if (!iso) return '—'
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
   return date.toLocaleDateString('es-MX', {

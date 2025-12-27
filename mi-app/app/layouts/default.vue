@@ -1,9 +1,10 @@
 <template>
-  <div class="bg-[#F3F4FF] text-slate-900 min-h-screen">
+  <div class="bg-[#020617] text-slate-50 min-h-screen">
     <!-- HEADER GLOBAL -->
     <header
-      class="navbar fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-[#111827] to-[#1F2937] text-white shadow-lg"
+      class="fixed top-0 inset-x-0 z-40 bg-slate-950/90 border-b border-slate-800 backdrop-blur"
     >
+<<<<<<< HEAD
       <nav class="max-w-6xl mx-auto container-pad px-6 py-4 flex items-center justify-between">
        <!-- LOGO -->
 <NuxtLink to="/" class="flex items-center gap-3" @click="closeMobile">
@@ -47,19 +48,77 @@
             rel="noopener"
             class="opacity-80 hover:opacity-100 text-slate-100"
             aria-label="Instagram"
+=======
+      <nav
+        class="max-w-6xl mx-auto container-pad px-6 py-3 flex items-center justify-between gap-4"
+      >
+        <!-- Logo / brand -->
+        <NuxtLink to="/" class="flex items-center gap-3">
+          <span
+            class="w-9 h-9 rounded-xl grid place-items-center bg-[rgba(37,99,235,.18)] text-[13px] font-extrabold text-blue-400"
           >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="1.6" />
-              <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6" />
-              <circle cx="17.5" cy="6.5" r="1.3" fill="currentColor" />
-            </svg>
-          </a>
+            T5
+          </span>
+          <div class="flex flex-col">
+            <span class="text-xs font-semibold text-slate-50 leading-tight">
+              tochero5liga
+            </span>
+            <span class="text-[10px] text-slate-400 leading-tight">
+              Resultados · Equipos · Calendario
+            </span>
+          </div>
+        </NuxtLink>
 
-          <button
-            v-if="kcReady"
-            class="rounded-xl px-3 py-1.5 bg-blue-500 text-white hover:bg-blue-400 text-sm font-semibold"
-            @click="onAuthClick"
+        <!-- Navegación -->
+        <div class="flex items-center gap-4 text-xs md:text-sm">
+          <NuxtLink
+            to="/equipos"
+            class="text-slate-300 hover:text-white transition"
           >
+            Equipos
+          </NuxtLink>
+
+          <NuxtLink
+            to="/estadisticas"
+            class="text-slate-300 hover:text-white transition"
+          >
+            Estadísticas
+          </NuxtLink>
+
+          <NuxtLink
+            to="/registro"
+            class="text-slate-300 hover:text-white transition"
+          >
+            Registro
+          </NuxtLink>
+
+          <NuxtLink
+            to="/mi-equipo"
+            class="text-slate-300 hover:text-white transition"
+          >
+            Mi equipo
+          </NuxtLink>
+
+          <!-- NUEVA PESTAÑA SOLO PARA ADMIN -->
+          <NuxtLink
+            v-if="isAdmin"
+            to="/admin/partidos"
+            class="inline-flex items-center gap-1 rounded-full border border-blue-500/70 px-3 py-1 text-[11px] font-semibold text-blue-100 bg-blue-600/20 hover:bg-blue-600/35 transition"
+>>>>>>> 529f021 (Cambios admin partidos + ajustes)
+          >
+            Partidos (Admin)
+          </NuxtLink>
+
+<<<<<<< HEAD
+=======
+          <!-- Botón login / logout -->
+>>>>>>> 529f021 (Cambios admin partidos + ajustes)
+          <button
+            type="button"
+            class="inline-flex items-center rounded-full bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
+            @click="handleAuth"
+          >
+<<<<<<< HEAD
             {{ isAuthenticated ? 'Cerrar sesión' : 'Entrar' }}
           </button>
 
@@ -84,6 +143,9 @@
               />
             </svg>
             Menú
+=======
+            {{ isAuthenticated ? 'Cerrar sesión' : 'Iniciar sesión' }}
+>>>>>>> 529f021 (Cambios admin partidos + ajustes)
           </button>
         </div>
       </nav>
@@ -173,11 +235,14 @@
     </header>
 
     <!-- CONTENIDO DE LAS PÁGINAS -->
-    <slot />
+    <main class="pt-20 md:pt-24">
+      <slot />
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
+<<<<<<< HEAD
 import { computed, watch, ref, onBeforeUnmount } from 'vue'
 import { useNuxtApp, useState, useRoute } from '#imports'
 import { useAuthz } from '~/composables/useAuthz'
@@ -216,13 +281,26 @@ const onAuthClick = () => {
   const nuxtApp = useNuxtApp()
   const kc = (nuxtApp as any).$kc
   if (typeof window === 'undefined' || !kc) return
+=======
+import { computed } from 'vue'
+import { useAuthz } from '@/composables/useAuthz'
 
+// Lo tipamos como any para que TypeScript no se queje aunque la definición
+// de useAuthz no esté perfecta.
+const authz: any = useAuthz()
+
+const isAuthenticated = computed<boolean>(() => !!authz?.isAuthenticated?.value)
+const isAdmin = computed<boolean>(() => !!authz?.isAdmin?.value)
+>>>>>>> 529f021 (Cambios admin partidos + ajustes)
+
+const handleAuth = () => {
   if (isAuthenticated.value) {
-    kc.logout({ redirectUri: window.location.origin })
+    authz?.logout && authz.logout()
   } else {
-    kc.login({ redirectUri: window.location.href })
+    authz?.login && authz.login()
   }
 }
+<<<<<<< HEAD
 
 // ----- Sync /api/me -----
 const { backendUserSynced: meSynced, syncBackendUser: syncMe } = useBackendUser()
@@ -234,4 +312,6 @@ watch(
   },
   { immediate: true }
 )
+=======
+>>>>>>> 529f021 (Cambios admin partidos + ajustes)
 </script>
