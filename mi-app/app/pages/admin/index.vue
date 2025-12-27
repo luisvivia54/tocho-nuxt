@@ -17,7 +17,7 @@
 
         <!-- Controles del carrusel -->
         <div class="mt-3 flex items-center justify-center gap-4">
-          <button class="carousel-arrow bg-white shadow" type="button" @click="prevSlide">
+          <button class="carousel-arrow bg-white shadow" @click="prevSlide">
             <span class="text-xs text-slate-700">&larr;</span>
           </button>
 
@@ -25,7 +25,6 @@
             <button
               v-for="(slide, idx) in heroSlides"
               :key="slide.id"
-              type="button"
               class="carousel-dot border border-slate-300"
               :class="
                 idx === currentSlide
@@ -33,11 +32,10 @@
                   : 'bg-white'
               "
               @click="goToSlide(idx)"
-              :aria-label="`Ir a slide ${idx + 1}`"
             />
           </div>
 
-          <button class="carousel-arrow bg-white shadow" type="button" @click="nextSlide">
+          <button class="carousel-arrow bg-white shadow" @click="nextSlide">
             <span class="text-xs text-slate-700">&rarr;</span>
           </button>
         </div>
@@ -72,8 +70,12 @@
               </div>
 
               <div class="md:col-span-2">
-                <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-slate-800 shadow-sm">
-                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <div
+                  class="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-slate-800 shadow-sm"
+                >
+                  <div
+                    class="text-xs font-semibold text-slate-500 uppercase tracking-wide"
+                  >
                     Próximo juego
                   </div>
                   <div class="mt-1 text-sm text-slate-700">
@@ -115,11 +117,12 @@
             <div v-else-if="error" class="px-4 py-3 text-sm text-red-600">
               Error al cargar las posiciones.
             </div>
-
             <template v-else>
               <table class="min-w-[880px] w-full text-sm">
                 <thead>
-                  <tr class="text-left text-slate-500 border-b border-slate-200/80">
+                  <tr
+                    class="text-left text-slate-500 border-b border-slate-200/80"
+                  >
                     <th class="px-3 py-2">Rk</th>
                     <th class="px-3 py-2">Equipo</th>
                     <th class="px-3 py-2">PJ</th>
@@ -153,7 +156,10 @@
                   </tr>
 
                   <tr v-if="topPositions.length === 0">
-                    <td colspan="7" class="px-3 py-3 text-sm text-slate-500">
+                    <td
+                      colspan="7"
+                      class="px-3 py-3 text-sm text-slate-500"
+                    >
                       Aún no hay posiciones registradas.
                     </td>
                   </tr>
@@ -163,41 +169,59 @@
           </div>
         </div>
 
-        <!-- ========== PATROCINADORES ========= -->
+        <!-- ========== PATROCINADORES · CARRUSEL FULL CARD (CLARO) ========== -->
         <section id="patrocinadores" class="mt-12">
           <div
             class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
           >
+            <!-- Header con mismo estilo que Top 5 -->
             <div
               class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]"
             >
               <div>
-                <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
+                <p
+                  class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase"
+                >
                   aliados de la liga
                 </p>
-                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">
+                <h2
+                  class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1"
+                >
                   Patrocinadores oficiales
                 </h2>
               </div>
-              <div class="hidden sm:flex flex-col text-right text-[11px] text-blue-50/85">
+              <div
+                class="hidden sm:flex flex-col text-right text-[11px] text-blue-50/85"
+              >
                 <span>1 patrocinador a la vez.</span>
                 <span>Rotan automáticamente durante la temporada.</span>
               </div>
             </div>
 
+            <!-- Slide actual -->
             <div class="px-6 py-7 sm:py-8 bg-white text-slate-900">
-              <div class="grid lg:grid-cols-[minmax(0,1.3fr),minmax(260px,0.9fr)] gap-8 items-center">
+              <div
+                class="grid lg:grid-cols-[minmax(0,1.3fr),minmax(260px,0.9fr)] gap-8 items-center"
+              >
                 <!-- Texto -->
                 <div class="space-y-4">
-                  <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5">
-                    <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  <div
+                    class="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5"
+                  >
+                    <span
+                      class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"
+                    ></span>
+                    <span
+                      class="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700"
+                    >
                       Patrocinador activo
                     </span>
                   </div>
 
                   <div>
-                    <h3 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900">
+                    <h3
+                      class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900"
+                    >
                       {{ activeSponsor.name }}
                     </h3>
                     <p class="mt-2 text-sm sm:text-base text-slate-700">
@@ -213,10 +237,11 @@
                     <span
                       class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 text-[11px] font-semibold"
                     >
-                      <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                      <span
+                        class="h-1.5 w-1.5 rounded-full bg-blue-500"
+                      ></span>
                       {{ activeSponsor.label }}
                     </span>
-
                     <a
                       :href="activeSponsor.url"
                       target="_blank"
@@ -231,6 +256,7 @@
 
                 <!-- Logo + controles -->
                 <div class="flex flex-col items-center gap-5">
+                  <!-- Logo grande en círculo claro -->
                   <div
                     class="relative w-36 h-36 sm:w-40 sm:h-40 lg:w-48 lg:h-48 rounded-full bg-gradient-to-tr from-blue-100 via-white to-indigo-100 flex items-center justify-center border border-blue-100 shadow-[0_0_30px_rgba(129,140,248,0.45)]"
                   >
@@ -250,6 +276,7 @@
                     </span>
                   </div>
 
+                  <!-- Controles de carrusel -->
                   <div class="flex flex-col items-center gap-3 w-full">
                     <div class="flex items-center justify-center gap-3">
                       <button
@@ -271,13 +298,18 @@
                       </button>
                     </div>
 
+                    <!-- Dots -->
                     <div class="flex items-center justify-center gap-1.5">
                       <button
                         v-for="(s, idx) in sponsors"
                         :key="s.id"
                         type="button"
                         class="h-1.5 rounded-full transition-all"
-                        :class="idx === activeSponsorIndex ? 'w-5 bg-blue-500' : 'w-2 bg-slate-300 hover:bg-slate-400'"
+                        :class="
+                          idx === activeSponsorIndex
+                            ? 'w-5 bg-blue-500'
+                            : 'w-2 bg-slate-300 hover:bg-slate-400'
+                        "
                         @click="setActiveSponsor(idx)"
                         :aria-label="`Ir a patrocinador ${s.name}`"
                       />
@@ -286,9 +318,11 @@
                 </div>
               </div>
 
+              <!-- Mini strip de logos abajo -->
               <div class="mt-6 pt-4 border-t border-slate-200">
                 <p class="text-[11px] text-slate-500 mb-2">
-                  Patrocinadores oficiales · toca una tarjeta para cambiar de patrocinador
+                  Patrocinadores oficiales · toca una tarjeta para cambiar de
+                  patrocinador
                 </p>
                 <div class="flex gap-3 overflow-x-auto pb-1">
                   <button
@@ -296,10 +330,16 @@
                     :key="s.id"
                     type="button"
                     class="group flex items-center gap-3 rounded-2xl border px-3 py-2 min-w-[190px] transition-all"
-                    :class="idx === activeSponsorIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'"
+                    :class="
+                      idx === activeSponsorIndex
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    "
                     @click="setActiveSponsor(idx)"
                   >
-                    <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-slate-200">
+                    <div
+                      class="w-9 h-9 rounded-xl bg-white flex items-center justify-center overflow-hidden border border-slate-200"
+                    >
                       <img
                         v-if="s.logo"
                         :src="s.logo"
@@ -307,13 +347,20 @@
                         class="w-full h-full object-contain"
                         loading="lazy"
                       />
-                      <span v-else class="text-[11px] font-semibold text-slate-700">
+                      <span
+                        v-else
+                        class="text-[11px] font-semibold text-slate-700"
+                      >
                         {{ s.name }}
                       </span>
                     </div>
                     <div class="text-left">
-                      <div class="text-xs font-semibold text-slate-900">{{ s.name }}</div>
-                      <div class="text-[11px] text-slate-500">{{ s.tagline }}</div>
+                      <div class="text-xs font-semibold text-slate-900">
+                        {{ s.name }}
+                      </div>
+                      <div class="text-[11px] text-slate-500">
+                        {{ s.tagline }}
+                      </div>
                     </div>
                   </button>
                 </div>
@@ -331,12 +378,21 @@
           <div
             class="rounded-[26px] bg-slate-900 text-slate-50 overflow-hidden shadow-[0_20px_45px_rgba(15,23,42,0.55)] border border-slate-800"
           >
-            <div class="px-5 py-4 bg-gradient-to-r from-[#020617] via-[#0f172a] to-[#1d4ed8] border-b border-slate-800">
-              <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-200 uppercase">
+            <!-- Header -->
+            <div
+              class="px-5 py-4 bg-gradient-to-r from-[#020617] via-[#0f172a] to-[#1d4ed8] border-b border-slate-800"
+            >
+              <p
+                class="text-[11px] font-semibold tracking-[0.25em] text-blue-200 uppercase"
+              >
                 reglas oficiales
               </p>
-              <div class="mt-1 flex flex-wrap items-center justify-between gap-3">
-                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-slate-50">
+              <div
+                class="mt-1 flex flex-wrap items-center justify-between gap-3"
+              >
+                <h2
+                  class="font-display text-xl sm:text-2xl font-extrabold text-slate-50"
+                >
                   Reglamento Tochero5Liga · Flag 5 vs 5
                 </h2>
                 <a
@@ -351,75 +407,113 @@
               </div>
             </div>
 
+            <!-- Contenido -->
             <div class="px-6 py-7 sm:py-8">
-              <div class="grid lg:grid-cols-[minmax(0,1.2fr),minmax(260px,0.9fr)] gap-8 items-start">
+              <div
+                class="grid lg:grid-cols-[minmax(0,1.2fr),minmax(260px,0.9fr)] gap-8 items-start"
+              >
+                <!-- Lado izquierdo: tabs + bullets -->
                 <div class="space-y-5">
                   <p class="text-sm text-slate-200/90">
-                    Usamos el reglamento oficial de Flag Football. Aquí tienes un resumen rápido para que jugadores y coaches tengan claro
+                    Usamos el reglamento oficial de Flag Football. Aquí tienes
+                    un resumen rápido para que jugadores y coaches tengan claro
                     cómo se juega la liga.
                   </p>
 
+                  <!-- Tabs -->
                   <div class="flex flex-wrap gap-2 mt-1">
                     <button
                       v-for="section in ruleSections"
                       :key="section.id"
                       type="button"
                       class="inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
-                      :class="section.id === activeRuleId
-                        ? 'bg-blue-500 text-white shadow-[0_0_0_1px_rgba(191,219,254,0.6)]'
-                        : 'bg-slate-800/80 text-slate-200 hover:bg-slate-700'"
+                      :class="
+                        section.id === activeRuleId
+                          ? 'bg-blue-500 text-white shadow-[0_0_0_1px_rgba(191,219,254,0.6)]'
+                          : 'bg-slate-800/80 text-slate-200 hover:bg-slate-700'
+                      "
                       @click="setActiveRule(section.id)"
                     >
                       {{ section.title }}
                     </button>
                   </div>
 
+                  <!-- Bullets -->
                   <div class="mt-2 space-y-3">
-                    <h3 class="text-xs font-semibold tracking-[0.18em] uppercase text-blue-200">
+                    <h3
+                      class="text-xs font-semibold tracking-[0.18em] uppercase text-blue-200"
+                    >
                       {{ activeRule.subtitle }}
                     </h3>
                     <ul class="space-y-2 text-sm text-slate-100/90">
-                      <li v-for="(item, idx) in activeRule.bullets" :key="idx" class="flex gap-2">
-                        <span class="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0"></span>
+                      <li
+                        v-for="(item, idx) in activeRule.bullets"
+                        :key="idx"
+                        class="flex gap-2"
+                      >
+                        <span
+                          class="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0"
+                        ></span>
                         <span>{{ item }}</span>
                       </li>
                     </ul>
                   </div>
                 </div>
 
-                <div class="space-y-4 rounded-2xl bg-slate-800/70 border border-slate-700/70 p-4">
-                  <h3 class="text-sm font-semibold text-slate-50 flex items-center gap-2">
-                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 border border-blue-400/60 text-[11px]">
+                <!-- Lado derecho: highlight card -->
+                <div
+                  class="space-y-4 rounded-2xl bg-slate-800/70 border border-slate-700/70 p-4"
+                >
+                  <h3
+                    class="text-sm font-semibold text-slate-50 flex items-center gap-2"
+                  >
+                    <span
+                      class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 border border-blue-400/60 text-[11px]"
+                    >
                       i
                     </span>
                     Puntos clave del partido
                   </h3>
                   <dl class="space-y-2 text-[13px] text-slate-200">
                     <div class="flex items-start justify-between gap-3">
-                      <dt class="font-semibold text-slate-100">Formato</dt>
+                      <dt class="font-semibold text-slate-100">
+                        Formato
+                      </dt>
                       <dd class="text-right">
-                        Juegos 5 vs 5 en campo de flag. Plantel amplio para rotaciones durante la temporada.
+                        Juegos 5 vs 5 en campo de flag. Plantel amplio para
+                        rotaciones durante la temporada.
                       </dd>
                     </div>
                     <div class="flex items-start justify-between gap-3">
-                      <dt class="font-semibold text-slate-100">Duración</dt>
+                      <dt class="font-semibold text-slate-100">
+                        Duración
+                      </dt>
                       <dd class="text-right">
-                        Partido estándar dividido en 2 mitades con administración de reloj por oficiales.
+                        Partido estándar dividido en 2 mitades con
+                        administración de reloj por oficiales.
                       </dd>
                     </div>
                     <div class="flex items-start justify-between gap-3">
-                      <dt class="font-semibold text-slate-100">Estilo de juego</dt>
+                      <dt class="font-semibold text-slate-100">
+                        Estilo de juego
+                      </dt>
                       <dd class="text-right">
-                        Sin contacto: sin bloqueos ni tacleos. La jugada termina al quitar el flag o salir del campo.
+                        Sin contacto: sin bloqueos ni tacleos. La jugada
+                        termina al quitar el flag o salir del campo.
                       </dd>
                     </div>
                   </dl>
 
-                  <div class="mt-3 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-3 text-[11px] text-slate-300 space-y-1.5">
-                    <p class="font-semibold text-slate-100">Tip para capitanes</p>
+                  <div
+                    class="mt-3 rounded-xl bg-slate-900/60 border border-slate-700 px-3 py-3 text-[11px] text-slate-300 space-y-1.5"
+                  >
+                    <p class="font-semibold text-slate-100">
+                      Tip para capitanes
+                    </p>
                     <p>
-                      Antes del primer juego, comparte este resumen y el PDF completo en el chat de tu equipo. Así todos llegan con el mismo
-                      entendimiento del reglamento.
+                      Antes del primer juego, comparte este resumen y el PDF
+                      completo en el chat de tu equipo. Así todos llegan con el
+                      mismo entendimiento del reglamento.
                     </p>
                   </div>
                 </div>
@@ -434,7 +528,9 @@
         <div class="max-w-6xl mx-auto container-pad px-6 py-10">
           <div class="grid md:grid-cols-5 gap-6 items-start">
             <div class="md:col-span-2 space-y-2">
-              <h2 class="font-display text-2xl font-extrabold text-slate-900">
+              <h2
+                class="font-display text-2xl font-extrabold text-slate-900"
+              >
                 Ubicación
               </h2>
               <p class="opacity-95 text-slate-800">
@@ -454,7 +550,9 @@
             </div>
 
             <div class="md:col-span-3">
-              <div class="aspect-video rounded-[26px] overflow-hidden border border-white/70 shadow-lg bg-black/10">
+              <div
+                class="aspect-video rounded-[26px] overflow-hidden border border-white/70 shadow-lg bg-black/10"
+              >
                 <iframe
                   class="w-full h-full"
                   src="https://www.google.com/maps?q=deportivo%20miguel%20alem%C3%A1n&output=embed"
@@ -467,13 +565,31 @@
 
           <hr class="mt-8 mb-4 border-slate-300/70" />
 
-          <div class="flex items-center justify-between text-sm text-slate-600">
+          <div
+            class="flex items-center justify-between text-sm text-slate-600"
+          >
             <span>© 2025 tochero5liga</span>
 
-            <span class="inline-flex items-center gap-2 opacity-90 hover:opacity-100">
+            <span
+              class="inline-flex items-center gap-2 opacity-90 hover:opacity-100"
+            >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="1.6" />
-                <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6" />
+                <rect
+                  x="2"
+                  y="2"
+                  width="20"
+                  height="20"
+                  rx="5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="4.5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                />
                 <circle cx="17.5" cy="6.5" r="1.3" fill="currentColor" />
               </svg>
               <span>@tochero5liga</span>
@@ -487,8 +603,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-
-/* ========= BACKEND (/points) ========= */
+a
+/* ========= RAW DEL BACKEND (/points) ========= */
 interface ApiStanding {
   standing_id: number
   season_id: number
@@ -504,6 +620,7 @@ interface ApiStanding {
   team_name: string
 }
 
+/* ========= VIEW MODEL PARA LA TABLA ========= */
 interface StandingRow {
   rank: number
   teamName: string
@@ -513,26 +630,20 @@ interface StandingRow {
   points: number
 }
 
-const config = useRuntimeConfig()
-const apiBase = (config.public?.apiBase || '').toString()
-
-// 👇 Ya no dependemos de useApi. Esto evita el pedo de imports/alias.
-const { data: standings, pending, error } = await useFetch<ApiStanding[]>('/points', {
-  baseURL: apiBase,
-  key: 'home-standings',
-})
+const { data: standings, pending, error } = useApi<ApiStanding[]>('/points')
 
 const topPositions = computed<StandingRow[]>(() => {
-  const raw = standings.value
+  const raw = standings.value as unknown
   if (!Array.isArray(raw)) return []
+  const rows = raw as ApiStanding[]
 
-  return raw
+  return rows
     .slice()
     .sort((a, b) => {
-      if ((b.table_points ?? 0) !== (a.table_points ?? 0)) {
-        return (b.table_points ?? 0) - (a.table_points ?? 0)
+      if (b.table_points !== a.table_points) {
+        return b.table_points - a.table_points
       }
-      return (b.points_for ?? 0) - (a.points_for ?? 0)
+      return b.points_for - a.points_for
     })
     .slice(0, 5)
     .map((row, idx) => ({
@@ -567,12 +678,12 @@ interface HeroSlide {
 
 const heroSlides = ref<HeroSlide[]>([
   { id: 'slide-1', src: '/img/sponsors/foto-1.png' },
-  // Si tienes más imágenes, agrégalas así:
-  // { id: 'slide-2', src: '/img/sponsors/foto-2.png' },
 ])
 
 const currentSlide = ref(0)
-const currentSlideSrc = computed(() => heroSlides.value[currentSlide.value]?.src ?? '')
+const currentSlideSrc = computed(
+  () => heroSlides.value[currentSlide.value]?.src ?? ''
+)
 
 let heroIntervalId: ReturnType<typeof setInterval> | null = null
 
@@ -583,7 +694,9 @@ const nextSlide = () => {
 
 const prevSlide = () => {
   if (!heroSlides.value.length) return
-  currentSlide.value = (currentSlide.value - 1 + heroSlides.value.length) % heroSlides.value.length
+  currentSlide.value =
+    (currentSlide.value - 1 + heroSlides.value.length) %
+    heroSlides.value.length
 }
 
 const goToSlide = (index: number) => {
@@ -616,8 +729,7 @@ const sponsors = ref<Sponsor[]>([
   {
     id: 'marti',
     name: 'Martí',
-    // ✅ FIX: te faltaba la extensión
-    logo: '/img/sponsors/marti-logopng.png',
+    logo: '/img/sponsors/marti-logopng',
     tagline: 'Todo para vivir el deporte.',
     description:
       'Martí equipa a la liga con uniformes, tenis y artículos deportivos para cada jornada.',
@@ -634,7 +746,6 @@ const sponsors = ref<Sponsor[]>([
     url: 'https://www.ruffles.com.mx/lmx/',
     label: 'Patrocinador oficial',
   },
-  // Si no tienes logos de estos todavía, puedes borrarlos sin pedo:
   {
     id: 'under-armour',
     name: 'Under Armour',
@@ -678,7 +789,9 @@ const sponsors = ref<Sponsor[]>([
 ])
 
 const activeSponsorIndex = ref(0)
-const activeSponsor = computed<Sponsor>(() => sponsors.value[activeSponsorIndex.value] || sponsors.value[0])
+const activeSponsor = computed<Sponsor>(
+  () => sponsors.value[activeSponsorIndex.value]!
+)
 
 const setActiveSponsor = (idx: number) => {
   if (idx < 0 || idx >= sponsors.value.length) return
@@ -687,12 +800,15 @@ const setActiveSponsor = (idx: number) => {
 
 const nextSponsor = () => {
   if (!sponsors.value.length) return
-  activeSponsorIndex.value = (activeSponsorIndex.value + 1) % sponsors.value.length
+  activeSponsorIndex.value =
+    (activeSponsorIndex.value + 1) % sponsors.value.length
 }
 
 const prevSponsor = () => {
   if (!sponsors.value.length) return
-  activeSponsorIndex.value = (activeSponsorIndex.value - 1 + sponsors.value.length) % sponsors.value.length
+  activeSponsorIndex.value =
+    (activeSponsorIndex.value - 1 + sponsors.value.length) %
+    sponsors.value.length
 }
 
 /* ========= REGLAMENTO ========= */
@@ -703,6 +819,7 @@ interface RuleSection {
   bullets: string[]
 }
 
+/* Regla por defecto para evitar undefined */
 const defaultRule: RuleSection = {
   id: 'default',
   title: 'Reglamento',
@@ -717,8 +834,8 @@ const ruleSections = ref<RuleSection[]>([
     subtitle: 'Equipos, plantel y objetivo',
     bullets: [
       'Partidos 5 vs 5 en campo de flag; siempre hay ofensiva y defensiva claras.',
-      'Se recomienda plantel amplio para rotar durante la temporada.',
-      'Objetivo: avanzar el balón para cruzar la línea de gol rival y sumar más puntos.',
+      'Se permite jugar con menos jugadores en el campo, pero se recomienda plantel amplio para rotar durante la temporada.',
+      'Objetivo: avanzar el balón por pase o carrera para cruzar la línea de gol rival y sumar más puntos que el rival.',
     ],
   },
   {
@@ -726,9 +843,9 @@ const ruleSections = ref<RuleSection[]>([
     title: 'Campo y tiempo',
     subtitle: 'Cómo se juega cada partido',
     bullets: [
-      'Campo con zonas de anotación en cada extremo y marca de mediocampo.',
-      'Partido dividido en dos mitades con reloj controlado por oficiales.',
-      'El reloj puede detenerse en situaciones clave (anotaciones, tiempos fuera, cambios de posesión).',
+      'Se utiliza un campo de flag con zonas de anotación en cada extremo y marca de mediocampo.',
+      'El partido se divide en dos mitades, con reloj controlado por los oficiales y pausas reglamentarias.',
+      'El reloj puede detenerse en situaciones clave (anotaciones, tiempos fuera, cambios de posesión, etc.).',
     ],
   },
   {
@@ -736,32 +853,38 @@ const ruleSections = ref<RuleSection[]>([
     title: 'Equipamiento',
     subtitle: 'Qué es obligatorio y qué está prohibido',
     bullets: [
-      'Cinturón de flags visible y jersey por dentro del short.',
-      'Se recomienda calzado adecuado y uso de protector bucal.',
-      'No se permiten objetos peligrosos (joyería expuesta, accesorios duros o puntiagudos).',
+      'Cinturón de flags bien visible y ajustado; el jersey siempre por dentro del short para no tapar las banderas.',
+      'Se recomienda calzado deportivo adecuado y, en su caso, uso de protector bucal.',
+      'No se permiten objetos que pongan en riesgo a otros jugadores (joyería expuesta, cascos, hombreras, accesorios duros o puntiagudos).',
     ],
   },
   {
     id: 'conducta',
     title: 'Conducta y castigos',
-    subtitle: 'Juego limpio',
+    subtitle: 'Juego limpio dentro y fuera del campo',
     bullets: [
-      'Sin contacto: no hay bloqueos ni tacleos; la jugada termina al quitar el flag o salir.',
-      'Se sanciona contacto ilegal, protección intencional del flag y acciones antideportivas.',
-      'Capitanes: responsables de hablar con oficiales y mantener el control del equipo.',
+      'El flag es un deporte sin contacto: no hay bloqueos, tacleos ni patadas; la jugada termina cuando se quita el flag o el corredor sale del campo.',
+      'Se sancionan acciones antideportivas, contacto ilegal, protección intencional del flag, jumping o diving peligrosos.',
+      'Los capitanes son los responsables de hablar con los oficiales y mantener el control emocional del equipo.',
     ],
   },
 ])
 
-const activeRuleId = ref<string>(ruleSections.value[0]?.id ?? defaultRule.id)
+const activeRuleId = ref<string>(
+  ruleSections.value[0]?.id ?? defaultRule.id
+)
 
 const activeRule = computed<RuleSection>(() => {
-  return ruleSections.value.find((s) => s.id === activeRuleId.value) ?? defaultRule
+  const found = ruleSections.value.find(
+    (section) => section.id === activeRuleId.value
+  )
+  return found ?? defaultRule
 })
 
 const setActiveRule = (id: string) => {
   if (id === activeRuleId.value) return
-  if (!ruleSections.value.some((s) => s.id === id)) return
+  const exists = ruleSections.value.some((s) => s.id === id)
+  if (!exists) return
   activeRuleId.value = id
 }
 
@@ -773,37 +896,18 @@ onMounted(() => {
     heroIntervalId = setInterval(nextSlide, 7000)
   }
   if (sponsors.value.length > 1) {
-    sponsorsIntervalId = setInterval(nextSponsor, 9000)
+    sponsorsIntervalId = setInterval(() => {
+      nextSponsor()
+    }, 9000)
   }
 })
 
 onBeforeUnmount(() => {
-  if (heroIntervalId) clearInterval(heroIntervalId)
-  if (sponsorsIntervalId) clearInterval(sponsorsIntervalId)
+  if (heroIntervalId) {
+    clearInterval(heroIntervalId)
+  }
+  if (sponsorsIntervalId) {
+    clearInterval(sponsorsIntervalId)
+  }
 })
 </script>
-
-<style scoped>
-.carousel-arrow {
-  height: 36px;
-  width: 36px;
-  border-radius: 9999px;
-  border: 1px solid rgba(203, 213, 225, 0.9);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 150ms ease;
-}
-.carousel-arrow:hover {
-  background: rgba(241, 245, 249, 1);
-}
-.carousel-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 9999px;
-  transition: transform 150ms ease, width 150ms ease;
-}
-.carousel-dot--active {
-  transform: scale(1.05);
-}
-</style>

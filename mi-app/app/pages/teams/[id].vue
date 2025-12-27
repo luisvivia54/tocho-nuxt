@@ -40,7 +40,7 @@
         <div v-else>
           <!-- HERO -->
           <header
-            class="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/95 shadow-[0_28px_80px_rgba(15,23,42,0.9)] mb-6"
+            class="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/95 shadow-[0_28px_80px_rgba(15,23,42,0.9)] mb-8"
             :style="heroGradientStyle"
           >
             <div
@@ -142,7 +142,11 @@
                     Ficha rápida
                   </p>
 
-                  <div class="space-y-1">
+                  <!-- Capitán solo para admins -->
+                  <div
+                    v-if="isAdmin"
+                    class="space-y-1"
+                  >
                     <p class="text-[11px] text-slate-400">Capitán</p>
                     <p class="text-sm font-semibold text-white">
                       {{ team.captain || 'Por definir' }}
@@ -185,40 +189,9 @@
             </div>
           </header>
 
-          <!-- TABS -->
-          <div class="mt-2 border-b border-slate-800 flex gap-3 overflow-x-auto text-sm">
-            <button
-              type="button"
-              class="px-3 py-2 border-b-2"
-              :class="
-                activeTab === 'resumen'
-                  ? 'border-blue-500 text-blue-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              "
-              @click="activeTab = 'resumen'"
-            >
-              Resumen
-            </button>
-
-            <button
-              v-if="isAdmin"
-              type="button"
-              class="px-3 py-2 border-b-2"
-              :class="
-                activeTab === 'partidos'
-                  ? 'border-emerald-400 text-emerald-300'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              "
-              @click="activeTab = 'partidos'"
-            >
-              Partidos (Admin)
-            </button>
-          </div>
-
-          <!-- TAB: RESUMEN (GALERÍA + ÚLTIMOS 3 PARTIDOS + ROSTER) -->
+          <!-- GRID SECUNDARIO -->
           <div
-            v-if="activeTab === 'resumen'"
-            class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] mb-10"
+            class="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] mb-10"
           >
             <!-- Columna izquierda: Galería + últimos partidos -->
             <div class="space-y-4">
@@ -294,7 +267,7 @@
                 </div>
               </section>
 
-              <!-- Últimos partidos -->
+              <!-- Últimos partidos (solo resumen, sin admin aquí) -->
               <section
                 class="rounded-2xl border border-slate-800 bg-slate-950/90 p-4 md:p-5"
               >
@@ -408,9 +381,7 @@
                       {{ player.fullName }}
                     </p>
                     <p class="text-[11px] text-slate-400 mt-0.5">
-                      <span
-                        v-if="player.jerseyNumber !== null && player.jerseyNumber !== undefined"
-                      >
+                      <span v-if="player.jerseyNumber !== null && player.jerseyNumber !== undefined">
                         #{{ player.jerseyNumber }}
                       </span>
                       <span
@@ -423,7 +394,11 @@
                         {{ getAgeFromBirthdate(player.birthdate) }} años
                       </span>
                     </p>
-                    <p class="text-[10px] text-slate-500 truncate">
+                    <!-- CURP solo para admins -->
+                    <p
+                      v-if="isAdmin"
+                      class="text-[10px] text-slate-500 truncate"
+                    >
                       CURP: {{ player.curp }}
                     </p>
                   </div>
@@ -431,208 +406,6 @@
               </div>
             </section>
           </div>
-
-          <!-- TAB: PARTIDOS (ADMIN) -->
-          <section
-            v-else-if="activeTab === 'partidos'"
-            class="mt-6 rounded-2xl border border-slate-800 bg-slate-950/90 p-4 md:p-6 mb-10"
-          >
-            <div class="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <h2 class="font-display text-xl font-extrabold text-slate-50">
-                  Gestión de partidos del equipo
-                </h2>
-                <p class="text-xs text-slate-400">
-                  Solo administradores pueden crear o editar partidos. Más adelante conectamos
-                  este módulo al backend.
-                </p>
-              </div>
-
-              <span
-                class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/40 px-3 py-1 text-[11px] font-semibold"
-              >
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Admin
-              </span>
-            </div>
-
-            <!-- Si no es admin, mensaje de solo lectura -->
-            <div
-              v-if="!isAdmin"
-              class="rounded-xl bg-slate-900/80 border border-slate-700 px-4 py-3 text-sm text-slate-300"
-            >
-              Solo los administradores de la liga pueden gestionar partidos de este equipo.
-            </div>
-
-            <div v-else class="space-y-6">
-              <!-- FORM NUEVO PARTIDO -->
-              <div
-                class="rounded-xl bg-slate-900/80 border border-slate-700 px-4 py-4 space-y-3"
-              >
-                <h3 class="text-sm font-semibold text-slate-100">
-                  Agregar nuevo partido
-                </h3>
-
-                <div class="grid md:grid-cols-4 gap-3 text-sm">
-                  <div class="flex flex-col gap-1">
-                    <label
-                      class="text-[11px] uppercase tracking-[0.18em] text-slate-400"
-                    >
-                      Oponente
-                    </label>
-                    <input
-                      v-model="newGame.opponent"
-                      type="text"
-                      class="rounded-lg bg-slate-950/60 border border-slate-700 px-2.5 py-2 text-sm text-slate-50 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                      placeholder="Ej. Redskins"
-                    />
-                  </div>
-
-                  <div class="flex flex-col gap-1">
-                    <label
-                      class="text-[11px] uppercase tracking-[0.18em] text-slate-400"
-                    >
-                      Fecha
-                    </label>
-                    <input
-                      v-model="newGame.date"
-                      type="date"
-                      class="rounded-lg bg-slate-950/60 border border-slate-700 px-2.5 py-2 text-sm text-slate-50 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                    />
-                  </div>
-
-                  <div class="flex flex-col gap-1">
-                    <label
-                      class="text-[11px] uppercase tracking-[0.18em] text-slate-400"
-                    >
-                      Hora
-                    </label>
-                    <input
-                      v-model="newGame.time"
-                      type="time"
-                      class="rounded-lg bg-slate-950/60 border border-slate-700 px-2.5 py-2 text-sm text-slate-50 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                    />
-                  </div>
-
-                  <div class="flex flex-col gap-1">
-                    <label
-                      class="text-[11px] uppercase tracking-[0.18em] text-slate-400"
-                    >
-                      Campo
-                    </label>
-                    <input
-                      v-model="newGame.field"
-                      type="text"
-                      class="rounded-lg bg-slate-950/60 border border-slate-700 px-2.5 py-2 text-sm text-slate-50 focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                      placeholder="Ej. Cancha 1"
-                    />
-                  </div>
-                </div>
-
-                <div class="flex items-center justify-between mt-2">
-                  <p v-if="addError" class="text-[11px] text-red-400">
-                    {{ addError }}
-                  </p>
-                  <span v-else class="text-[11px] text-slate-500">
-                    Completa los campos y guarda para registrar el partido.
-                  </span>
-
-                  <button
-                    type="button"
-                    class="inline-flex items-center gap-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2 text-xs font-semibold text-slate-950 disabled:opacity-60"
-                    :disabled="addingGame"
-                    @click="addGame"
-                  >
-                    Guardar partido
-                  </button>
-                </div>
-              </div>
-
-              <!-- LISTA DE PARTIDOS -->
-              <div
-                class="rounded-xl bg-slate-900/80 border border-slate-700 overflow-hidden"
-              >
-                <div
-                  class="px-4 py-3 border-b border-slate-700 flex items-center justify-between text-xs text-slate-400"
-                >
-                  <span>Partidos del equipo (copia editable)</span>
-                  <span>{{ teamGames.length }} partido(s)</span>
-                </div>
-
-                <div class="overflow-x-auto">
-                  <table class="min-w-[720px] w-full text-sm">
-                    <thead>
-                      <tr class="bg-slate-950/60 text-slate-400">
-                        <th class="px-3 py-2 text-left">Fecha</th>
-                        <th class="px-3 py-2 text-left">Hora</th>
-                        <th class="px-3 py-2 text-left">Oponente</th>
-                        <th class="px-3 py-2 text-left">Campo</th>
-                        <th class="px-3 py-2 text-left">Estado</th>
-                        <th class="px-3 py-2 text-right">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr
-                        v-for="g in teamGames"
-                        :key="g.id"
-                        class="border-t border-slate-800 hover:bg-slate-900/60"
-                      >
-                        <td class="px-3 py-2">
-                          {{ g.date }}
-                        </td>
-                        <td class="px-3 py-2">
-                          {{ g.time }}
-                        </td>
-                        <td class="px-3 py-2">
-                          {{ g.opponent }}
-                        </td>
-                        <td class="px-3 py-2">
-                          {{ g.field }}
-                        </td>
-                        <td class="px-3 py-2">
-                          <button
-                            type="button"
-                            class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border"
-                            :class="
-                              g.status === 'SCHEDULED'
-                                ? 'bg-amber-500/10 text-amber-300 border-amber-400/60'
-                                : 'bg-emerald-500/10 text-emerald-300 border-emerald-400/60'
-                            "
-                            @click="toggleGameStatus(g)"
-                          >
-                            {{ g.status === 'SCHEDULED' ? 'SCHEDULED' : 'FINAL' }}
-                          </button>
-                        </td>
-                        <td class="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            class="text-[11px] text-red-300 hover:text-red-200"
-                            @click="removeGame(g.id)"
-                          >
-                            Eliminar
-                          </button>
-                        </td>
-                      </tr>
-
-                      <tr v-if="teamGames.length === 0">
-                        <td
-                          colspan="6"
-                          class="px-3 py-4 text-center text-xs text-slate-500"
-                        >
-                          Aún no hay partidos registrados en esta copia local.
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <p class="text-[11px] text-slate-500">
-                * Esta gestión es local. Después conectamos estos datos a tu API de
-                Spring para guardar partidos reales.
-              </p>
-            </div>
-          </section>
         </div>
       </div>
     </section>
@@ -640,10 +413,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '@/composables/useApi'
-import { useAuthRoles } from '@/composables/useAuthRoles'
+import { useAuthz } from '@/composables/useAuthz'
 
 interface Season {
   id: number
@@ -695,7 +468,10 @@ interface TeamDetailResponse {
 const route = useRoute()
 const teamId = route.params.id as string
 
-// Datos del backend
+// Auth: saber si es admin
+const { isAdmin } = useAuthz()
+
+// API detalle equipo
 const { data, pending, error } = useApi<TeamDetailResponse>(`/teams/${teamId}/detail`)
 
 const detail = computed<TeamDetailResponse | null>(
@@ -730,103 +506,6 @@ const gallery = computed<string[]>(() => {
     .slice(0, 5)
 })
 
-// ===== ROLES Y TABS =====
-const { isAdmin } = useAuthRoles()
-
-type TeamTab = 'resumen' | 'partidos'
-const activeTab = ref<TeamTab>('resumen')
-
-// ===== PARTIDOS (ADMIN, LOCAL) =====
-type GameStatusAdmin = 'SCHEDULED' | 'FINAL'
-
-interface EditableGame {
-  id: number
-  opponent: string
-  date: string
-  time: string
-  field: string
-  status: GameStatusAdmin
-}
-
-const teamGames = ref<EditableGame[]>([])
-
-// Inicializar copia editable a partir de lastGames
-watch(
-  lastGames,
-  (games) => {
-    teamGames.value = games.map((g) => ({
-      id: g.gameId,
-      opponent: g.opponentName,
-      date: g.date,
-      time: '20:00',
-      field: 'Por definir',
-      status: 'FINAL'
-    }))
-  },
-  { immediate: true }
-)
-
-interface NewGameForm {
-  opponent: string
-  date: string
-  time: string
-  field: string
-}
-
-const newGame = ref<NewGameForm>({
-  opponent: '',
-  date: '',
-  time: '',
-  field: ''
-})
-
-const addingGame = ref(false)
-const addError = ref<string | null>(null)
-
-const addGame = () => {
-  if (!isAdmin.value) return
-
-  addError.value = null
-
-  const { opponent, date, time, field } = newGame.value
-
-  if (!opponent || !date || !time) {
-    addError.value = 'Falta oponente, fecha u horario.'
-    return
-  }
-
-  const nextId =
-    teamGames.value.length > 0
-      ? Math.max(...teamGames.value.map((g) => g.id)) + 1
-      : 1
-
-  teamGames.value.push({
-    id: nextId,
-    opponent,
-    date,
-    time,
-    field: field || 'Por definir',
-    status: 'SCHEDULED'
-  })
-
-  newGame.value = {
-    opponent: '',
-    date: '',
-    time: '',
-    field: ''
-  }
-}
-
-const removeGame = (id: number) => {
-  if (!isAdmin.value) return
-  teamGames.value = teamGames.value.filter((g) => g.id !== id)
-}
-
-const toggleGameStatus = (game: EditableGame) => {
-  if (!isAdmin.value) return
-  game.status = game.status === 'SCHEDULED' ? 'FINAL' : 'SCHEDULED'
-}
-
 // Colores y hero
 const primaryColor = computed(() => team.value?.colorPrimary || '#1D4ED8')
 const secondaryColor = computed(() => team.value?.colorSecondary || '#22D3EE')
@@ -840,7 +519,7 @@ const heroGradientStyle = computed(() => {
   }
 })
 
-const teamActive = computed(() => true) // si luego tienes isActive en detail, cámbialo
+const teamActive = computed(() => true) // cuando tengas isActive, actualízalo
 
 const subtitleText = computed(() => {
   const season = team.value?.season?.name
@@ -878,6 +557,7 @@ const recordSummary = computed(() => {
 })
 
 const formatGameDate = (iso: string) => {
+  if (!iso) return '—'
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
   return date.toLocaleDateString('es-MX', {
