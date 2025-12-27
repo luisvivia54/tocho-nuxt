@@ -480,7 +480,9 @@
           name: teamName.value.trim(),
           leagueId: selectedLeagueId.value,
           seasonId: selectedSeasonId.value,
-          categoryId: selectedCategoryId.value
+          categoryId: selectedCategoryId.value,
+          colorPrimary: colorPrimary.value,
+          colorSecondary: colorSecondary.value
         }
       })
   
