@@ -7,14 +7,10 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-<<<<<<< HEAD
-      // 🌐 Backend de la liga
+      // Backend de la liga (usa HTTPS)
       apiBase: 'https://tocho5-api.tochero5.mx/api',
 
-      // 🔐 Config de Keycloak
-=======
-      apiBase: 'http://tocho5-api.tochero5.mx/api',
->>>>>>> 529f021 (Cambios admin partidos + ajustes)
+      // Config de Keycloak
       keycloakUrl: 'https://auth.tochero5.mx',
       keycloakRealm: 'tochero5',
       keycloakClientId: 'nuxt-app',
