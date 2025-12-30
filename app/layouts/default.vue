@@ -1,3 +1,4 @@
+<!-- app/layouts/default.vue -->
 <template>
   <div class="bg-[#F3F4FF] text-slate-900 min-h-screen">
     <!-- HEADER GLOBAL -->
@@ -5,27 +6,25 @@
       class="navbar fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-[#111827] to-[#1F2937] text-white shadow-lg"
     >
       <nav class="max-w-6xl mx-auto container-pad px-6 py-4 flex items-center justify-between">
-       <!-- LOGO -->
-<NuxtLink to="/" class="flex items-center gap-3" @click="closeMobile">
-  <!-- Imagen (reemplaza el T5) -->
-  <span
-    class="w-9 h-9 rounded-xl overflow-hidden bg-[rgba(59,130,246,.25)] ring-1 ring-white/10 shadow-sm"
-    aria-hidden="true"
-  >
-    <img
-      src="/img/sponsors/Tochero5.JPG"
-      alt="Tochero5"
-      class="w-full h-full object-cover"
-      loading="eager"
-      decoding="async"
-    />
-  </span>
+        <!-- LOGO -->
+        <NuxtLink to="/" class="flex items-center gap-3" @click="closeMobile">
+          <span
+            class="w-9 h-9 rounded-xl overflow-hidden bg-[rgba(59,130,246,.25)] ring-1 ring-white/10 shadow-sm"
+            aria-hidden="true"
+          >
+            <img
+              src="/img/sponsors/Tochero5.JPG"
+              alt="Tochero5"
+              class="w-full h-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
+          </span>
 
-  <span class="font-display text-xl sm:text-2xl font-extrabold tracking-wide text-white">
-    tochero<span class="text-blue-400">5</span>liga
-  </span>
-</NuxtLink>
-
+          <span class="font-display text-xl sm:text-2xl font-extrabold tracking-wide text-white">
+            tochero<span class="text-blue-400">5</span>liga
+          </span>
+        </NuxtLink>
 
         <!-- NAV DESKTOP -->
         <div class="hidden sm:flex items-center gap-5 text-sm text-slate-100">
@@ -33,12 +32,26 @@
           <NuxtLink to="/equipos" class="hover:text-white transition">Equipos</NuxtLink>
           <NuxtLink to="/estadisticas" class="hover:text-white transition">Estadísticas</NuxtLink>
 
+          <!-- ✅ NUEVO: Jugadores (público) -->
+          <NuxtLink to="/jugadores" class="hover:text-white transition">Jugadores</NuxtLink>
+
           <NuxtLink v-if="showRegistro" to="/registro" class="hover:text-white transition">
             Registro
           </NuxtLink>
 
           <NuxtLink v-if="showMiEquipo" to="/mi-equipo" class="hover:text-white transition">
             Mi equipo
+          </NuxtLink>
+
+          <!-- ✅ SOLO ADMIN -->
+          <NuxtLink
+            v-if="isAdmin"
+            to="/admin/partidos"
+            class="inline-flex items-center rounded-full px-3 py-1.5 text-[12px] font-semibold
+                   bg-blue-600/20 text-blue-100 border border-blue-400/40
+                   hover:bg-blue-600/30 hover:border-blue-300/60 transition"
+          >
+            Partidos (Admin)
           </NuxtLink>
 
           <a
@@ -121,6 +134,15 @@
                   Estadísticas
                 </NuxtLink>
 
+                <!-- ✅ NUEVO: Jugadores (público) -->
+                <NuxtLink
+                  to="/jugadores"
+                  class="px-3 py-2 rounded-xl hover:bg-white/10"
+                  @click="closeMobile"
+                >
+                  Jugadores
+                </NuxtLink>
+
                 <NuxtLink
                   v-if="showRegistro"
                   to="/registro"
@@ -137,6 +159,16 @@
                   @click="closeMobile"
                 >
                   Mi equipo
+                </NuxtLink>
+
+                <!-- ✅ SOLO ADMIN -->
+                <NuxtLink
+                  v-if="isAdmin"
+                  to="/admin/partidos"
+                  class="px-3 py-2 rounded-xl hover:bg-white/10 text-blue-100"
+                  @click="closeMobile"
+                >
+                  Partidos (Admin)
                 </NuxtLink>
               </div>
 
@@ -206,14 +238,35 @@ onBeforeUnmount(() => {
 })
 
 // ----- Keycloak / Auth -----
+const nuxtApp = useNuxtApp()
 const kcReady = useState<boolean>('kcReady', () => false)
-const { isAuthenticated } = useAuthz()
 
-const showRegistro = computed(() => kcReady.value && isAuthenticated.value)
-const showMiEquipo = computed(() => kcReady.value && isAuthenticated.value)
+// useAuthz normalmente ya trae isAuthenticated como Ref<boolean>
+const { isAuthenticated } = useAuthz() as any
+
+const showRegistro = computed(() => kcReady.value && !!isAuthenticated.value)
+const showMiEquipo = computed(() => kcReady.value && !!isAuthenticated.value)
+
+// ✅ Detectar rol admin desde el token (realm roles o client roles)
+const isAdmin = computed<boolean>(() => {
+  if (!kcReady.value || !isAuthenticated.value) return false
+  const kc = (nuxtApp as any).$kc
+  const tp = kc?.tokenParsed as any
+  if (!tp) return false
+
+  const realmRoles: string[] = tp?.realm_access?.roles ?? []
+
+  // por si los roles vienen como client roles:
+  const azp = tp?.azp // a veces es "nuxt-app"
+  const clientKey = azp || 'nuxt-app'
+  const clientRoles: string[] =
+    tp?.resource_access?.[clientKey]?.roles ?? tp?.resource_access?.['nuxt-app']?.roles ?? []
+
+  const roles = [...realmRoles, ...clientRoles].map((r) => String(r).toLowerCase())
+  return roles.includes('admin')
+})
 
 const onAuthClick = () => {
-  const nuxtApp = useNuxtApp()
   const kc = (nuxtApp as any).$kc
   if (typeof window === 'undefined' || !kc) return
 
