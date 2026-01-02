@@ -42,7 +42,6 @@
           <NuxtLink v-if="showMiEquipo" to="/mi-equipo" class="hover:text-white transition">
             Mi equipo
           </NuxtLink>
-
           <!-- ✅ SOLO ADMIN -->
           <NuxtLink
             v-if="isAdmin"
