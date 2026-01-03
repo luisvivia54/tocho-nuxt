@@ -8,7 +8,6 @@
         <div class="absolute top-20 -left-24 h-[420px] w-[520px] rounded-full bg-fuchsia-500/10 blur-3xl"></div>
         <div class="absolute -bottom-24 -right-24 h-[460px] w-[560px] rounded-full bg-emerald-500/10 blur-3xl"></div>
 
-        <!-- líneas tipo “poster” -->
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,.08),transparent_55%),radial-gradient(circle_at_75%_15%,rgba(59,130,246,.10),transparent_45%)]"></div>
         <div class="absolute inset-0 opacity-25 [background:repeating-linear-gradient(90deg,rgba(255,255,255,.08)_0,rgba(255,255,255,.08)_1px,transparent_1px,transparent_72px)]"></div>
       </div>
@@ -120,7 +119,6 @@
               />
             </div>
 
-            <!-- meta -->
             <div class="md:col-span-12 flex flex-wrap items-center justify-between gap-2 pt-1">
               <p class="text-[11px] text-slate-400">
                 Mostrando
@@ -128,16 +126,14 @@
                 jugador(es)
               </p>
 
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
-                  Endpoint players: <code class="ml-1 text-slate-300">{{ API_PLAYERS }}</code>
-                </span>
-              </div>
+              <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                Endpoint players: <code class="ml-1 text-slate-300">{{ API_PLAYERS }}</code>
+              </span>
             </div>
           </div>
         </section>
 
-        <!-- ESTADOS (LOADING/ERROR) -->
+        <!-- ESTADOS -->
         <div v-if="pendingAny" class="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200">
           Cargando jugadores…
         </div>
@@ -148,16 +144,14 @@
 
         <!-- CONTENIDO PRINCIPAL -->
         <div v-else class="mt-6 grid lg:grid-cols-12 gap-6">
-          <!-- LÍDERES (POSTER PANELS) -->
+          <!-- LEADERS -->
           <section class="lg:col-span-5 space-y-4">
             <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 p-4 md:p-5">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400">leaders</p>
                   <h2 class="mt-1 font-display text-xl font-extrabold text-white">Top por categoría</h2>
-                  <p class="mt-1 text-xs text-slate-400">
-                    Tablas estilo “poster” (tipo la imagen). Aquí es donde se siente full estadística.
-                  </p>
+                  <p class="mt-1 text-xs text-slate-400">Tablas estilo “poster”.</p>
                 </div>
 
                 <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
@@ -203,60 +197,85 @@
             />
           </section>
 
-          <!-- LISTA / RANKING GENERAL -->
+          <!-- RANKING / TARJETAS -->
           <section class="lg:col-span-7 space-y-4">
             <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
               <div class="px-5 py-4 border-b border-white/10 flex items-start justify-between gap-3">
                 <div>
                   <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400">ranking</p>
-                  <h2 class="mt-1 font-display text-xl font-extrabold text-white">Tabla de jugadores</h2>
+                  <h2 class="mt-1 font-display text-xl font-extrabold text-white">Jugadores</h2>
                   <p class="mt-1 text-xs text-slate-400">
-                    Ordenada por <span class="text-slate-200 font-semibold">Impacto</span> (TD + INT + PA + SACK).
-                    Puedes ajustar después si quieres.
+                    Ordenado por <span class="text-slate-200 font-semibold">Impacto</span> (TD + INT + PA + SACK).
+                    Paginado de <b>10 en 10</b>.
                   </p>
                 </div>
 
-                <div class="flex items-center gap-2">
-                  <span class="hidden sm:inline text-[11px] text-slate-400">Total:</span>
+                <div class="text-right">
+                  <p class="text-[11px] text-slate-400">Total:</p>
                   <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
                     {{ filteredPlayers.length }}
                   </span>
                 </div>
               </div>
 
-              <!-- HEADER TABLE -->
-              <div class="grid grid-cols-12 gap-2 px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-slate-400 border-b border-white/10">
-                <div class="col-span-1">Rk</div>
-                <div class="col-span-5">Jugador</div>
-                <div class="col-span-3">Equipo</div>
-                <div class="col-span-1 text-right">TD</div>
-                <div class="col-span-1 text-right">INT</div>
-                <div class="col-span-1 text-right">IMP</div>
+              <!-- META PAGINACIÓN -->
+              <div class="px-5 py-3 border-b border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <p class="text-[11px] text-slate-400">
+                  Mostrando
+                  <span class="text-slate-200 font-semibold">{{ pageFrom }}</span>
+                  -
+                  <span class="text-slate-200 font-semibold">{{ pageTo }}</span>
+                  de
+                  <span class="text-slate-200 font-semibold">{{ filteredPlayers.length }}</span>
+                </p>
+
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] text-slate-400 hidden sm:inline">Página</span>
+                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                    {{ currentPage }} / {{ totalPages }}
+                  </span>
+
+                  <button
+                    type="button"
+                    class="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="currentPage <= 1"
+                    @click="prevPage"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="currentPage >= totalPages"
+                    @click="nextPage"
+                  >
+                    →
+                  </button>
+                </div>
               </div>
 
-              <!-- BODY -->
-              <div v-if="sortedPlayers.length === 0" class="px-5 py-6 text-sm text-slate-300">
+              <div v-if="pagedPlayers.length === 0" class="px-5 py-6 text-sm text-slate-300">
                 No hay jugadores para esos filtros.
               </div>
 
-              <div v-else class="divide-y divide-white/5">
-                <div
-                  v-for="(p, idx) in sortedPlayers"
+              <div v-else class="p-4 md:p-5 space-y-3">
+                <article
+                  v-for="(p, idx) in pagedPlayers"
                   :key="p.id"
-                  class="px-5 py-3 hover:bg-white/5 transition"
+                  class="rounded-3xl border border-white/10 bg-white/5 hover:bg-white/10 transition overflow-hidden"
                 >
-                  <div class="grid grid-cols-12 gap-2 items-center">
-                    <!-- rk -->
-                    <div class="col-span-1 font-semibold text-slate-200 tabular-nums">
-                      {{ idx + 1 }}
-                    </div>
-
-                    <!-- jugador -->
-                    <div class="col-span-5 min-w-0">
+                  <div class="p-4 md:p-5">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <!-- LEFT -->
                       <div class="flex items-center gap-3 min-w-0">
                         <div
-                          class="h-10 w-10 rounded-xl border border-white/10 bg-white/5 overflow-hidden flex items-center justify-center shrink-0"
+                          class="shrink-0 h-9 w-9 rounded-2xl border border-white/10 bg-black/30 flex items-center justify-center font-extrabold text-slate-200 tabular-nums"
+                          :title="`Ranking #${(pageStartIndex + idx + 1)}`"
                         >
+                          {{ pageStartIndex + idx + 1 }}
+                        </div>
+
+                        <div class="h-12 w-12 rounded-2xl border border-white/10 bg-black/20 overflow-hidden flex items-center justify-center shrink-0">
                           <img
                             v-if="p.photoUrl"
                             :src="p.photoUrl"
@@ -272,58 +291,108 @@
                         <div class="min-w-0">
                           <p class="font-semibold text-white truncate">
                             {{ p.fullName }}
-                            <span v-if="p.number" class="ml-2 text-slate-400 font-semibold">#{{ p.number }}</span>
+                            <span v-if="p.number != null" class="ml-2 text-slate-400 font-semibold">#{{ p.number }}</span>
                           </p>
-                          <p class="text-[11px] text-slate-400 truncate">
-                            {{ p.gender || '—' }}<span v-if="p.categoryCode"> · {{ p.categoryCode }}</span>
+
+                          <!-- ✅ NOMBRE REAL DEL EQUIPO (no “Equipo”) -->
+                          <p class="mt-0.5 text-[12px] text-slate-300 truncate">
+                            <span class="opacity-75">🏈</span>
+                            <span class="ml-1 font-semibold text-slate-200">{{ p.teamName || 'Sin equipo' }}</span>
+                            <span v-if="p.teamMeta" class="text-slate-500"> · {{ p.teamMeta }}</span>
                           </p>
+
+                          <!-- ✅ stats debajo del nombre -->
+                          <div class="mt-2 flex flex-wrap gap-2 text-[11px]">
+                            <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 font-semibold text-slate-200">
+                              Intercepciones: <span class="ml-1 text-slate-100 tabular-nums">{{ p.stats.int }}</span>
+                            </span>
+                            <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 font-semibold text-slate-200">
+                              Anotaciones: <span class="ml-1 text-slate-100 tabular-nums">{{ p.stats.td }}</span>
+                            </span>
+                            <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 font-semibold text-slate-200">
+                              Pases de anotación: <span class="ml-1 text-slate-100 tabular-nums">{{ p.stats.pa }}</span>
+                            </span>
+                            <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-2.5 py-0.5 font-semibold text-slate-200">
+                              Sacks: <span class="ml-1 text-slate-100 tabular-nums">{{ p.stats.sack }}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- RIGHT: pills -->
+                      <div class="shrink-0 flex flex-wrap items-center justify-start md:justify-end gap-2">
+                        <div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 min-w-[72px] text-center">
+                          <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-semibold">INT</div>
+                          <div class="mt-0.5 text-lg font-extrabold tabular-nums text-fuchsia-100">{{ p.stats.int }}</div>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 min-w-[72px] text-center">
+                          <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-semibold">TD</div>
+                          <div class="mt-0.5 text-lg font-extrabold tabular-nums text-violet-100">{{ p.stats.td }}</div>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 min-w-[72px] text-center">
+                          <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-semibold">PA</div>
+                          <div class="mt-0.5 text-lg font-extrabold tabular-nums text-sky-100">{{ p.stats.pa }}</div>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 min-w-[82px] text-center">
+                          <div class="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-semibold">SACK</div>
+                          <div class="mt-0.5 text-lg font-extrabold tabular-nums text-emerald-100">{{ p.stats.sack }}</div>
                         </div>
                       </div>
                     </div>
 
-                    <!-- equipo -->
-                    <div class="col-span-3 min-w-0">
-                      <p class="text-sm text-slate-200 truncate">{{ p.teamName || '—' }}</p>
-                      <p class="text-[11px] text-slate-500 truncate">
-                        {{ p.teamMeta || '' }}
-                      </p>
-                    </div>
+                    <!-- FOOTER -->
+                    <div class="mt-4 flex flex-wrap items-center gap-2">
+                      <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                        IMP: <span class="ml-1 text-slate-100 tabular-nums">{{ impact(p) }}</span>
+                      </span>
 
-                    <!-- TD -->
-                    <div class="col-span-1 text-right font-extrabold text-violet-100 tabular-nums">
-                      {{ p.stats.td }}
-                    </div>
+                      <span
+                        class="inline-flex items-center gap-1.5 rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold text-blue-100 truncate max-w-[260px]"
+                        :title="p.teamName || 'Sin equipo'"
+                      >
+                        <span class="opacity-80">🏷</span>
+                        {{ p.teamName || 'Sin equipo' }}
+                      </span>
 
-                    <!-- INT -->
-                    <div class="col-span-1 text-right font-extrabold text-fuchsia-100 tabular-nums">
-                      {{ p.stats.int }}
-                    </div>
-
-                    <!-- IMP -->
-                    <div class="col-span-1 text-right font-extrabold text-blue-100 tabular-nums">
-                      {{ impact(p) }}
+                      <span v-if="p.gender" class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                        {{ p.gender }}
+                      </span>
+                      <span v-if="p.categoryCode" class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                        {{ p.categoryCode }}
+                      </span>
                     </div>
                   </div>
+                </article>
 
-                  <!-- mini chips -->
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-semibold text-slate-200">
-                      PA: <span class="ml-1 text-slate-100">{{ p.stats.pa }}</span>
-                    </span>
-                    <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-semibold text-slate-200">
-                      SACK: <span class="ml-1 text-slate-100">{{ p.stats.sack }}</span>
-                    </span>
-                    <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-semibold text-slate-200">
-                      REC: <span class="ml-1 text-slate-100">{{ p.stats.rec }}</span>
-                    </span>
+                <div class="pt-2 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="currentPage <= 1"
+                    @click="prevPage"
+                  >
+                    ← Página anterior
+                  </button>
+
+                  <div class="text-[11px] text-slate-400">
+                    Página <span class="text-slate-200 font-semibold">{{ currentPage }}</span> /
+                    <span class="text-slate-200 font-semibold">{{ totalPages }}</span>
                   </div>
+
+                  <button
+                    type="button"
+                    class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="currentPage >= totalPages"
+                    @click="nextPage"
+                  >
+                    Página siguiente →
+                  </button>
                 </div>
               </div>
             </div>
 
             <div class="rounded-3xl border border-white/10 bg-white/5 p-5 text-xs text-slate-300">
-              Nota: si tu backend aún no manda stats por jugador, esta pantalla igual funciona con 0’s (y el diseño ya queda listo).
-              Cuando tengas el endpoint real de stats, solo mapeamos campos y listo.
+              Nota: si tu backend aún no manda stats por jugador, esta pantalla igual funciona con 0’s.
             </div>
           </section>
         </div>
@@ -333,20 +402,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, ref } from 'vue'
+import { computed, defineComponent, h, ref, watch } from 'vue'
 import { useRuntimeConfig } from '#imports'
 
-/** =========================
- *  API CONFIG
- *  ========================= */
 const config = useRuntimeConfig()
 const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
 const API_TEAMS = `${API_BASE}/teams`
-const API_PLAYERS = `${API_BASE}/players` // si no existe, usamos fallback /teams/{id}/players
+const API_PLAYERS = `${API_BASE}/players`
 
-/** =========================
- *  HELPERS
- *  ========================= */
 function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
@@ -364,27 +427,15 @@ function initials(text: string) {
   return parts.map((p) => p[0]?.toUpperCase()).join('')
 }
 
-/** =========================
- *  TYPES
- *  ========================= */
 type TeamVM = {
   teamId: number
   name: string
-  shortName?: string
-  logoUrl?: string | null
-  categoryId?: number
   categoryName?: string
   code?: string
   gender?: string
 }
 
-type PlayerStats = {
-  td: number
-  int: number
-  pa: number
-  sack: number
-  rec: number
-}
+type PlayerStats = { td: number; int: number; pa: number; sack: number; rec: number }
 
 type PlayerVM = {
   id: number
@@ -399,17 +450,17 @@ type PlayerVM = {
   stats: PlayerStats
 }
 
-/** =========================
- *  FETCH
- *  ========================= */
-const { data: teamsData, pending: teamsPending, error: teamsErr } = useAsyncData('players-teams', async () => {
-  try {
-    const raw = await $fetch<any>(API_TEAMS)
-    return unwrapList<any>(raw)
-  } catch {
-    return []
+const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
+  'players-teams',
+  async () => {
+    try {
+      const raw = await $fetch<any>(API_TEAMS)
+      return unwrapList<any>(raw)
+    } catch {
+      return []
+    }
   }
-})
+)
 
 const teamsVm = computed<TeamVM[]>(() => {
   const list = unwrapList<any>(teamsData.value)
@@ -417,11 +468,8 @@ const teamsVm = computed<TeamVM[]>(() => {
     .map((x) => ({
       teamId: Number(x.teamId ?? x.team_id ?? x.id),
       name: String(x.name ?? x.teamName ?? 'Equipo'),
-      shortName: x.shortName ?? x.short_name ?? '',
-      logoUrl: x.logoUrl ?? x.logo_url ?? x.photoUrl ?? x.photo_url ?? null,
-      categoryId: Number(x.categoryId ?? x.category_id ?? x.category?.id ?? 0) || undefined,
       categoryName: x.categoryName ?? x.category_name ?? x.category?.name ?? '',
-      code: x.code ?? x.category?.code ?? x.rama ?? '',
+      code: x.code ?? x.category?.code ?? '',
       gender: x.gender ?? x.category?.gender ?? '',
     }))
     .filter((t) => Number.isFinite(t.teamId))
@@ -453,16 +501,11 @@ async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
 const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
   'players-all',
   async () => {
-    // 1) intenta /players
     try {
       const raw = await $fetch<any>(API_PLAYERS)
       const list = unwrapList<any>(raw)
       if (list.length) return list
-    } catch {
-      // ignore
-    }
-
-    // 2) fallback por teams
+    } catch {}
     return await fetchPlayersFallbackFromTeams()
   },
   { watch: [teamsVm] }
@@ -482,24 +525,25 @@ const playersVm = computed<PlayerVM[]>(() => {
         ).trim() || 'Jugador'
 
       const number = (x.number ?? x.jerseyNumber ?? x.jersey_number ?? x.num ?? null) as any
-      const teamId = Number(x.teamId ?? x.team_id ?? x.team?.teamId ?? x.team?.id ?? 0) || null
 
+      const teamIdRaw = x.teamId ?? x.team_id ?? x.team?.teamId ?? x.team?.id ?? x.team?.team_id ?? 0
+      const teamId = Number(teamIdRaw) || null
       const t = teamId ? teamById.value.get(teamId) : undefined
-      const teamName = String(x.teamName ?? x.team_name ?? x.team?.name ?? t?.name ?? '') || undefined
+
+      // ✅ NOMBRE REAL: payload → team object → mapa
+      const teamName =
+        String(x.teamName ?? x.team_name ?? x.team?.name ?? x.team?.teamName ?? t?.name ?? '').trim() || undefined
 
       const gender = x.gender ?? x.team?.gender ?? t?.gender ?? ''
       const categoryCode = x.categoryCode ?? x.category_code ?? x.team?.code ?? t?.code ?? ''
 
-      // Stats: mapea lo que exista; si no existe -> 0
       const td = toNum(x.td ?? x.tds ?? x.touchdowns ?? x.stats?.td ?? x.stats?.tds)
       const it = toNum(x.int ?? x.interceptions ?? x.stats?.int ?? x.stats?.interceptions)
       const pa = toNum(x.pa ?? x.passingTd ?? x.passing_td ?? x.stats?.pa ?? x.stats?.passingTd)
       const sack = toNum(x.sack ?? x.sacks ?? x.stats?.sack ?? x.stats?.sacks)
       const rec = toNum(x.rec ?? x.receptions ?? x.stats?.rec ?? x.stats?.receptions)
 
-      const teamMeta = t
-        ? [t.categoryName, upper(t.gender), t.code].filter(Boolean).join(' · ')
-        : ''
+      const teamMeta = t ? [t.categoryName, upper(t.gender), t.code].filter(Boolean).join(' · ') : ''
 
       return {
         id,
@@ -517,9 +561,6 @@ const playersVm = computed<PlayerVM[]>(() => {
     .filter((p) => Number.isFinite(p.id))
 })
 
-/** =========================
- *  FILTERS
- *  ========================= */
 const teamPick = ref<'ALL' | string>('ALL')
 const numberPick = ref('')
 const namePick = ref('')
@@ -534,20 +575,21 @@ const filteredPlayers = computed(() => {
       const id = Number(tPick)
       if (Number.isFinite(id) && p.teamId !== id) return false
     }
-
     if (qNum) {
       const n = String(p.number ?? '')
       if (!n.includes(qNum)) return false
     }
-
     if (qName) {
       const fn = String(p.fullName ?? '').toLowerCase()
       if (!fn.includes(qName)) return false
     }
-
     return true
   })
 })
+
+function impact(p: PlayerVM) {
+  return p.stats.td + p.stats.int + p.stats.pa + p.stats.sack
+}
 
 const sortedPlayers = computed(() => {
   const rows = filteredPlayers.value.slice()
@@ -560,9 +602,31 @@ function clearFilters() {
   namePick.value = ''
 }
 
-/** =========================
- *  LEADERS
- *  ========================= */
+const pageSize = 10
+const currentPage = ref(1)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredPlayers.value.length / pageSize)))
+const pageStartIndex = computed(() => (currentPage.value - 1) * pageSize)
+const pagedPlayers = computed(() => sortedPlayers.value.slice(pageStartIndex.value, pageStartIndex.value + pageSize))
+
+const pageFrom = computed(() => (filteredPlayers.value.length === 0 ? 0 : pageStartIndex.value + 1))
+const pageTo = computed(() => Math.min(pageStartIndex.value + pagedPlayers.value.length, filteredPlayers.value.length))
+
+function prevPage() {
+  currentPage.value = Math.max(1, currentPage.value - 1)
+}
+function nextPage() {
+  currentPage.value = Math.min(totalPages.value, currentPage.value + 1)
+}
+
+watch([teamPick, numberPick, namePick], () => (currentPage.value = 1))
+watch(
+  () => totalPages.value,
+  (tp) => {
+    if (currentPage.value > tp) currentPage.value = tp
+  }
+)
+
 function topBy(fn: (p: PlayerVM) => number, n = 7): PlayerVM[] {
   return filteredPlayers.value
     .slice()
@@ -575,26 +639,15 @@ const leadersTD = computed(() => topBy((p) => p.stats.td, 7))
 const leadersPA = computed(() => topBy((p) => p.stats.pa, 7))
 const leadersSACK = computed(() => topBy((p) => p.stats.sack, 7))
 
-function impact(p: PlayerVM) {
-  // “Impacto” simple para ranking general
-  return p.stats.td + p.stats.int + p.stats.pa + p.stats.sack
-}
-
-const seasonLabel = computed(() => {
-  // sin seasonId (como pediste). Solo label UI.
-  return 'Temporada actual'
-})
+const seasonLabel = computed(() => 'Temporada actual')
 
 const pendingAny = computed(() => !!teamsPending.value || !!playersPending.value)
 const errorAny = computed(() => !!teamsErr.value || !!playersErr.value)
 
 async function refreshAll() {
-  await refreshPlayers()
+  await Promise.all([refreshTeams(), refreshPlayers()])
 }
 
-/** =========================
- *  POSTER PANEL (FIX TS: a NO undefined)
- *  ========================= */
 type Accent = 'fuchsia' | 'violet' | 'sky' | 'emerald'
 type AccentStyle = { ring: string; bg: string; text: string; chip: string }
 
@@ -636,15 +689,13 @@ const PosterPanel = defineComponent({
       },
     } as const
 
-    // ✅ NO undefined (y con fallback extra por seguridad)
     const a = computed<AccentStyle>(() => accentMap[props.accent] ?? accentMap.fuchsia)
 
     return () =>
       h(
         'section',
         {
-          class:
-            `relative overflow-hidden rounded-3xl border ${a.value.ring} bg-white/5 shadow-[0_20px_55px_rgba(0,0,0,0.45)]`,
+          class: `relative overflow-hidden rounded-3xl border ${a.value.ring} bg-white/5 shadow-[0_20px_55px_rgba(0,0,0,0.45)]`,
         },
         [
           h('div', { class: `absolute inset-0 bg-gradient-to-br ${a.value.bg} opacity-70` }),
@@ -660,38 +711,40 @@ const PosterPanel = defineComponent({
                 props.valueLabel
               ),
             ]),
-
-            h(
-              'div',
-              { class: 'mt-3 rounded-2xl border border-white/10 bg-[#070b1d]/90 overflow-hidden' },
-              [
-                h('div', { class: 'grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-slate-400 border-b border-white/10' }, [
+            h('div', { class: 'mt-3 rounded-2xl border border-white/10 bg-[#070b1d]/90 overflow-hidden' }, [
+              h(
+                'div',
+                {
+                  class:
+                    'grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-slate-400 border-b border-white/10',
+                },
+                [
                   h('div', { class: 'col-span-1' }, 'Rk'),
                   h('div', { class: 'col-span-7' }, 'Jugador'),
                   h('div', { class: 'col-span-3' }, 'Equipo'),
                   h('div', { class: 'col-span-1 text-right' }, props.valueLabel),
-                ]),
-
-                props.rows.length
-                  ? props.rows.map((p, idx) =>
-                      h('div', { class: 'grid grid-cols-12 px-3 py-2 text-sm border-b border-white/5 last:border-0 hover:bg-white/5' }, [
+                ]
+              ),
+              props.rows.length
+                ? props.rows.map((p, idx) =>
+                    h(
+                      'div',
+                      { class: 'grid grid-cols-12 px-3 py-2 text-sm border-b border-white/5 last:border-0 hover:bg-white/5' },
+                      [
                         h('div', { class: 'col-span-1 font-semibold text-slate-200 tabular-nums' }, String(idx + 1)),
                         h('div', { class: 'col-span-7 min-w-0' }, [
                           h('p', { class: 'font-semibold text-white truncate' }, [
                             p.fullName,
-                            p.number ? h('span', { class: 'ml-2 text-slate-400 font-semibold' }, `#${p.number}`) : null,
-                          ]),
-                          h('p', { class: 'text-[11px] text-slate-400 truncate' }, [
-                            (p.gender || '—') + (p.categoryCode ? ` · ${p.categoryCode}` : ''),
+                            p.number != null ? h('span', { class: 'ml-2 text-slate-400 font-semibold' }, `#${p.number}`) : null,
                           ]),
                         ]),
-                        h('div', { class: 'col-span-3 text-slate-200 truncate' }, p.teamName || '—'),
+                        h('div', { class: 'col-span-3 text-slate-200 truncate' }, p.teamName || 'Sin equipo'),
                         h('div', { class: `col-span-1 text-right font-extrabold ${a.value.text} tabular-nums` }, String(props.valueFn(p))),
-                      ])
+                      ]
                     )
-                  : h('div', { class: 'px-3 py-4 text-sm text-slate-400' }, 'Sin datos para este panel (aún).'),
-              ]
-            ),
+                  )
+                : h('div', { class: 'px-3 py-4 text-sm text-slate-400' }, 'Sin datos para este panel (aún).'),
+            ]),
           ]),
         ]
       )
