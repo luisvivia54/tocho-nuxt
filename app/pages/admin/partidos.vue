@@ -1,5 +1,8 @@
 <template>
-  <main class="min-h-screen bg-[#050816] text-slate-50">
+  <main
+    class="min-h-screen bg-[#050816] text-slate-50"
+    :class="{ 'no-blur': isScrolling }"
+  >
     <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <!-- HEADER -->
@@ -143,7 +146,6 @@
                       <div class="min-w-0 flex-1">
                         <p class="text-sm font-semibold text-white truncate">{{ t.name }}</p>
 
-                        <!-- ✅ EXACTO estilo ejemplo: team.category.code / team.category.gender -->
                         <div class="mt-1 flex flex-wrap items-center gap-2 text-[10px]">
                           <span class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
                             Rama:
@@ -257,9 +259,11 @@
               <div class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 <div class="md:col-span-3">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha</label>
-                  <div class="relative">
+
+                  <div class="relative cursor-pointer" @click="openNativePicker(dateEl)">
                     <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">📅</span>
                     <input
+                      ref="dateEl"
                       v-model="form.date"
                       type="date"
                       class="date-time w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 pl-9 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -269,9 +273,11 @@
 
                 <div class="md:col-span-2">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Hora</label>
-                  <div class="relative">
+
+                  <div class="relative cursor-pointer" @click="openNativePicker(timeEl)">
                     <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">🕒</span>
                     <input
+                      ref="timeEl"
                       v-model="form.time"
                       type="time"
                       class="date-time w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 pl-9 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -325,7 +331,7 @@
               <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <h2 class="text-base font-semibold text-white">Partidos</h2>
-                  <p class="mt-1 text-xs text-slate-400">Lista ligera (ver más). Finaliza y agrega stats por jugador.</p>
+                  <p class="mt-1 text-xs text-slate-400">Lista ligera. Finaliza y agrega stats por jugador.</p>
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
@@ -360,14 +366,14 @@
                 <div v-else-if="gamesError" class="text-sm text-rose-300">Error cargando partidos.</div>
 
                 <div v-else>
-                  <div v-if="visibleGames.length === 0" class="rounded-xl border border-slate-700 bg-slate-950/40 px-4 py-4 text-sm text-slate-300">
+                  <div v-if="filteredGamesVm.length === 0" class="rounded-xl border border-slate-700 bg-slate-950/40 px-4 py-4 text-sm text-slate-300">
                     <p class="font-semibold text-slate-100">Sin resultados</p>
                     <p class="mt-1 text-slate-400">No hay partidos con esos filtros.</p>
                   </div>
 
                   <div v-else class="space-y-2">
                     <div
-                      v-for="g in visibleGames"
+                      v-for="g in pagedGames"
                       :key="g.id"
                       class="rounded-xl border border-slate-700 bg-slate-950/40 p-3"
                     >
@@ -459,13 +465,13 @@
                           </div>
                         </div>
 
-                        <!-- ✅ STATS INDIVIDUALES (solo seleccionar jugador del roster real) -->
+                        <!-- STATS -->
                         <div class="mt-4 rounded-xl border border-slate-700 bg-slate-950/40 p-3">
                           <div class="flex items-center justify-between gap-2">
                             <div>
                               <p class="text-xs font-semibold text-slate-100">Estadísticas individuales</p>
                               <p class="text-[11px] text-slate-400">
-                                INT · TD · PASS_TD · SACK. Jugador: solo seleccionar del roster (se carga con /teams/&lt;id&gt;/detail)
+                                INT · TD · PASS_TD · SACK. Jugador: solo seleccionar del roster real (GET /teams/&lt;id&gt;/players)
                               </p>
                             </div>
                             <button
@@ -505,16 +511,12 @@
                             <div class="md:col-span-5">
                               <label class="block text-[11px] font-semibold text-slate-300 mb-1">Jugador (solo seleccionar)</label>
                               <select
+                                :key="rosterSelectKey"
                                 v-model.number="statDraft.playerId"
                                 class="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
                                 <option :value="0">— Selecciona jugador —</option>
-
-                                <option
-                                  v-for="p in currentRosterOptions"
-                                  :key="p.id"
-                                  :value="p.id"
-                                >
+                                <option v-for="p in currentRosterOptions" :key="p.id" :value="p.id">
                                   {{ playerOptionLabel(p) }}
                                 </option>
                               </select>
@@ -627,21 +629,67 @@
                       </div>
                     </div>
 
-                    <!-- show more -->
-                    <div class="pt-2 flex items-center justify-between">
+                    <!-- PAGINACIÓN 5 POR PÁGINA -->
+                    <div class="pt-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <p class="text-[11px] text-slate-400">
-                        Mostrando <span class="text-slate-100 font-semibold">{{ visibleGames.length }}</span> de
-                        <span class="text-slate-100 font-semibold">{{ filteredGamesVm.length }}</span>
+                        Página <span class="text-slate-100 font-semibold">{{ currentPage }}</span> de
+                        <span class="text-slate-100 font-semibold">{{ totalPages }}</span>
+                        · Total: <span class="text-slate-100 font-semibold">{{ filteredGamesVm.length }}</span>
                       </p>
 
-                      <button
-                        v-if="filteredGamesVm.length > gamesVisible"
-                        type="button"
-                        @click="gamesVisible += 20"
-                        class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500"
-                      >
-                        Ver más
-                      </button>
+                      <div class="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
+                          :disabled="currentPage === 1"
+                          @click="goToPage(1)"
+                        >
+                          «
+                        </button>
+
+                        <button
+                          type="button"
+                          class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
+                          :disabled="currentPage === 1"
+                          @click="goToPage(currentPage - 1)"
+                        >
+                          ‹
+                        </button>
+
+                        <button
+                          v-for="t in pageTabs"
+                          :key="String(t)"
+                          type="button"
+                          class="rounded-xl border px-3 py-2 text-xs font-extrabold"
+                          :class="t === '…'
+                            ? 'border-transparent bg-transparent text-slate-500 cursor-default'
+                            : (t === currentPage
+                              ? 'border-cyan-400/40 bg-cyan-500/10 text-cyan-200'
+                              : 'border-slate-700 bg-slate-950/40 text-slate-100 hover:border-slate-500')"
+                          :disabled="t === '…'"
+                          @click="t !== '…' && goToPage(t as number)"
+                        >
+                          {{ t }}
+                        </button>
+
+                        <button
+                          type="button"
+                          class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
+                          :disabled="currentPage === totalPages"
+                          @click="goToPage(currentPage + 1)"
+                        >
+                          ›
+                        </button>
+
+                        <button
+                          type="button"
+                          class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
+                          :disabled="currentPage === totalPages"
+                          @click="goToPage(totalPages)"
+                        >
+                          »
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -658,9 +706,49 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, shallowRef } from 'vue'
+import { computed, ref, watch, shallowRef, onMounted, onBeforeUnmount } from 'vue'
 import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from '#imports'
 import { useAuthz } from '~/composables/useAuthz'
+
+/** =========================
+ *  PERF: quitar blur ANTES del scroll (evita el “lag” del arranque)
+ *  ========================= */
+const isScrolling = ref(false)
+let scrollTO: ReturnType<typeof setTimeout> | null = null
+let rafId = 0
+function kickNoBlur() {
+  if (rafId) return
+  rafId = requestAnimationFrame(() => {
+    rafId = 0
+    if (!isScrolling.value) isScrolling.value = true
+    if (scrollTO) clearTimeout(scrollTO)
+    scrollTO = setTimeout(() => (isScrolling.value = false), 140)
+  })
+}
+function onKeyKick(e: KeyboardEvent) {
+  const keys = ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']
+  if (keys.includes(e.key)) kickNoBlur()
+}
+onMounted(() => {
+  // “pre” scroll: wheel/pointer/touch/keys
+  window.addEventListener('wheel', kickNoBlur, { passive: true })
+  window.addEventListener('pointerdown', kickNoBlur, { passive: true })
+  window.addEventListener('touchstart', kickNoBlur, { passive: true })
+  window.addEventListener('touchmove', kickNoBlur, { passive: true })
+  window.addEventListener('keydown', onKeyKick)
+  // scroll real (mantiene el estado)
+  window.addEventListener('scroll', kickNoBlur, { passive: true })
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('wheel', kickNoBlur)
+  window.removeEventListener('pointerdown', kickNoBlur)
+  window.removeEventListener('touchstart', kickNoBlur)
+  window.removeEventListener('touchmove', kickNoBlur)
+  window.removeEventListener('keydown', onKeyKick)
+  window.removeEventListener('scroll', kickNoBlur)
+  if (scrollTO) clearTimeout(scrollTO)
+  if (rafId) cancelAnimationFrame(rafId)
+})
 
 /** =========================
  *  AUTH (Keycloak)
@@ -694,9 +782,9 @@ const API_GAMES_FINAL = `${API_BASE}/gamesFinal`
 const API_TEAMS = `${API_BASE}/teams`
 const API_TEAMS_LIST = `${API_BASE}/teams/list`
 const API_CATEGORIES = `${API_BASE}/categories`
-
-// (opcional) si ya existe en tu backend
-const PLAYER_STATS_URL = (gameId: number) => `${API_GAMES}/${gameId}/player-stats`
+const API_PARTIDO_UPDATE = `${API_BASE}/partido/update`
+const API_TEAM_PLAYERS = (teamId: number) => `${API_BASE}/teams/${teamId}/players`
+const PLAYER_STATS_URL = (gameId: number) => `${API_BASE}/games/${gameId}/player-stats`
 
 /** =========================
  *  TYPES
@@ -709,24 +797,8 @@ type Team = {
   logoUrl?: string | null
   categoryId?: number | null
   category?: Category | null
+  _search?: string
 }
-type TeamLite = { teamId: number; name?: string | null }
-
-type GameApi = {
-  game_id: number
-  season_id: number
-  status: string
-  match_date_utc: string
-  category_id?: number
-  category?: { id?: number; name?: string; code?: string; gender?: string } | null
-  homeTeam?: TeamLite | null
-  awayTeam?: TeamLite | null
-  homeScore?: number | null
-  awayScore?: number | null
-  field?: string | null
-  location?: string | null
-}
-
 type GameVM = {
   id: number
   status: string
@@ -743,23 +815,10 @@ type GameVM = {
   field?: string
   homeScore?: number | null
   awayScore?: number | null
+  _search?: string
 }
+type Player = { id: number; fullName: string; jerseyNumber: number | null; photoUrl?: string | null }
 
-// players (como tu vista team detail)
-type Player = {
-  id: number
-  fullName: string
-  jerseyNumber: number | null
-  photoUrl?: string | null
-}
-type TeamDetailResponse = {
-  team: any
-  players: Player[]
-  lastGames: any[]
-  gallery: any[]
-}
-
-// stats
 type StatKind = 'TD' | 'PASS_TD' | 'INT' | 'SACK'
 type StatSide = 'HOME' | 'AWAY'
 type StatEntry = {
@@ -813,130 +872,174 @@ function niceGender(g: string) {
 function categoryLabel(c: Category) {
   return `${c.name} · ${niceGender(c.gender)} · ${String(c.code).toUpperCase()}`
 }
-
-/** =========================
- *  FETCH CATEGORIES
- *  ========================= */
-const { data: catData } = useAsyncData('admin-categories-lite-v3', async () => {
-  try {
-    const raw = await $fetch(API_CATEGORIES)
-    return unwrapList<any>(raw)
-  } catch {
-    return []
-  }
-})
-
-const categories = computed<Category[]>(() => {
-  const list = unwrapList<any>(catData.value)
-  return list
-    .map((x) => ({
-      id: Number(x.id ?? x.categoryId ?? x.category_id),
-      name: String(x.name ?? x.categoryName ?? `Categoría ${x.id ?? x.categoryId ?? x.category_id}`),
-      code: String(x.code ?? ''),
-      gender: String(x.gender ?? ''),
-    }))
-    .filter((c) => Number.isFinite(c.id))
-})
-
-const categoryById = computed(() => {
-  const m = new Map<number, Category>()
-  for (const c of categories.value) m.set(c.id, c)
-  return m
-})
-
-/** =========================
- *  FETCH TEAMS (try /teams/list, fallback /teams)
- *  ========================= */
-async function fetchTeamsSmart() {
-  try {
-    const raw = await $fetch(API_TEAMS_LIST)
-    return unwrapList<any>(raw)
-  } catch {
-    const raw = await $fetch(API_TEAMS)
-    return unwrapList<any>(raw)
-  }
+function debounceLowerRef(src: any, ms: number) {
+  const out = ref('')
+  let t: ReturnType<typeof setTimeout> | null = null
+  watch(
+    src,
+    (v) => {
+      if (t) clearTimeout(t)
+      t = setTimeout(() => {
+        out.value = String(v || '').trim().toLowerCase()
+      }, ms)
+    },
+    { immediate: true }
+  )
+  return out
 }
 
+/** =========================
+ *  Native pickers
+ *  ========================= */
+const dateEl = ref<HTMLInputElement | null>(null)
+const timeEl = ref<HTMLInputElement | null>(null)
+function openNativePicker(elOrRef: any) {
+  const el: HTMLInputElement | null =
+    elOrRef && typeof elOrRef === 'object' && 'value' in elOrRef ? elOrRef.value : elOrRef
+  if (!el) return
+  ;(el as any).showPicker?.()
+  el.focus()
+}
+
+/** =========================
+ *  DATA
+ *  ========================= */
+const categories = shallowRef<Category[]>([])
+const categoryById = shallowRef<Map<number, Category>>(new Map())
+
+const teams = shallowRef<Team[]>([])
+const teamsById = shallowRef<Map<number, Team>>(new Map())
+const teamsByCategory = shallowRef<Map<number, Team[]>>(new Map())
+
+const gamesVm = shallowRef<GameVM[]>([])
+
+/** --- fetch categories --- */
+const { data: catData } = useAsyncData(
+  'admin-categories-lite-fast',
+  async () => {
+    try {
+      return unwrapList<any>(await $fetch(API_CATEGORIES))
+    } catch {
+      return []
+    }
+  },
+  { server: false }
+)
+
+watch(
+  catData,
+  () => {
+    const list = unwrapList<any>(catData.value)
+    const arr: Category[] = list
+      .map((x) => ({
+        id: Number(x.id ?? x.categoryId ?? x.category_id),
+        name: String(x.name ?? x.categoryName ?? `Categoría ${x.id ?? x.categoryId ?? x.category_id}`),
+        code: String(x.code ?? ''),
+        gender: String(x.gender ?? ''),
+      }))
+      .filter((c) => Number.isFinite(c.id))
+
+    categories.value = arr
+
+    const m = new Map<number, Category>()
+    for (const c of arr) m.set(c.id, c)
+    categoryById.value = m
+  },
+  { immediate: true }
+)
+
+/** --- fetch teams --- */
+async function fetchTeamsSmart() {
+  try {
+    return unwrapList<any>(await $fetch(API_TEAMS_LIST))
+  } catch {
+    return unwrapList<any>(await $fetch(API_TEAMS))
+  }
+}
 const { data: teamsRaw, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
-  'admin-teams-lite-v3',
-  fetchTeamsSmart
+  'admin-teams-lite-fast',
+  fetchTeamsSmart,
+  { server: false }
 )
 const teamsError = computed(() => !!teamsErr.value)
 
-const teams = computed<Team[]>(() => {
-  const list = unwrapList<any>(teamsRaw.value)
-  const catMap = categoryById.value
+watch(
+  [teamsRaw, categoryById],
+  () => {
+    const list = unwrapList<any>(teamsRaw.value)
+    const catMap = categoryById.value
 
-  return list.map((x) => {
-    const teamId = Number(x.teamId ?? x.team_id ?? x.id)
-    const name = String(x.name ?? x.teamName ?? 'Equipo')
-    const shortName = String(x.shortName ?? x.short_name ?? '')
-    const logoUrl = x.logoUrl ?? x.logo_url ?? x.photoUrl ?? x.photo_url ?? null
+    const arr: Team[] = list.map((x) => {
+      const teamId = Number(x.teamId ?? x.team_id ?? x.id)
+      const name = String(x.name ?? x.teamName ?? 'Equipo')
+      const shortName = String(x.shortName ?? x.short_name ?? '')
+      const logoUrl = x.logoUrl ?? x.logo_url ?? x.photoUrl ?? x.photo_url ?? null
 
-    // 🔥 importante: category como en tu ejemplo: team.category.code / team.category.gender
-    const cid = Number(x.categoryId ?? x.category_id ?? x.category?.id ?? 0) || null
-    const catFromApi = x.category
-      ? {
-          id: Number(x.category.id ?? cid ?? 0),
-          name: String(x.category.name ?? ''),
-          code: String(x.category.code ?? ''),
-          gender: String(x.category.gender ?? ''),
-        }
-      : null
+      const cid = Number(x.categoryId ?? x.category_id ?? x.category?.id ?? 0) || null
+      const codeLoose = String(x.code ?? x.categoryCode ?? x.category?.code ?? '').trim()
+      const genderLoose = String(x.gender ?? x.categoryGender ?? x.category?.gender ?? '').trim()
+      const nameLoose = String(x.categoryName ?? x.category?.name ?? '').trim()
+      const catFromMap = cid ? catMap.get(cid) : null
 
-    const catFromMap = cid ? catMap.get(cid) : null
-
-    // también cubre projections: code / gender sueltos
-    const codeLoose = String(x.code ?? x.categoryCode ?? '').trim()
-    const genderLoose = String(x.gender ?? x.categoryGender ?? '').trim()
-
-    const mergedCat: Category | null = (() => {
-      const base = (catFromApi?.id ? catFromApi : null) || (catFromMap?.id ? catFromMap : null)
-      if (!base && !cid && !codeLoose && !genderLoose) return null
+      const mergedCat: Category | null =
+        cid || codeLoose || genderLoose || nameLoose || catFromMap
+          ? {
+              id: Number(cid ?? catFromMap?.id ?? 0) || 0,
+              name: String(nameLoose || catFromMap?.name || ''),
+              code: String(codeLoose || catFromMap?.code || ''),
+              gender: String(genderLoose || catFromMap?.gender || ''),
+            }
+          : null
 
       return {
-        id: Number(base?.id ?? cid ?? 0) || 0,
-        name: String(base?.name ?? x.categoryName ?? ''),
-        code: String(codeLoose || base?.code || ''),
-        gender: String(genderLoose || base?.gender || ''),
+        teamId,
+        name,
+        shortName,
+        logoUrl,
+        categoryId: cid,
+        category: mergedCat,
+        _search: `${name} ${shortName}`.toLowerCase(),
       }
-    })()
+    })
 
-    return {
-      teamId,
-      name,
-      shortName,
-      logoUrl,
-      categoryId: cid,
-      category: mergedCat,
+    teams.value = arr
+
+    const byId = new Map<number, Team>()
+    const byCat = new Map<number, Team[]>()
+    for (const t of arr) {
+      byId.set(t.teamId, t)
+      const c = Number(t.categoryId || 0)
+      if (c) {
+        if (!byCat.has(c)) byCat.set(c, [])
+        byCat.get(c)!.push(t)
+      }
     }
-  })
-})
+    teamsById.value = byId
+    teamsByCategory.value = byCat
+  },
+  { immediate: true }
+)
 
-/** =========================
- *  FETCH GAMES (merge /games + /gamesFinal)
- *  ========================= */
+/** --- fetch games --- */
 const { data: gamesRaw, pending: gamesPending, error: gamesErr, refresh: refreshGames } = useAsyncData(
-  'admin-games-lite-v3',
+  'admin-games-lite-fast',
   async () => {
     const [scheduled, finals] = await Promise.all([
-      $fetch<GameApi[]>(API_GAMES).catch(() => []),
-      $fetch<GameApi[]>(API_GAMES_FINAL).catch(() => []),
+      $fetch<any>(API_GAMES).catch(() => []),
+      $fetch<any>(API_GAMES_FINAL).catch(() => []),
     ])
-
-    const map = new Map<number, GameApi>()
-    for (const g of [...unwrapList<any>(scheduled), ...unwrapList<any>(finals)]) {
+    const all = [...unwrapList<any>(scheduled), ...unwrapList<any>(finals)]
+    const map = new Map<number, any>()
+    for (const g of all) {
       const id = Number(g.game_id ?? g.gameId ?? g.id)
       if (!id) continue
-      map.set(id, g as any)
+      map.set(id, g)
     }
     return Array.from(map.values())
-  }
+  },
+  { server: false }
 )
 const gamesError = computed(() => !!gamesErr.value)
-
-// ⚡️ store ya transformado para evitar recomputes pesados
-const gamesVm = shallowRef<GameVM[]>([])
 
 watch(
   [gamesRaw, categoryById],
@@ -944,7 +1047,7 @@ watch(
     const list = unwrapList<any>(gamesRaw.value)
     const catMap = categoryById.value
 
-    gamesVm.value = list.map((g: any) => {
+    const arr: GameVM[] = list.map((g: any) => {
       const id = Number(g.game_id ?? g.gameId ?? g.id)
       const iso = String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? '')
       const status = String(g.status ?? 'SCHEDULED')
@@ -958,14 +1061,17 @@ watch(
 
       const categoryId = Number(g.category_id ?? g.categoryId ?? g.category?.id ?? 0) || undefined
       const cat = categoryId ? catMap.get(categoryId) : null
-
       const catName = g.category?.name ?? cat?.name
       const catGender = g.category?.gender ?? cat?.gender
       const catCode = g.category?.code ?? cat?.code
 
-      const categoryLabel = [catName, catGender ? niceGender(catGender) : null, catCode ? String(catCode).toUpperCase() : null]
+      const categoryLabelStr = [catName, catGender ? niceGender(catGender) : null, catCode ? String(catCode).toUpperCase() : null]
         .filter(Boolean)
         .join(' · ')
+
+      const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? 0) || undefined
+      const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined
+      const field = String(g.field ?? g.location ?? '')
 
       return {
         id,
@@ -975,16 +1081,25 @@ watch(
         timeLabel,
         homeName,
         awayName,
-        categoryLabel,
+        categoryLabel: categoryLabelStr,
         seasonId: Number(g.season_id ?? g.seasonId ?? 0) || undefined,
         categoryId,
-        homeTeamId: Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? 0) || undefined,
-        awayTeamId: Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined,
-        field: String(g.field ?? g.location ?? ''),
+        homeTeamId,
+        awayTeamId,
+        field,
         homeScore: g.homeScore ?? g.home_score ?? null,
         awayScore: g.awayScore ?? g.away_score ?? null,
+        _search: `${homeName} ${awayName}`.toLowerCase(),
       }
     })
+
+    arr.sort((a, b) => {
+      const da = a.match_date_utc ? new Date(a.match_date_utc).getTime() : 0
+      const db = b.match_date_utc ? new Date(b.match_date_utc).getTime() : 0
+      return da - db
+    })
+
+    gamesVm.value = arr
   },
   { immediate: true }
 )
@@ -996,8 +1111,8 @@ const editingId = ref<number | null>(null)
 const homeTeamId = ref<number | null>(null)
 const awayTeamId = ref<number | null>(null)
 
-const homeTeam = computed(() => teams.value.find((t) => t.teamId === homeTeamId.value) || null)
-const awayTeam = computed(() => teams.value.find((t) => t.teamId === awayTeamId.value) || null)
+const homeTeam = computed(() => (homeTeamId.value ? teamsById.value.get(homeTeamId.value) || null : null))
+const awayTeam = computed(() => (awayTeamId.value ? teamsById.value.get(awayTeamId.value) || null : null))
 
 const form = ref({
   seasonId: DEFAULT_SEASON_ID,
@@ -1008,7 +1123,7 @@ const form = ref({
 })
 
 const catHint = computed(() => {
-  const c = categories.value.find((x) => x.id === Number(form.value.categoryId))
+  const c = categoryById.value.get(Number(form.value.categoryId))
   return c ? categoryLabel(c) : ''
 })
 
@@ -1075,30 +1190,36 @@ async function saveGame() {
     const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
 
     const payload: any = {
+      game_id: editingId.value ?? undefined,
+      gameId: editingId.value ?? undefined,
+      id: editingId.value ?? undefined,
+
       season_id: seasonId,
       seasonId,
+
       category_id: form.value.categoryId,
       categoryId: form.value.categoryId,
+
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
+
       status: 'SCHEDULED',
+
       field: form.value.field,
       location: form.value.field,
+
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
+
       away_team_id: awayTeamId.value,
       awayTeamId: awayTeamId.value,
     }
 
-    if (editingId.value) {
-      await $fetch(`${API_GAMES}/${editingId.value}`, { method: 'PUT', body: payload })
-      formOk.value = `Partido actualizado (ID ${editingId.value}).`
-    } else {
-      await $fetch(API_GAMES, { method: 'POST', body: payload })
-      formOk.value = 'Partido creado.'
-    }
+    await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payload })
 
+    formOk.value = editingId.value ? `Partido actualizado (ID ${editingId.value}).` : 'Partido creado.'
     await refreshGames()
+
     const ok = formOk.value
     clearForm()
     formOk.value = ok
@@ -1120,46 +1241,22 @@ function swapTeams() {
 }
 
 /** =========================
- *  TEAM PICKER (ultra ligero)
+ *  TEAM PICKER
  *  ========================= */
 const filterTeamsByCategory = ref(true)
-
 const homeInput = ref('')
 const awayInput = ref('')
 const homeOpen = ref(false)
 const awayOpen = ref(false)
 
-// debounce super corto
-const homeQ = ref('')
-const awayQ = ref('')
-let homeT: any = null
-let awayT: any = null
-watch(homeInput, (v) => {
-  clearTimeout(homeT)
-  homeT = setTimeout(() => (homeQ.value = String(v || '').trim().toLowerCase()), 120)
-})
-watch(awayInput, (v) => {
-  clearTimeout(awayT)
-  awayT = setTimeout(() => (awayQ.value = String(v || '').trim().toLowerCase()), 120)
-})
-
-// index por categoria para no filtrar arrays grandes en cada keypress
-const teamsByCategoryId = computed(() => {
-  const m = new Map<number, Team[]>()
-  for (const t of teams.value) {
-    const cid = Number(t.categoryId || 0)
-    if (!cid) continue
-    if (!m.has(cid)) m.set(cid, [])
-    m.get(cid)!.push(t)
-  }
-  return m
-})
+const homeQ = debounceLowerRef(homeInput, 80)
+const awayQ = debounceLowerRef(awayInput, 80)
 
 const poolTeams = computed(() => {
   if (!filterTeamsByCategory.value) return teams.value
   const catId = Number(form.value.categoryId || 0)
   if (!catId) return teams.value
-  return teamsByCategoryId.value.get(catId) || []
+  return teamsByCategory.value.get(catId) || []
 })
 
 function suggest(q: string, excludeId: number | null) {
@@ -1179,9 +1276,7 @@ function suggest(q: string, excludeId: number | null) {
 
   for (const t of arr) {
     if (t.teamId === excludeId) continue
-    const name = (t.name || '').toLowerCase()
-    const short = (t.shortName || '').toLowerCase()
-    if (name.includes(query) || short.includes(query)) out.push(t)
+    if ((t._search || '').includes(query)) out.push(t)
     if (out.length >= LIMIT) break
   }
   return out
@@ -1209,44 +1304,75 @@ function clearAway() {
   awayInput.value = ''
 }
 function closeHomeLater() {
-  setTimeout(() => (homeOpen.value = false), 100)
+  setTimeout(() => (homeOpen.value = false), 80)
 }
 function closeAwayLater() {
-  setTimeout(() => (awayOpen.value = false), 100)
+  setTimeout(() => (awayOpen.value = false), 80)
 }
 
 /** =========================
- *  GAMES FILTERS + LIMIT
+ *  GAMES FILTERS + PAGINACIÓN
  *  ========================= */
 const gameStatusPick = ref<'ALL' | 'SCHEDULED' | 'FINAL'>('SCHEDULED')
 const gameQuery = ref('')
-const gamesVisible = ref(20)
+const gameQ = debounceLowerRef(gameQuery, 100)
 
 const filteredGamesVm = computed(() => {
-  const q = gameQuery.value.toLowerCase().trim()
+  const q = gameQ.value
   const s = gameStatusPick.value
+  const src = gamesVm.value
 
-  const sorted = [...gamesVm.value].sort((a, b) => {
-    const da = a.match_date_utc ? new Date(a.match_date_utc).getTime() : 0
-    const db = b.match_date_utc ? new Date(b.match_date_utc).getTime() : 0
-    return da - db
-  })
+  if (!q && s === 'ALL') return src
 
-  return sorted.filter((g) => {
+  return src.filter((g) => {
     const st = upper(g.status)
     if (s !== 'ALL' && st !== s) return false
     if (!q) return true
-    const a = String(g.homeName || '').toLowerCase()
-    const b = String(g.awayName || '').toLowerCase()
-    return a.includes(q) || b.includes(q)
+    return (g._search || '').includes(q)
   })
 })
 
-const visibleGames = computed(() => filteredGamesVm.value.slice(0, gamesVisible.value))
-watch([gameStatusPick, gameQuery], () => (gamesVisible.value = 20))
+const pageSize = 5
+const currentPage = ref(1)
+
+watch([gameStatusPick, gameQ], () => {
+  currentPage.value = 1
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredGamesVm.value.length / pageSize)))
+
+function goToPage(p: number) {
+  currentPage.value = Math.min(Math.max(1, p), totalPages.value)
+}
+
+const pagedGames = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredGamesVm.value.slice(start, start + pageSize)
+})
+
+const pageTabs = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  const maxTabs = 7
+
+  if (total <= maxTabs) return Array.from({ length: total }, (_, i) => i + 1)
+
+  const out: (number | '…')[] = []
+  out.push(1)
+
+  const left = Math.max(2, cur - 2)
+  const right = Math.min(total - 1, cur + 2)
+
+  if (left > 2) out.push('…')
+  for (let i = left; i <= right; i++) out.push(i)
+  if (right < total - 1) out.push('…')
+
+  out.push(total)
+  return out
+})
 
 /** =========================
- *  FINALIZAR + STATS (players from /teams/{id}/detail)
+ *  FINALIZAR + STATS
  *  ========================= */
 const finishPanelId = ref<number | null>(null)
 const finishHomeScore = ref<number>(0)
@@ -1255,34 +1381,61 @@ const finishing = ref(false)
 const finishError = ref('')
 const finishOk = ref('')
 
-const statsByGame = ref<Record<number, StatEntry[]>>({})
 const statsOpen = ref(true)
 const statsWarn = ref('')
 const statsOk = ref('')
-
-const rosterCache = ref<Record<number, Player[]>>({})
-const rosterLoading = ref<Set<number>>(new Set())
 const rosterHint = ref('')
+
+/** --- stats cache (Map + tick) --- */
+const statsMap = shallowRef<Map<number, StatEntry[]>>(new Map())
+const statsTick = ref(0)
+function getStats(gameId: number) {
+  statsTick.value
+  return statsMap.value.get(gameId) || []
+}
+function setStats(gameId: number, entries: StatEntry[]) {
+  statsMap.value.set(gameId, entries)
+  statsTick.value++
+}
+
+/** --- roster cache (Map + tick) --- */
+const rosterMap = shallowRef<Map<number, Player[]>>(new Map())
+const rosterTick = ref(0)
+const rosterLoading = ref<Set<number>>(new Set())
+
+function getRoster(teamId: number) {
+  rosterTick.value
+  return rosterMap.value.get(teamId) || []
+}
 
 async function ensureRoster(teamId: number) {
   if (!teamId) return
-  if (rosterCache.value[teamId]?.length) return
+  if (rosterMap.value.has(teamId)) return
   if (rosterLoading.value.has(teamId)) return
 
   rosterLoading.value.add(teamId)
-  rosterHint.value = ''
   try {
-    const raw = await $fetch<TeamDetailResponse>(`${API_BASE}/teams/${teamId}/detail`)
-    const players = Array.isArray(raw?.players) ? raw.players : []
-    rosterCache.value = { ...rosterCache.value, [teamId]: players }
-  } catch (e) {
-    rosterHint.value = `No se pudo cargar roster de team #${teamId} (endpoint /teams/${teamId}/detail).`
-    rosterCache.value = { ...rosterCache.value, [teamId]: [] }
+    const players = await $fetch<any>(API_TEAM_PLAYERS(teamId))
+    const arr = Array.isArray(players) ? players : []
+    // normaliza por si el back manda distinto
+    rosterMap.value.set(
+      teamId,
+      arr.map((p: any) => ({
+        id: Number(p.id ?? p.playerId ?? p.player_id),
+        fullName: String(p.fullName ?? p.full_name ?? p.name ?? ''),
+        jerseyNumber: p.jerseyNumber ?? p.jersey_number ?? null,
+        photoUrl: p.photoUrl ?? p.photo_url ?? null,
+      }))
+    )
+  } catch {
+    rosterMap.value.set(teamId, [])
   } finally {
+    rosterTick.value++
     rosterLoading.value.delete(teamId)
   }
 }
 
+/** --- draft --- */
 const statDraft = ref<{ kind: StatKind; side: StatSide; playerId: number; qty: number }>({
   kind: 'TD',
   side: 'HOME',
@@ -1290,10 +1443,52 @@ const statDraft = ref<{ kind: StatKind; side: StatSide; playerId: number; qty: n
   qty: 1,
 })
 
+const currentGame = computed(() => {
+  const gid = finishPanelId.value
+  if (!gid) return null
+  return gamesVm.value.find((x) => x.id === gid) || null
+})
+
+const currentSideTeamId = computed(() => {
+  const g = currentGame.value
+  if (!g) return 0
+  return statDraft.value.side === 'HOME' ? (g.homeTeamId || 0) : (g.awayTeamId || 0)
+})
+
+const currentRosterOptions = computed(() => {
+  const teamId = currentSideTeamId.value
+  return teamId ? getRoster(teamId) : []
+})
+
+/** 🔥 key que SÍ cambia al cambiar de equipo/side/roster */
+const rosterSelectKey = computed(() => {
+  const gid = finishPanelId.value || 0
+  const side = statDraft.value.side
+  const teamId = currentSideTeamId.value
+  const tick = rosterTick.value
+  return `${gid}-${side}-${teamId}-${tick}`
+})
+
+watch([finishPanelId, () => statDraft.value.side], async () => {
+  // al cambiar panel o side: reset + cargar roster correcto
+  statDraft.value.playerId = 0
+  rosterHint.value = ''
+
+  const g = currentGame.value
+  if (!g) return
+  const teamId = currentSideTeamId.value
+  if (teamId) await ensureRoster(teamId)
+
+  const roster = teamId ? getRoster(teamId) : []
+  if (teamId && roster.length === 0) {
+    rosterHint.value = `Roster ${statDraft.value.side === 'HOME' ? 'local' : 'visitante'} vacío o no cargó (team #${teamId}).`
+  }
+})
+
 const finishStats = computed<StatEntry[]>(() => {
   const gid = finishPanelId.value
   if (!gid) return []
-  return statsByGame.value[gid] || []
+  return getStats(gid)
 })
 
 function countKind(kind: StatKind) {
@@ -1301,27 +1496,6 @@ function countKind(kind: StatKind) {
   for (const s of finishStats.value) if (s.kind === kind) total += Number(s.qty || 0)
   return total
 }
-
-const currentGame = computed(() => {
-  const gid = finishPanelId.value
-  if (!gid) return null
-  return gamesVm.value.find((x) => x.id === gid) || null
-})
-
-const homeRoster = computed(() => {
-  const g = currentGame.value
-  const id = g?.homeTeamId || 0
-  return rosterCache.value[id] || []
-})
-const awayRoster = computed(() => {
-  const g = currentGame.value
-  const id = g?.awayTeamId || 0
-  return rosterCache.value[id] || []
-})
-
-const currentRosterOptions = computed(() => {
-  return statDraft.value.side === 'HOME' ? homeRoster.value : awayRoster.value
-})
 
 function playerOptionLabel(p: Player) {
   const jersey = p.jerseyNumber != null ? `#${p.jerseyNumber} · ` : ''
@@ -1342,7 +1516,7 @@ function addStatForGame(g: GameVM) {
   const pid = Number(statDraft.value.playerId || 0)
   const qty = Math.max(1, Number(statDraft.value.qty || 1))
 
-  const roster = statDraft.value.side === 'HOME' ? (rosterCache.value[g.homeTeamId || 0] || []) : (rosterCache.value[g.awayTeamId || 0] || [])
+  const roster = currentRosterOptions.value
   const p = roster.find((x) => Number(x.id) === pid)
 
   if (!p) {
@@ -1360,21 +1534,20 @@ function addStatForGame(g: GameVM) {
     qty,
   }
 
-  const prev = statsByGame.value[gid] || []
-  statsByGame.value = { ...statsByGame.value, [gid]: [...prev, entry] }
+  const prev = getStats(gid)
+  setStats(gid, [...prev, entry])
 
-  // reset rápido
   statDraft.value.playerId = 0
   statDraft.value.qty = 1
 }
 
 function removeStat(gameId: number, statId: string) {
-  const prev = statsByGame.value[gameId] || []
-  statsByGame.value = { ...statsByGame.value, [gameId]: prev.filter((x) => x.id !== statId) }
+  const prev = getStats(gameId)
+  setStats(gameId, prev.filter((x) => x.id !== statId))
 }
 
 function clearStats(gameId: number) {
-  statsByGame.value = { ...statsByGame.value, [gameId]: [] }
+  setStats(gameId, [])
   statsWarn.value = ''
   statsOk.value = ''
 }
@@ -1387,19 +1560,15 @@ async function openFinish(g: GameVM) {
   finishOk.value = ''
   statsWarn.value = ''
   statsOk.value = ''
-  statsOpen.value = true
   rosterHint.value = ''
+  statsOpen.value = true
 
-  // ✅ carga roster real como tu ejemplo /teams/{id}/detail
+  // precache ambos rosters
   const h = g.homeTeamId || 0
   const a = g.awayTeamId || 0
-  if (h) await ensureRoster(h)
-  if (a) await ensureRoster(a)
+  await Promise.all([h ? ensureRoster(h) : Promise.resolve(), a ? ensureRoster(a) : Promise.resolve()])
 
-  // si no hay roster, avisar
-  if (h && (rosterCache.value[h]?.length ?? 0) === 0) rosterHint.value = `Roster local vacío o no cargó (team #${h}).`
-  if (a && (rosterCache.value[a]?.length ?? 0) === 0) rosterHint.value = `Roster visitante vacío o no cargó (team #${a}).`
-
+  // default
   statDraft.value.side = 'HOME'
   statDraft.value.playerId = 0
   statDraft.value.qty = 1
@@ -1420,18 +1589,13 @@ function loadForEditAndFinal(g: GameVM) {
 }
 
 async function tryPostPlayerStats(gameId: number) {
-  const entries = statsByGame.value[gameId] || []
+  const entries = getStats(gameId)
   if (!entries.length) return
 
   try {
     const payload = {
       gameId,
-      entries: entries.map((e) => ({
-        kind: e.kind,
-        side: e.side,
-        playerId: e.playerId,
-        qty: e.qty,
-      })),
+      entries: entries.map((e) => ({ kind: e.kind, side: e.side, playerId: e.playerId, qty: e.qty })),
     }
     await $fetch(PLAYER_STATS_URL(gameId), { method: 'POST', body: payload })
     statsOk.value = 'Stats individuales guardadas.'
@@ -1460,33 +1624,42 @@ async function finishGame(g: GameVM) {
     const seasonId = Number(g.seasonId ?? DEFAULT_SEASON_ID)
 
     const payload: any = {
+      game_id: g.id,
+      gameId: g.id,
+      id: g.id,
+
       season_id: seasonId,
       seasonId,
+
       category_id: categoryId,
       categoryId,
+
       match_date_utc: g.match_date_utc,
       matchDateUtc: g.match_date_utc,
+
       status: 'FINAL',
+
       home_team_id: homeId,
       homeTeamId: homeId,
+
       away_team_id: awayId,
       awayTeamId: awayId,
+
       homeScore: Number(finishHomeScore.value ?? 0),
       awayScore: Number(finishAwayScore.value ?? 0),
       home_score: Number(finishHomeScore.value ?? 0),
       away_score: Number(finishAwayScore.value ?? 0),
+
       field: g.field || '',
       location: g.field || '',
     }
 
-    await $fetch(`${API_GAMES}/${g.id}`, { method: 'PUT', body: payload })
+    await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payload })
 
     finishOk.value = `Partido ${g.id} marcado como FINAL.`
     await refreshGames()
 
-    // opcional stats (no rompe FINAL)
     await tryPostPlayerStats(g.id)
-
     setTimeout(() => (finishOk.value = ''), 2000)
   } catch (e: any) {
     finishError.value = e?.data?.message || e?.message || 'No se pudo finalizar. Revisa el backend.'
@@ -1511,7 +1684,6 @@ async function hardRefresh() {
 </script>
 
 <style scoped>
-/* iconos visibles date/time en tema oscuro */
 .date-time {
   color-scheme: dark;
 }
@@ -1521,5 +1693,16 @@ async function hardRefresh() {
 }
 .date-time::-webkit-datetime-edit {
   color: rgba(226, 232, 240, 0.95);
+}
+
+/* PERF: backdrop-filter es carísimo al scroll; lo apagamos mientras scroll */
+.no-blur .backdrop-blur,
+.no-blur .backdrop-blur-sm,
+.no-blur .backdrop-blur-md,
+.no-blur .backdrop-blur-lg,
+.no-blur .backdrop-blur-xl,
+.no-blur .backdrop-blur-2xl,
+.no-blur .backdrop-blur-3xl {
+  backdrop-filter: none !important;
 }
 </style>
