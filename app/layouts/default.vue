@@ -45,7 +45,7 @@
           <!-- ✅ SOLO ADMIN -->
           <NuxtLink
             v-if="isAdmin"
-            to="/admin/partidos"
+            to="/admin/usuarios"
             class="inline-flex items-center rounded-full px-3 py-1.5 text-[12px] font-semibold
                    bg-blue-600/20 text-blue-100 border border-blue-400/40
                    hover:bg-blue-600/30 hover:border-blue-300/60 transition"
