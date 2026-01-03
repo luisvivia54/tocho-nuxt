@@ -1,3 +1,4 @@
+<!-- app/pages/admin/partidos.vue -->
 <template>
   <main class="bg-slate-950 min-h-screen text-slate-50">
     <section class="pt-24 md:pt-28 lg:pt-32">
@@ -6,13 +7,13 @@
         <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div class="space-y-2">
             <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">
-              Tochero5 · Calendario oficial
+              Tochero5 · Consola Admin
             </p>
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">
-              Partidos de la temporada
+              Partidos (Admin)
             </h1>
             <p class="text-sm text-slate-300 max-w-xl">
-              Filtra por jornada, categoría y rama.
+              Misma vista de calendario, pero en ruta <span class="text-slate-100 font-semibold">/admin/partidos</span>.
             </p>
           </div>
 
@@ -26,10 +27,17 @@
             </button>
 
             <NuxtLink
+              to="/partidos"
+              class="inline-flex items-center justify-center rounded-2xl bg-slate-900/40 border border-slate-700/70 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition"
+            >
+              ← Ir a Partidos (público)
+            </NuxtLink>
+
+            <NuxtLink
               to="/"
               class="inline-flex items-center justify-center rounded-2xl bg-slate-900/40 border border-slate-700/70 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition"
             >
-              ← Volver al inicio
+              ← Inicio
             </NuxtLink>
           </div>
         </header>
@@ -288,7 +296,7 @@
                   </div>
                 </div>
 
-                <!-- Centro (SCHEDULED = hora / FINAL = score) -->
+                <!-- Centro -->
                 <div class="flex flex-col items-center justify-center min-w-[120px]">
                   <template v-if="g.isFinal">
                     <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Marcador</p>
@@ -355,7 +363,7 @@
             </article>
           </div>
 
-          <!-- PAGINACIÓN (5 por página) -->
+          <!-- PAGINACIÓN -->
           <div v-if="!pending && filteredTotal > 0" class="pt-2">
             <div class="flex flex-col md:flex-row items-center justify-between gap-3">
               <p class="text-[11px] text-slate-400">
@@ -530,7 +538,7 @@ const dateFmt = new Intl.DateTimeFormat('es-MX', {
 
 /** fetch: scheduled + finals (se combinan por game_id) */
 const { data, pending, error, refresh } = useAsyncData<Game[]>(
-  'games-calendar-paged-5',
+  'games-calendar-admin-paged-5',
   async () => {
     const [scheduled, finals] = await Promise.all([
       $fetch<Game[]>(`${API_BASE}/games`).catch(() => []),
@@ -543,12 +551,13 @@ const { data, pending, error, refresh } = useAsyncData<Game[]>(
 )
 
 watch([pending], () => {
-  // cuando refresca, evita que se quede en página inválida
   page.value = 1
   pageInput.value = '1'
 })
 
-const errorMsg = computed(() => (error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''))
+const errorMsg = computed(() =>
+  error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''
+)
 
 /** VM + contadores */
 const vmAll = shallowRef<VMGame[]>(markRaw([]))
@@ -628,7 +637,6 @@ watch(
     genderCounts.value = markRaw(gc)
     ramaCountsByGender.value = markRaw(rbg)
 
-    // reset paginación al cargar data nueva
     page.value = 1
     pageInput.value = '1'
   },

@@ -646,6 +646,73 @@ function normalizeColorForPicker(raw?: string | null, fallback = '#1D4ED8'): str
       }
     }
   )
+
+  // ================== ZONA DE PELIGRO (DESACTIVAR) ==================
+const dangerOpen = ref(false)
+const deletePhrase = 'ELIMINAR'
+const deleteConfirmText = ref('')
+const deleting = ref(false)
+
+const deleteTypedOk = computed(() => deleteConfirmText.value.trim().toUpperCase() === deletePhrase)
+
+// ✅ Ajusta esta ruta a como expusiste tu endpoint en el back
+// Recomendado: PATCH /teams/{teamId}/active  body: { isActive: false }
+const DEACTIVATE_PATH = computed(() => `/teams/${teamId.value}/active`)
+
+const deactivateTeam = async () => {
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  if (!deleteTypedOk.value) {
+    errorMessage.value = `Para continuar, escribe exactamente "${deletePhrase}".`
+    return
+  }
+
+  try {
+    deleting.value = true
+
+    const token = await getAuthToken()
+    if (!token) {
+      errorMessage.value = 'No se encontró token de sesión. Vuelve a iniciar sesión.'
+      return
+    }
+
+    await $fetch(DEACTIVATE_PATH.value, {
+      baseURL: config.public.apiBase,
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: { isActive: false }
+    })
+
+    successMessage.value =
+      'Equipo eliminado correctamente.'
+
+    // UX: limpiar input y mandar a lista
+    deleteConfirmText.value = ''
+    dangerOpen.value = false
+
+    await router.push('/teams')
+  } catch (err: any) {
+    console.error('Error desactivando equipo', err)
+    const status = getStatusCode(err)
+    const rawMessage: string | undefined =
+      err?.data?.message ?? err?.response?._data?.message ?? err?.message
+
+    if (status === 401) {
+      errorMessage.value = 'Tu sesión expiró. Vuelve a iniciar sesión.'
+    } else if (status === 403) {
+      errorMessage.value = 'No tienes permisos para desactivar este equipo.'
+    } else {
+      errorMessage.value = rawMessage || 'No se pudo desactivar el equipo. Intenta más tarde.'
+    }
+  } finally {
+    deleting.value = false
+  }
+}
+
   </script>
   
   <template>
@@ -1093,7 +1160,109 @@ function normalizeColorForPicker(raw?: string | null, fallback = '#1D4ED8'): str
                 <p class="text-[11px] text-slate-500">
                   Los jugadores marcados como <span class="text-red-300">"Se eliminará"</span> se borrarán al guardar.
                 </p>
-              </div>
+                              </div>
+                  <!-- ================== ZONA DE PELIGRO ================== -->
+                <section class="mt-10 rounded-2xl border border-red-500/35 bg-red-950/25 overflow-hidden">
+                  <div class="px-5 py-4 flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                      <p class="text-[11px] font-semibold tracking-[0.25em] uppercase text-red-200/90">
+                        zona de peligro
+                      </p>
+                      <h3 class="mt-1 text-base sm:text-lg font-extrabold text-red-100">
+                        Eliminar equipo
+                      </h3>
+                      <p class="mt-1 text-xs text-red-100/80 max-w-2xl">
+                        Esta acción elimina el equipo de tu cuenta y de la operación actual.
+                        <span class="font-semibold">No se puede deshacer.</span>
+                        <span class="block mt-1 text-[11px] text-red-100/70">
+                          Nota: por integridad de la liga, registros oficiales de temporadas cerradas pueden conservarse para estadísticas.
+                        </span>
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="shrink-0 inline-flex items-center rounded-xl border border-red-300/30 bg-red-950/40 px-3 py-2 text-xs font-semibold text-red-100 hover:bg-red-900/40"
+                      @click="dangerOpen = !dangerOpen"
+                    >
+                      {{ dangerOpen ? 'Cerrar' : 'Eliminar' }}
+                    </button>
+                  </div>
+
+                  <div v-if="dangerOpen" class="px-5 pb-5">
+                    <div class="rounded-2xl border border-red-500/30 bg-slate-950/45 p-4">
+                      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                        <!-- lado explicación -->
+                        <div class="space-y-2">
+                          <p class="text-xs font-semibold text-slate-100">
+                            Confirmación de seguridad
+                          </p>
+                          <p class="text-[11px] text-slate-300 max-w-lg">
+                            Para evitar eliminaciones accidentales, escribe la palabra exacta:
+                            <span class="font-extrabold text-red-200">ELIMINAR</span>.
+                          </p>
+
+                          <div class="mt-3 grid gap-2">
+                            <div class="rounded-xl border border-red-500/20 bg-red-950/30 px-3 py-2">
+                              <p class="text-[11px] text-red-100/80">
+                                • Se eliminará el equipo y no podrás editarlo ni usarlo en inscripciones actuales.
+                              </p>
+                              <p class="text-[11px] text-red-100/70 mt-1">
+                                • Si tienes dudas, cancela y contacta a un administrador.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- lado acción -->
+                        <div class="lg:w-[440px] w-full">
+                          <label class="block text-[11px] font-semibold text-slate-300 mb-1">
+                            Escribe <span class="text-red-200 font-extrabold">ELIMINAR</span> para confirmar
+                          </label>
+
+                          <input
+                            v-model="deleteConfirmText"
+                            type="text"
+                            class="w-full rounded-xl border border-red-500/30 bg-slate-950 px-3 py-2 text-sm text-slate-50
+                                  focus:outline-none focus:ring-2 focus:ring-red-500/55 focus:border-red-500/70"
+                            placeholder="ELIMINAR"
+                            autocomplete="off"
+                            spellcheck="false"
+                          />
+
+                          <div class="mt-3 flex items-center justify-between gap-3">
+                            <p class="text-[11px]" :class="deleteTypedOk ? 'text-emerald-200' : 'text-slate-400'">
+                              {{ deleteTypedOk ? '✅ Confirmación válida' : 'Escribe la palabra exacta para habilitar el botón' }}
+                            </p>
+
+                            <button
+                              type="button"
+                              class="inline-flex items-center rounded-xl px-4 py-2 text-xs font-extrabold
+                                    text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed
+                                    bg-red-600 hover:bg-red-500"
+                              :disabled="!deleteTypedOk || deleting || saving"
+                              @click="deactivateTeam"
+                            >
+                              <span v-if="deleting">Eliminando…</span>
+                              <span v-else>Eliminar definitivamente</span>
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                            :disabled="deleting || saving"
+                            @click="dangerOpen=false; deleteConfirmText=''"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+
   
               <!-- Mensajes -->
               <div
