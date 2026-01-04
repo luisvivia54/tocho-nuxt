@@ -2,18 +2,22 @@
 <template>
   <main class="min-h-screen bg-[#050816] text-slate-100">
     <!-- HERO -->
-    <section class="relative pt-24 md:pt-28 lg:pt-32">
+    <section class="relative pt-20 sm:pt-24 md:pt-28 lg:pt-32">
       <div class="pointer-events-none absolute inset-0 overflow-hidden">
         <div class="absolute -top-24 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-blue-500/12 blur-3xl"></div>
         <div class="absolute top-20 -left-24 h-[420px] w-[520px] rounded-full bg-fuchsia-500/10 blur-3xl"></div>
         <div class="absolute -bottom-24 -right-24 h-[460px] w-[560px] rounded-full bg-emerald-500/10 blur-3xl"></div>
 
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,.08),transparent_55%),radial-gradient(circle_at_75%_15%,rgba(59,130,246,.10),transparent_45%)]"></div>
-        <div class="absolute inset-0 opacity-25 [background:repeating-linear-gradient(90deg,rgba(255,255,255,.08)_0,rgba(255,255,255,.08)_1px,transparent_1px,transparent_72px)]"></div>
+        <div
+          class="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,.08),transparent_55%),radial-gradient(circle_at_75%_15%,rgba(59,130,246,.10),transparent_45%)]"
+        ></div>
+        <div
+          class="absolute inset-0 opacity-25 [background:repeating-linear-gradient(90deg,rgba(255,255,255,.08)_0,rgba(255,255,255,.08)_1px,transparent_1px,transparent_72px)]"
+        ></div>
       </div>
 
-      <div class="relative max-w-7xl mx-auto px-6">
-        <header class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6">
+        <header class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 sm:gap-6">
           <div>
             <p class="text-[11px] uppercase tracking-[0.35em] text-slate-400">
               TOCHERO5 · CENTRO DE ESTADÍSTICAS
@@ -28,22 +32,29 @@
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
-              <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
+              <span
+                class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200"
+              >
                 Live data (backend)
               </span>
-              <span class="inline-flex items-center rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold text-blue-100">
+              <span
+                class="inline-flex items-center rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold text-blue-100"
+              >
                 Rankings
               </span>
-              <span class="inline-flex items-center rounded-full border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-semibold text-fuchsia-100">
+              <span
+                class="inline-flex items-center rounded-full border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-1 text-[11px] font-semibold text-fuchsia-100"
+              >
                 Líderes
               </span>
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <!-- acciones: en móvil se apilan -->
+          <div class="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              class="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 transition"
+              class="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 transition"
               @click="refreshAll"
             >
               ⟳ Refrescar
@@ -51,7 +62,7 @@
 
             <NuxtLink
               to="/estadisticas"
-              class="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 transition"
+              class="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 transition"
             >
               Ver estadísticas (equipos)
             </NuxtLink>
@@ -59,8 +70,10 @@
         </header>
 
         <!-- FILTROS -->
-        <section class="mt-7 rounded-3xl border border-white/10 bg-[#070b1d]/85 shadow-[0_25px_70px_rgba(0,0,0,0.55)] overflow-hidden">
-          <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
+        <section
+          class="mt-6 sm:mt-7 rounded-3xl border border-white/10 bg-[#070b1d]/85 shadow-[0_25px_70px_rgba(0,0,0,0.55)] overflow-hidden"
+        >
+          <div class="px-4 sm:px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
             <div>
               <h2 class="font-semibold text-white">Filtros</h2>
               <p class="text-xs text-slate-400">Equipo, número y nombre del jugador.</p>
@@ -75,7 +88,7 @@
             </button>
           </div>
 
-          <div class="p-5 grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-3">
             <!-- Equipo -->
             <div class="md:col-span-5">
               <label class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Equipo</label>
@@ -120,11 +133,17 @@
         </section>
 
         <!-- ESTADOS -->
-        <div v-if="pendingAny" class="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200">
+        <div
+          v-if="pendingAny"
+          class="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200"
+        >
           Cargando jugadores…
         </div>
 
-        <div v-else-if="errorAny" class="mt-6 rounded-3xl border border-rose-500/25 bg-rose-500/10 p-5 text-sm text-rose-100">
+        <div
+          v-else-if="errorAny"
+          class="mt-6 rounded-3xl border border-rose-500/25 bg-rose-500/10 p-5 text-sm text-rose-100"
+        >
           Error cargando datos. Revisa que el backend esté disponible.
         </div>
 
@@ -142,7 +161,9 @@
                   </p>
                 </div>
 
-                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                <span
+                  class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200"
+                >
                   {{ seasonLabel }}
                 </span>
               </div>
@@ -187,8 +208,10 @@
 
           <!-- RANKING / TARJETAS -->
           <section class="lg:col-span-7 space-y-4">
-            <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
-              <div class="px-5 py-4 border-b border-white/10 flex items-start justify-between gap-3">
+            <div
+              class="rounded-3xl border border-white/10 bg-[#070b1d]/85 overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
+            >
+              <div class="px-4 sm:px-5 py-4 border-b border-white/10 flex items-start justify-between gap-3">
                 <div>
                   <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400">ranking</p>
                   <h2 class="mt-1 font-display text-xl font-extrabold text-white">Jugadores</h2>
@@ -200,14 +223,18 @@
 
                 <div class="flex items-center gap-2">
                   <span class="hidden sm:inline text-[11px] text-slate-400">Total:</span>
-                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                  <span
+                    class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200"
+                  >
                     {{ sortedPlayersAll.length }}
                   </span>
                 </div>
               </div>
 
               <!-- PAGINACIÓN TOP -->
-              <div class="px-5 py-3 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
+              <div
+                class="px-4 sm:px-5 py-3 border-b border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              >
                 <p class="text-[11px] text-slate-400">
                   Mostrando
                   <span class="text-slate-200 font-semibold">{{ rangeStart }}</span>
@@ -217,7 +244,7 @@
                   <span class="text-slate-200 font-semibold">{{ sortedPlayersAll.length }}</span>
                 </p>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 justify-between sm:justify-end">
                   <button
                     type="button"
                     class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
@@ -227,7 +254,9 @@
                     ←
                   </button>
 
-                  <span class="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200">
+                  <span
+                    class="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200"
+                  >
                     Página {{ page }} / {{ pageCount }}
                   </span>
 
@@ -243,24 +272,28 @@
               </div>
 
               <!-- LISTA -->
-              <div v-if="pagedPlayers.length === 0" class="px-5 py-6 text-sm text-slate-300">
+              <div v-if="pagedPlayers.length === 0" class="px-4 sm:px-5 py-6 text-sm text-slate-300">
                 No hay jugadores para esos filtros.
               </div>
 
-              <div v-else class="p-4 md:p-5 space-y-3">
+              <div v-else class="p-3 sm:p-4 md:p-5 space-y-3">
                 <article
                   v-for="(p, idx) in pagedPlayers"
                   :key="p.id"
                   class="rounded-3xl border border-white/10 bg-white/5 hover:bg-white/7 transition shadow-[0_18px_55px_rgba(0,0,0,0.35)]"
                 >
-                  <div class="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                    <!-- IZQUIERDA: RANK + FOTO + INFO -->
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                      <div class="h-10 w-10 rounded-2xl border border-white/10 bg-black/20 grid place-items-center text-sm font-extrabold text-slate-200 shrink-0">
+                  <div class="p-3 sm:p-4 md:p-5 flex flex-col gap-3 sm:gap-4">
+                    <!-- TOP: RANK + FOTO + INFO -->
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div
+                        class="h-9 w-9 sm:h-10 sm:w-10 rounded-2xl border border-white/10 bg-black/20 grid place-items-center text-sm font-extrabold text-slate-200 shrink-0"
+                      >
                         {{ (page - 1) * perPage + idx + 1 }}
                       </div>
 
-                      <div class="h-12 w-12 rounded-2xl border border-white/10 bg-black/20 overflow-hidden grid place-items-center shrink-0">
+                      <div
+                        class="h-11 w-11 sm:h-12 sm:w-12 rounded-2xl border border-white/10 bg-black/20 overflow-hidden grid place-items-center shrink-0"
+                      >
                         <img
                           v-if="p.photoUrl"
                           :src="p.photoUrl"
@@ -273,7 +306,7 @@
                         </span>
                       </div>
 
-                      <div class="min-w-0">
+                      <div class="min-w-0 flex-1">
                         <p class="font-semibold text-white truncate">
                           {{ p.fullName }}
                           <span v-if="p.number != null" class="ml-2 text-slate-400 font-semibold">#{{ p.number }}</span>
@@ -290,26 +323,34 @@
                       </div>
                     </div>
 
-                    <!-- DERECHA: STATS -->
-                    <div class="grid grid-cols-4 gap-2 w-full sm:w-auto sm:min-w-[260px]">
-                      <div class="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-2 text-center">
-                        <p class="text-[10px] uppercase tracking-[0.22em] text-fuchsia-100/80">INT</p>
-                        <p class="mt-0.5 text-lg font-extrabold text-fuchsia-100 tabular-nums">{{ p.stats.int }}</p>
+                    <!-- STATS: en móvil 2x2 -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full">
+                      <div class="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 px-2 sm:px-3 py-2 text-center">
+                        <p class="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-fuchsia-100/80">INT</p>
+                        <p class="mt-0.5 text-base sm:text-lg font-extrabold text-fuchsia-100 tabular-nums">
+                          {{ p.stats.int }}
+                        </p>
                       </div>
 
-                      <div class="rounded-2xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-center">
-                        <p class="text-[10px] uppercase tracking-[0.22em] text-violet-100/80">TD</p>
-                        <p class="mt-0.5 text-lg font-extrabold text-violet-100 tabular-nums">{{ p.stats.td }}</p>
+                      <div class="rounded-2xl border border-violet-400/20 bg-violet-500/10 px-2 sm:px-3 py-2 text-center">
+                        <p class="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-violet-100/80">TD</p>
+                        <p class="mt-0.5 text-base sm:text-lg font-extrabold text-violet-100 tabular-nums">
+                          {{ p.stats.td }}
+                        </p>
                       </div>
 
-                      <div class="rounded-2xl border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-center">
-                        <p class="text-[10px] uppercase tracking-[0.22em] text-sky-100/80">PA</p>
-                        <p class="mt-0.5 text-lg font-extrabold text-sky-100 tabular-nums">{{ p.stats.pa }}</p>
+                      <div class="rounded-2xl border border-sky-400/20 bg-sky-500/10 px-2 sm:px-3 py-2 text-center">
+                        <p class="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-sky-100/80">PA</p>
+                        <p class="mt-0.5 text-base sm:text-lg font-extrabold text-sky-100 tabular-nums">
+                          {{ p.stats.pa }}
+                        </p>
                       </div>
 
-                      <div class="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-center">
-                        <p class="text-[10px] uppercase tracking-[0.22em] text-emerald-100/80">SACK</p>
-                        <p class="mt-0.5 text-lg font-extrabold text-emerald-100 tabular-nums">{{ p.stats.sack }}</p>
+                      <div class="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-2 sm:px-3 py-2 text-center">
+                        <p class="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-emerald-100/80">SACK</p>
+                        <p class="mt-0.5 text-base sm:text-lg font-extrabold text-emerald-100 tabular-nums">
+                          {{ p.stats.sack }}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -317,12 +358,12 @@
               </div>
 
               <!-- PAGINACIÓN BOTTOM -->
-              <div class="px-5 py-4 border-t border-white/10 flex items-center justify-between gap-3">
+              <div class="px-4 sm:px-5 py-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <p class="text-[11px] text-slate-400">
                   Impacto = TD + INT + PA + SACK
                 </p>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 justify-between sm:justify-end">
                   <button
                     type="button"
                     class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
@@ -343,7 +384,6 @@
                 </div>
               </div>
             </div>
-
           </section>
         </div>
       </div>
@@ -759,7 +799,7 @@ async function refreshAll() {
 }
 
 /** =========================
- *  POSTER PANEL
+ *  POSTER PANEL (responsive)
  *  ========================= */
 type Accent = 'fuchsia' | 'violet' | 'sky' | 'emerald'
 type AccentStyle = { ring: string; bg: string; text: string; chip: string }
@@ -776,51 +816,129 @@ const PosterPanel = defineComponent({
   },
   setup(props) {
     const accentMap: Record<Accent, AccentStyle> = {
-      fuchsia: { ring: 'border-fuchsia-400/25', bg: 'from-fuchsia-600/20 via-fuchsia-600/5 to-transparent', text: 'text-fuchsia-100', chip: 'border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-100' },
-      violet: { ring: 'border-violet-400/25', bg: 'from-violet-600/20 via-violet-600/5 to-transparent', text: 'text-violet-100', chip: 'border-violet-400/20 bg-violet-500/10 text-violet-100' },
-      sky: { ring: 'border-sky-400/25', bg: 'from-sky-600/20 via-sky-600/5 to-transparent', text: 'text-sky-100', chip: 'border-sky-400/20 bg-sky-500/10 text-sky-100' },
-      emerald: { ring: 'border-emerald-400/25', bg: 'from-emerald-600/20 via-emerald-600/5 to-transparent', text: 'text-emerald-100', chip: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100' },
+      fuchsia: {
+        ring: 'border-fuchsia-400/25',
+        bg: 'from-fuchsia-600/20 via-fuchsia-600/5 to-transparent',
+        text: 'text-fuchsia-100',
+        chip: 'border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-100',
+      },
+      violet: {
+        ring: 'border-violet-400/25',
+        bg: 'from-violet-600/20 via-violet-600/5 to-transparent',
+        text: 'text-violet-100',
+        chip: 'border-violet-400/20 bg-violet-500/10 text-violet-100',
+      },
+      sky: {
+        ring: 'border-sky-400/25',
+        bg: 'from-sky-600/20 via-sky-600/5 to-transparent',
+        text: 'text-sky-100',
+        chip: 'border-sky-400/20 bg-sky-500/10 text-sky-100',
+      },
+      emerald: {
+        ring: 'border-emerald-400/25',
+        bg: 'from-emerald-600/20 via-emerald-600/5 to-transparent',
+        text: 'text-emerald-100',
+        chip: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100',
+      },
     } as const
 
     const a = computed<AccentStyle>(() => accentMap[props.accent] ?? accentMap.fuchsia)
 
     return () =>
-      h('section', { class: `relative overflow-hidden rounded-3xl border ${a.value.ring} bg-white/5 shadow-[0_20px_55px_rgba(0,0,0,0.45)]` }, [
-        h('div', { class: `absolute inset-0 bg-gradient-to-br ${a.value.bg} opacity-70` }),
-        h('div', { class: 'relative p-4 md:p-5' }, [
-          h('div', { class: 'flex items-start justify-between gap-3' }, [
-            h('div', {}, [
-              h('p', { class: 'text-[10px] uppercase tracking-[0.26em] text-slate-400' }, props.subtitle),
-              h('h3', { class: `mt-1 font-display text-lg font-extrabold ${a.value.text}` }, props.title),
+      h(
+        'section',
+        {
+          class: `relative overflow-hidden rounded-3xl border ${a.value.ring} bg-white/5 shadow-[0_20px_55px_rgba(0,0,0,0.45)]`,
+        },
+        [
+          h('div', { class: `absolute inset-0 bg-gradient-to-br ${a.value.bg} opacity-70` }),
+          h('div', { class: 'relative p-4 md:p-5' }, [
+            h('div', { class: 'flex items-start justify-between gap-3' }, [
+              h('div', {}, [
+                h('p', { class: 'text-[10px] uppercase tracking-[0.26em] text-slate-400' }, props.subtitle),
+                h('h3', { class: `mt-1 font-display text-lg font-extrabold ${a.value.text}` }, props.title),
+              ]),
+              h(
+                'span',
+                {
+                  class: `inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${a.value.chip}`,
+                },
+                props.valueLabel
+              ),
             ]),
-            h('span', { class: `inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${a.value.chip}` }, props.valueLabel),
-          ]),
 
-          h('div', { class: 'mt-3 rounded-2xl border border-white/10 bg-[#070b1d]/90 overflow-hidden' }, [
-            h('div', { class: 'grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-slate-400 border-b border-white/10' }, [
-              h('div', { class: 'col-span-1' }, 'Rk'),
-              h('div', { class: 'col-span-7' }, 'Jugador'),
-              h('div', { class: 'col-span-3' }, 'Equipo'),
-              h('div', { class: 'col-span-1 text-right' }, props.valueLabel),
-            ]),
-            props.rows.length
-              ? props.rows.map((p, idx) =>
-                  h('div', { class: 'grid grid-cols-12 px-3 py-2 text-sm border-b border-white/5 last:border-0 hover:bg-white/5' }, [
-                    h('div', { class: 'col-span-1 font-semibold text-slate-200 tabular-nums' }, String(idx + 1)),
-                    h('div', { class: 'col-span-7 min-w-0' }, [
-                      h('p', { class: 'font-semibold text-white truncate' }, [
-                        p.fullName,
-                        p.number != null ? h('span', { class: 'ml-2 text-slate-400 font-semibold' }, `#${p.number}`) : null,
+            h('div', { class: 'mt-3 rounded-2xl border border-white/10 bg-[#070b1d]/90 overflow-hidden' }, [
+              // header desktop
+              h(
+                'div',
+                {
+                  class:
+                    'hidden sm:grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-slate-400 border-b border-white/10',
+                },
+                [
+                  h('div', { class: 'col-span-1' }, 'Rk'),
+                  h('div', { class: 'col-span-7' }, 'Jugador'),
+                  h('div', { class: 'col-span-3' }, 'Equipo'),
+                  h('div', { class: 'col-span-1 text-right' }, props.valueLabel),
+                ]
+              ),
+
+              props.rows.length
+                ? props.rows.map((p, idx) =>
+                    h('div', { class: 'border-b border-white/5 last:border-0' }, [
+                      // mobile row
+                      h('div', { class: 'sm:hidden px-3 py-3' }, [
+                        h('div', { class: 'flex items-start justify-between gap-3' }, [
+                          h('div', { class: 'min-w-0' }, [
+                            h('p', { class: 'text-[10px] uppercase tracking-[0.22em] text-slate-500' }, `#${idx + 1}`),
+                            h('p', { class: 'mt-0.5 font-semibold text-white truncate' }, [
+                              p.fullName,
+                              p.number != null
+                                ? h('span', { class: 'ml-2 text-slate-400 font-semibold' }, `#${p.number}`)
+                                : null,
+                            ]),
+                            h('p', { class: 'mt-0.5 text-xs text-slate-300 truncate' }, p.teamName || '—'),
+                          ]),
+                          h(
+                            'div',
+                            { class: `shrink-0 text-right font-extrabold ${a.value.text} tabular-nums text-lg` },
+                            String(props.valueFn(p))
+                          ),
+                        ]),
                       ]),
-                    ]),
-                    h('div', { class: 'col-span-3 text-slate-200 truncate' }, p.teamName || '—'),
-                    h('div', { class: `col-span-1 text-right font-extrabold ${a.value.text} tabular-nums` }, String(props.valueFn(p))),
-                  ])
-                )
-              : h('div', { class: 'px-3 py-4 text-sm text-slate-400' }, 'Sin datos para este panel (aún).'),
+
+                      // desktop row
+                      h(
+                        'div',
+                        {
+                          class:
+                            'hidden sm:grid grid-cols-12 px-3 py-2 text-sm hover:bg-white/5',
+                        },
+                        [
+                          h('div', { class: 'col-span-1 font-semibold text-slate-200 tabular-nums' }, String(idx + 1)),
+                          h('div', { class: 'col-span-7 min-w-0' }, [
+                            h('p', { class: 'font-semibold text-white truncate' }, [
+                              p.fullName,
+                              p.number != null
+                                ? h('span', { class: 'ml-2 text-slate-400 font-semibold' }, `#${p.number}`)
+                                : null,
+                            ]),
+                          ]),
+                          h('div', { class: 'col-span-3 text-slate-200 truncate' }, p.teamName || '—'),
+                          h(
+                            'div',
+                            { class: `col-span-1 text-right font-extrabold ${a.value.text} tabular-nums` },
+                            String(props.valueFn(p))
+                          ),
+                        ]
+                      ),
+                    ])
+                  )
+                : h('div', { class: 'px-3 py-4 text-sm text-slate-400' }, 'Sin datos para este panel (aún).'),
+            ]),
           ]),
-        ]),
-      ])
+        ]
+      )
   },
 })
 </script>
