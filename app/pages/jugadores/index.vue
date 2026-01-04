@@ -279,7 +279,6 @@
                           <span v-if="p.number != null" class="ml-2 text-slate-400 font-semibold">#{{ p.number }}</span>
                         </p>
 
-                        <!-- ✅ AQUÍ VA EL EQUIPO (SIEMPRE INTENTAMOS RESOLVERLO) -->
                         <p class="mt-0.5 text-sm text-slate-200 truncate">
                           {{ p.teamName || 'Sin equipo' }}
                         </p>
@@ -345,10 +344,6 @@
               </div>
             </div>
 
-            <div class="rounded-3xl border border-white/10 bg-white/5 p-5 text-xs text-slate-300">
-              Si tu backend aún no manda stats por jugador, esta pantalla igual funciona con 0’s.
-              Cuando el endpoint esté completo, solo mapeamos campos y listo.
-            </div>
           </section>
         </div>
       </div>
@@ -358,7 +353,7 @@
 
 <script setup lang="ts">
 import { computed, defineComponent, h, ref, watch } from 'vue'
-import { useAsyncData, useRuntimeConfig } from '#imports'
+import { useAsyncData, useRuntimeConfig, useRoute } from '#imports'
 
 /** =========================
  *  API CONFIG
@@ -366,7 +361,26 @@ import { useAsyncData, useRuntimeConfig } from '#imports'
 const config = useRuntimeConfig()
 const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
 const API_TEAMS = `${API_BASE}/teams`
-const API_PLAYERS = `${API_BASE}/players`
+const API_STATS_PLAYERS = `${API_BASE}/stats/players`
+
+const route = useRoute()
+
+/** leagueId por default 1, pero soporta /jugadores?leagueId=2 */
+const leagueId = computed<number>(() => {
+  const q = route.query.leagueId
+  const v = Array.isArray(q) ? q[0] : q
+  const n = Number(v ?? 1)
+  return Number.isFinite(n) && n > 0 ? n : 1
+})
+
+/** seasonId opcional si luego lo usas: /jugadores?leagueId=1&seasonId=3 */
+const seasonId = computed<number | null>(() => {
+  const q = route.query.seasonId
+  const v = Array.isArray(q) ? q[0] : q
+  if (v == null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : null
+})
 
 /** =========================
  *  HELPERS
@@ -398,6 +412,29 @@ function dedupeById(list: any[]) {
   return Array.from(m.values())
 }
 
+/** pool simple para no aventar 50 requests al mismo tiempo */
+async function mapPool<T, R>(
+  items: readonly T[],
+  worker: (item: T) => Promise<R>,
+  concurrency = 8
+): Promise<R[]> {
+  const out = new Array<R>(items.length)
+  let i = 0
+
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (true) {
+      const idx = i++
+      if (idx >= items.length) break
+
+      const item = items[idx]!
+      out[idx] = await worker(item)
+    }
+  })
+
+  await Promise.all(runners)
+  return out
+}
+
 /** =========================
  *  TYPES
  *  ========================= */
@@ -406,8 +443,6 @@ type TeamVM = {
   name: string
   shortName?: string
   logoUrl?: string | null
-  categoryId?: number
-  categoryName?: string
   code?: string
   gender?: string
 }
@@ -435,14 +470,17 @@ type PlayerVM = {
 /** =========================
  *  FETCH TEAMS
  *  ========================= */
-const { data: teamsData, pending: teamsPending, error: teamsErr } = useAsyncData('players-teams', async () => {
-  try {
-    const raw = await $fetch<any>(API_TEAMS)
-    return unwrapList<any>(raw)
-  } catch {
-    return []
+const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
+  'players-teams',
+  async () => {
+    try {
+      const raw = await $fetch<any>(API_TEAMS)
+      return unwrapList<any>(raw)
+    } catch {
+      return []
+    }
   }
-})
+)
 
 const teamsVm = computed<TeamVM[]>(() => {
   const list = unwrapList<any>(teamsData.value)
@@ -452,8 +490,6 @@ const teamsVm = computed<TeamVM[]>(() => {
       name: String(x.name ?? x.teamName ?? 'Equipo'),
       shortName: x.shortName ?? x.short_name ?? '',
       logoUrl: x.logoUrl ?? x.logo_url ?? x.photoUrl ?? x.photo_url ?? null,
-      categoryId: Number(x.categoryId ?? x.category_id ?? x.category?.id ?? 0) || undefined,
-      categoryName: x.categoryName ?? x.category_name ?? x.category?.name ?? '',
       code: x.code ?? x.category?.code ?? x.rama ?? '',
       gender: x.gender ?? x.category?.gender ?? '',
     }))
@@ -468,18 +504,70 @@ const teamById = computed(() => {
 })
 
 /** =========================
- *  FALLBACK: /teams/{id}/players
+ *  FETCH STATS
  *  ========================= */
-async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
+type PlayerSeasonStatsApi = {
+  playerId?: number
+  player_id?: number
+  id?: number
+  fullName?: string
+  full_name?: string
+  td?: number
+  passTd?: number
+  pass_td?: number
+  interceptions?: number
+  intercep?: number
+  sacks?: number
+}
+
+const { data: statsData, pending: statsPending, error: statsErr, refresh: refreshStats } = useAsyncData(
+  () => `players-stats:${leagueId.value}:${seasonId.value ?? 'current'}`,
+  async () => {
+    try {
+      const params = new URLSearchParams()
+      params.set('leagueId', String(leagueId.value))
+      if (seasonId.value) params.set('seasonId', String(seasonId.value))
+
+      const raw = await $fetch<any>(`${API_STATS_PLAYERS}?${params.toString()}`)
+      return unwrapList<PlayerSeasonStatsApi>(raw)
+    } catch {
+      return []
+    }
+  },
+  { watch: [leagueId, seasonId] }
+)
+
+const statsByPlayerId = computed(() => {
+  const m = new Map<number, PlayerStats>()
+  const list = unwrapList<PlayerSeasonStatsApi>(statsData.value)
+
+  for (const x of list) {
+    const id = Number(x.playerId ?? x.player_id ?? x.id)
+    if (!Number.isFinite(id)) continue
+
+    const td = toNum(x.td)
+    const pa = toNum(x.passTd ?? x.pass_td)
+    const it = toNum((x as any).interceptions ?? (x as any).intercep)
+    const sack = toNum(x.sacks)
+
+    m.set(id, { td, pa, int: it, sack, rec: 0 })
+  }
+  return m
+})
+
+/** =========================
+ *  FETCH ROSTER GLOBAL (por equipos)
+ *  ========================= */
+async function fetchRosterFromTeams(): Promise<any[]> {
   const teams = teamsVm.value
   if (!teams.length) return []
-  const chunks = await Promise.all(
-    teams.map(async (t) => {
+
+  const chunks = await mapPool(
+    teams,
+    async (t) => {
       try {
         const raw = await $fetch<any>(`${API_TEAMS}/${t.teamId}/players`)
         const list = unwrapList<any>(raw)
-
-        // ✅ IMPORTANTE: ENRIQUECER con teamId / teamName aquí
         return list.map((p: any) => ({
           ...p,
           __teamId: t.teamId,
@@ -488,103 +576,33 @@ async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
       } catch {
         return []
       }
-    })
+    },
+    8
   )
+
   return chunks.flat()
 }
 
-/** =========================
- *  FETCH PLAYERS (robusto)
- *  ========================= */
-const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
-  'players-all',
+const { data: rosterData, pending: rosterPending, error: rosterErr, refresh: refreshRoster } = useAsyncData(
+  () => `players-roster:${teamsVm.value.length}`,
   async () => {
-    // 1) Intenta /players
-    try {
-      const raw = await $fetch<any>(API_PLAYERS)
-      const listRaw = unwrapList<any>(raw)
-      const list = dedupeById(listRaw)
-
-      if (list.length) {
-        const hasTeam = list.some((x: any) =>
-          Boolean(
-            x.teamId ||
-              x.team_id ||
-              x.team?.id ||
-              x.team?.teamId ||
-              x.teamName ||
-              x.team_name ||
-              x.team?.name ||
-              x.__teamId ||
-              x.__teamName
-          )
-        )
-
-        const hasStats = list.some((x: any) =>
-          Boolean(
-            x.stats ||
-              x.td ||
-              x.touchdowns ||
-              x.int ||
-              x.interceptions ||
-              x.pa ||
-              x.passingTd ||
-              x.sack ||
-              x.sacks ||
-              x.rec ||
-              x.receptions
-          )
-        )
-
-        // Si NO trae equipo pero SÍ trae stats, hacemos join contra /teams/{id}/players para inyectar equipo sin perder stats
-        if (!hasTeam && hasStats) {
-          const roster = dedupeById(await fetchPlayersFallbackFromTeams())
-          const rosterMap = new Map<number, { teamId: number; teamName: string }>()
-          for (const r of roster) {
-            const id = Number(r?.playerId ?? r?.player_id ?? r?.id)
-            if (!Number.isFinite(id)) continue
-            const teamId = Number(r.__teamId ?? r.teamId ?? r.team_id ?? r.team?.id ?? r.team?.teamId)
-            const teamName = String(r.__teamName ?? r.teamName ?? r.team_name ?? r.team?.name ?? '').trim()
-            if (Number.isFinite(teamId) && teamName) rosterMap.set(id, { teamId, teamName })
-          }
-
-          return list.map((p: any) => {
-            const id = Number(p?.playerId ?? p?.player_id ?? p?.id)
-            const found = rosterMap.get(id)
-            if (!found) return p
-            return {
-              ...p,
-              teamId: p.teamId ?? p.team_id ?? found.teamId,
-              teamName: p.teamName ?? p.team_name ?? found.teamName,
-            }
-          })
-        }
-
-        // Si trae equipo o no trae stats, regresamos tal cual (o luego usamos fallback si viene vacío)
-        if (hasTeam) return list
-
-        // NO trae equipo y NO trae stats -> fallback directo por equipos (para al menos mostrar equipo)
-        return dedupeById(await fetchPlayersFallbackFromTeams())
-      }
-    } catch {
-      // ignore
-    }
-
-    // 2) Fallback por equipos
-    return dedupeById(await fetchPlayersFallbackFromTeams())
+    return dedupeById(await fetchRosterFromTeams())
   },
   { watch: [teamsVm] }
 )
 
 /** =========================
- *  MAP TO VIEWMODEL
+ *  MAP TO VIEWMODEL (roster + stats join por playerId)
  *  ========================= */
 const playersVm = computed<PlayerVM[]>(() => {
-  const list = unwrapList<any>(playersData.value)
+  const roster = unwrapList<any>(rosterData.value)
+  const statsMap = statsByPlayerId.value
 
-  return list
+  const mappedFromRoster = roster
     .map((x: any) => {
       const id = Number(x.playerId ?? x.player_id ?? x.id)
+      if (!Number.isFinite(id)) return null
+
       const fullName =
         String(
           x.fullName ??
@@ -594,23 +612,17 @@ const playersVm = computed<PlayerVM[]>(() => {
         ).trim() || 'Jugador'
 
       const number = x.number ?? x.jerseyNumber ?? x.jersey_number ?? x.num ?? null
+
       const teamIdRaw = x.__teamId ?? x.teamId ?? x.team_id ?? x.team?.teamId ?? x.team?.id ?? null
       const teamId = teamIdRaw == null ? null : Number(teamIdRaw) || null
 
-      // Resolver teamName: (1) del payload, (2) del __teamName (fallback), (3) del map de teams por ID
       const t = teamId ? teamById.value.get(teamId) : undefined
-      const teamName =
-        String(x.__teamName ?? x.teamName ?? x.team_name ?? x.team?.name ?? t?.name ?? '').trim() || undefined
+      const teamName = String(x.__teamName ?? x.teamName ?? x.team_name ?? x.team?.name ?? t?.name ?? '').trim() || undefined
 
-      const gender = x.gender ?? x.team?.gender ?? t?.gender ?? ''
-      const categoryCode = x.categoryCode ?? x.category_code ?? x.team?.code ?? t?.code ?? ''
+      const gender = x.gender ?? t?.gender ?? ''
+      const categoryCode = x.categoryCode ?? x.category_code ?? t?.code ?? ''
 
-      // Stats: mapea lo que exista; si no existe -> 0
-      const td = toNum(x.td ?? x.tds ?? x.touchdowns ?? x.stats?.td ?? x.stats?.tds)
-      const it = toNum(x.int ?? x.interceptions ?? x.stats?.int ?? x.stats?.interceptions)
-      const pa = toNum(x.pa ?? x.passingTd ?? x.passing_td ?? x.stats?.pa ?? x.stats?.passingTd)
-      const sack = toNum(x.sack ?? x.sacks ?? x.stats?.sack ?? x.stats?.sacks)
-      const rec = toNum(x.rec ?? x.receptions ?? x.stats?.rec ?? x.stats?.receptions)
+      const s = statsMap.get(id) ?? { td: 0, pa: 0, int: 0, sack: 0, rec: 0 }
 
       return {
         id,
@@ -621,10 +633,29 @@ const playersVm = computed<PlayerVM[]>(() => {
         teamName,
         gender: gender ? upper(gender) : '',
         categoryCode: categoryCode ? String(categoryCode) : '',
-        stats: { td, int: it, pa, sack, rec },
+        stats: { ...s },
       } satisfies PlayerVM
     })
-    .filter((p) => Number.isFinite(p.id))
+    .filter(Boolean) as PlayerVM[]
+
+  // Si algún día stats trae jugadores que no estén en roster:
+  const idsInRoster = new Set(mappedFromRoster.map((p) => p.id))
+  for (const [pid, s] of statsMap.entries()) {
+    if (idsInRoster.has(pid)) continue
+    mappedFromRoster.push({
+      id: pid,
+      fullName: `Jugador ${pid}`,
+      number: null,
+      photoUrl: null,
+      teamId: null,
+      teamName: undefined,
+      gender: '',
+      categoryCode: '',
+      stats: { ...s },
+    })
+  }
+
+  return mappedFromRoster
 })
 
 /** =========================
@@ -670,9 +701,7 @@ function impact(p: PlayerVM) {
   return p.stats.td + p.stats.int + p.stats.pa + p.stats.sack
 }
 
-const sortedPlayersAll = computed(() => {
-  return filteredPlayers.value.slice().sort((a, b) => impact(b) - impact(a))
-})
+const sortedPlayersAll = computed(() => filteredPlayers.value.slice().sort((a, b) => impact(b) - impact(a)))
 
 const perPage = 10
 const page = ref(1)
@@ -709,10 +738,7 @@ function clearFilters() {
  *  LEADERS
  *  ========================= */
 function topBy(fn: (p: PlayerVM) => number, n = 7): PlayerVM[] {
-  return filteredPlayers.value
-    .slice()
-    .sort((a, b) => fn(b) - fn(a))
-    .slice(0, n)
+  return filteredPlayers.value.slice().sort((a, b) => fn(b) - fn(a)).slice(0, n)
 }
 
 const leadersINT = computed(() => topBy((p) => p.stats.int, 7))
@@ -720,17 +746,20 @@ const leadersTD = computed(() => topBy((p) => p.stats.td, 7))
 const leadersPA = computed(() => topBy((p) => p.stats.pa, 7))
 const leadersSACK = computed(() => topBy((p) => p.stats.sack, 7))
 
-const seasonLabel = computed(() => 'Temporada actual')
+const seasonLabel = computed(() => {
+  const sid = seasonId.value ? `Season ${seasonId.value}` : 'Temporada actual'
+  return `Liga ${leagueId.value} · ${sid}`
+})
 
-const pendingAny = computed(() => !!teamsPending.value || !!playersPending.value)
-const errorAny = computed(() => !!teamsErr.value || !!playersErr.value)
+const pendingAny = computed(() => !!teamsPending.value || !!rosterPending.value || !!statsPending.value)
+const errorAny = computed(() => !!teamsErr.value || !!rosterErr.value || !!statsErr.value)
 
 async function refreshAll() {
-  await refreshPlayers()
+  await Promise.all([refreshTeams(), refreshRoster(), refreshStats()])
 }
 
 /** =========================
- *  POSTER PANEL (sin TS undefined)
+ *  POSTER PANEL
  *  ========================= */
 type Accent = 'fuchsia' | 'violet' | 'sky' | 'emerald'
 type AccentStyle = { ring: string; bg: string; text: string; chip: string }
@@ -747,88 +776,51 @@ const PosterPanel = defineComponent({
   },
   setup(props) {
     const accentMap: Record<Accent, AccentStyle> = {
-      fuchsia: {
-        ring: 'border-fuchsia-400/25',
-        bg: 'from-fuchsia-600/20 via-fuchsia-600/5 to-transparent',
-        text: 'text-fuchsia-100',
-        chip: 'border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-100',
-      },
-      violet: {
-        ring: 'border-violet-400/25',
-        bg: 'from-violet-600/20 via-violet-600/5 to-transparent',
-        text: 'text-violet-100',
-        chip: 'border-violet-400/20 bg-violet-500/10 text-violet-100',
-      },
-      sky: {
-        ring: 'border-sky-400/25',
-        bg: 'from-sky-600/20 via-sky-600/5 to-transparent',
-        text: 'text-sky-100',
-        chip: 'border-sky-400/20 bg-sky-500/10 text-sky-100',
-      },
-      emerald: {
-        ring: 'border-emerald-400/25',
-        bg: 'from-emerald-600/20 via-emerald-600/5 to-transparent',
-        text: 'text-emerald-100',
-        chip: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100',
-      },
+      fuchsia: { ring: 'border-fuchsia-400/25', bg: 'from-fuchsia-600/20 via-fuchsia-600/5 to-transparent', text: 'text-fuchsia-100', chip: 'border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-100' },
+      violet: { ring: 'border-violet-400/25', bg: 'from-violet-600/20 via-violet-600/5 to-transparent', text: 'text-violet-100', chip: 'border-violet-400/20 bg-violet-500/10 text-violet-100' },
+      sky: { ring: 'border-sky-400/25', bg: 'from-sky-600/20 via-sky-600/5 to-transparent', text: 'text-sky-100', chip: 'border-sky-400/20 bg-sky-500/10 text-sky-100' },
+      emerald: { ring: 'border-emerald-400/25', bg: 'from-emerald-600/20 via-emerald-600/5 to-transparent', text: 'text-emerald-100', chip: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100' },
     } as const
 
     const a = computed<AccentStyle>(() => accentMap[props.accent] ?? accentMap.fuchsia)
 
     return () =>
-      h(
-        'section',
-        { class: `relative overflow-hidden rounded-3xl border ${a.value.ring} bg-white/5 shadow-[0_20px_55px_rgba(0,0,0,0.45)]` },
-        [
-          h('div', { class: `absolute inset-0 bg-gradient-to-br ${a.value.bg} opacity-70` }),
-          h('div', { class: 'relative p-4 md:p-5' }, [
-            h('div', { class: 'flex items-start justify-between gap-3' }, [
-              h('div', {}, [
-                h('p', { class: 'text-[10px] uppercase tracking-[0.26em] text-slate-400' }, props.subtitle),
-                h('h3', { class: `mt-1 font-display text-lg font-extrabold ${a.value.text}` }, props.title),
-              ]),
-              h(
-                'span',
-                { class: `inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${a.value.chip}` },
-                props.valueLabel
-              ),
+      h('section', { class: `relative overflow-hidden rounded-3xl border ${a.value.ring} bg-white/5 shadow-[0_20px_55px_rgba(0,0,0,0.45)]` }, [
+        h('div', { class: `absolute inset-0 bg-gradient-to-br ${a.value.bg} opacity-70` }),
+        h('div', { class: 'relative p-4 md:p-5' }, [
+          h('div', { class: 'flex items-start justify-between gap-3' }, [
+            h('div', {}, [
+              h('p', { class: 'text-[10px] uppercase tracking-[0.26em] text-slate-400' }, props.subtitle),
+              h('h3', { class: `mt-1 font-display text-lg font-extrabold ${a.value.text}` }, props.title),
             ]),
-
-            h('div', { class: 'mt-3 rounded-2xl border border-white/10 bg-[#070b1d]/90 overflow-hidden' }, [
-              h(
-                'div',
-                { class: 'grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-slate-400 border-b border-white/10' },
-                [
-                  h('div', { class: 'col-span-1' }, 'Rk'),
-                  h('div', { class: 'col-span-7' }, 'Jugador'),
-                  h('div', { class: 'col-span-3' }, 'Equipo'),
-                  h('div', { class: 'col-span-1 text-right' }, props.valueLabel),
-                ]
-              ),
-
-              props.rows.length
-                ? props.rows.map((p, idx) =>
-                    h(
-                      'div',
-                      { class: 'grid grid-cols-12 px-3 py-2 text-sm border-b border-white/5 last:border-0 hover:bg-white/5' },
-                      [
-                        h('div', { class: 'col-span-1 font-semibold text-slate-200 tabular-nums' }, String(idx + 1)),
-                        h('div', { class: 'col-span-7 min-w-0' }, [
-                          h('p', { class: 'font-semibold text-white truncate' }, [
-                            p.fullName,
-                            p.number != null ? h('span', { class: 'ml-2 text-slate-400 font-semibold' }, `#${p.number}`) : null,
-                          ]),
-                        ]),
-                        h('div', { class: 'col-span-3 text-slate-200 truncate' }, p.teamName || '—'),
-                        h('div', { class: `col-span-1 text-right font-extrabold ${a.value.text} tabular-nums` }, String(props.valueFn(p))),
-                      ]
-                    )
-                  )
-                : h('div', { class: 'px-3 py-4 text-sm text-slate-400' }, 'Sin datos para este panel (aún).'),
-            ]),
+            h('span', { class: `inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${a.value.chip}` }, props.valueLabel),
           ]),
-        ]
-      )
+
+          h('div', { class: 'mt-3 rounded-2xl border border-white/10 bg-[#070b1d]/90 overflow-hidden' }, [
+            h('div', { class: 'grid grid-cols-12 px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-slate-400 border-b border-white/10' }, [
+              h('div', { class: 'col-span-1' }, 'Rk'),
+              h('div', { class: 'col-span-7' }, 'Jugador'),
+              h('div', { class: 'col-span-3' }, 'Equipo'),
+              h('div', { class: 'col-span-1 text-right' }, props.valueLabel),
+            ]),
+            props.rows.length
+              ? props.rows.map((p, idx) =>
+                  h('div', { class: 'grid grid-cols-12 px-3 py-2 text-sm border-b border-white/5 last:border-0 hover:bg-white/5' }, [
+                    h('div', { class: 'col-span-1 font-semibold text-slate-200 tabular-nums' }, String(idx + 1)),
+                    h('div', { class: 'col-span-7 min-w-0' }, [
+                      h('p', { class: 'font-semibold text-white truncate' }, [
+                        p.fullName,
+                        p.number != null ? h('span', { class: 'ml-2 text-slate-400 font-semibold' }, `#${p.number}`) : null,
+                      ]),
+                    ]),
+                    h('div', { class: 'col-span-3 text-slate-200 truncate' }, p.teamName || '—'),
+                    h('div', { class: `col-span-1 text-right font-extrabold ${a.value.text} tabular-nums` }, String(props.valueFn(p))),
+                  ])
+                )
+              : h('div', { class: 'px-3 py-4 text-sm text-slate-400' }, 'Sin datos para este panel (aún).'),
+          ]),
+        ]),
+      ])
   },
 })
 </script>
