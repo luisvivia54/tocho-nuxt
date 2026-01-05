@@ -1,13 +1,14 @@
+<!-- app/pages/index.vue -->
 <template>
   <main class="bg-[#F3F4FF] text-slate-900 min-h-screen">
-    <!-- Ya NO hay header aquí, solo contenido de la home -->
-
     <!-- ========== HERO + CARRUSEL ========== -->
     <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="max-w-6xl mx-auto container-pad px-6">
         <!-- Carrusel con IMG real -->
-        <div class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900">
-          <div class="relative w-full" style="aspect-ratio: 16/5;">
+        <div
+          class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900"
+        >
+          <div class="relative w-full" style="aspect-ratio: 16/5">
             <img :src="currentSlideSrc" alt="tochero5liga" class="w-full h-full object-cover" />
           </div>
         </div>
@@ -43,9 +44,7 @@
                 <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900">
                   Temporada 2025
                 </h1>
-                <p class="mt-2 text-slate-700">
-                  Resultados, posiciones y registros en un solo lugar.
-                </p>
+                <p class="mt-2 text-slate-700">Resultados, posiciones y registros en un solo lugar.</p>
                 <div class="mt-4 flex flex-wrap gap-3">
                   <NuxtLink
                     to="/estadisticas"
@@ -64,12 +63,8 @@
 
               <div class="md:col-span-2">
                 <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-slate-800 shadow-sm">
-                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Próximo juego
-                  </div>
-                  <div class="mt-1 text-sm text-slate-700">
-                    Aún no hay juegos programados.
-                  </div>
+                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Próximo juego</div>
+                  <div class="mt-1 text-sm text-slate-700">Aún no hay juegos programados.</div>
                 </div>
               </div>
             </div>
@@ -78,12 +73,8 @@
 
         <!-- Texto introductorio -->
         <div class="mt-10">
-          <h2 class="font-display text-2xl font-extrabold mb-1 text-slate-900">
-            TOCHERO5LIGA
-          </h2>
-          <p class="text-slate-600">
-            ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.
-          </p>
+          <h2 class="font-display text-2xl font-extrabold mb-1 text-slate-900">TOCHERO5LIGA</h2>
+          <p class="text-slate-600">ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.</p>
         </div>
 
         <!-- ========== TOP 5 POSICIONES (desde backend) ========== -->
@@ -172,12 +163,8 @@
           </div>
 
           <div class="bg-white overflow-x-auto">
-            <div v-if="pending" class="px-4 py-3 text-sm text-slate-500">
-              Cargando posiciones...
-            </div>
-            <div v-else-if="error" class="px-4 py-3 text-sm text-red-600">
-              Error al cargar las posiciones.
-            </div>
+            <div v-if="pending" class="px-4 py-3 text-sm text-slate-500">Cargando posiciones...</div>
+            <div v-else-if="error" class="px-4 py-3 text-sm text-red-600">Error al cargar las posiciones.</div>
 
             <template v-else>
               <table class="min-w-[880px] w-full text-sm">
@@ -222,36 +209,24 @@
             </template>
           </div>
         </div>
-                <!-- ========== REGLAMENTOS (3) ========== -->
-                <section id="reglamentos" class="mt-12">
-          <div
-            class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
-          >
-            <!-- Header con el MISMO gradient que Top 5 -->
+
+        <!-- ========== REGLAMENTOS (3) ========== -->
+        <section id="reglamentos" class="mt-12">
+          <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
             <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
               <div>
-                <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
-                  reglamentos oficiales
-                </p>
-                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">
-                  Reglas y normativa de la liga
-                </h2>
+                <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">reglamentos oficiales</p>
+                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">Reglas y normativa de la liga</h2>
               </div>
 
               <div class="hidden sm:flex items-center gap-2">
-                <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white">
-                  3 documentos
-                </span>
-                <a
-                  href="#patrocinadores"
-                  class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15"
-                >
+                <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white">3 documentos</span>
+                <a href="#patrocinadores" class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15">
                   Ver patrocinadores →
                 </a>
               </div>
             </div>
 
-            <!-- Contenido -->
             <div class="px-6 py-8">
               <div class="grid gap-4 md:grid-cols-3">
                 <article
@@ -261,11 +236,9 @@
                          shadow-[0_14px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]
                          transition-shadow"
                 >
-                  <!-- Accent top bar -->
                   <div class="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500"></div>
 
                   <div class="p-5">
-                    <!-- Header row -->
                     <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0">
                         <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 font-semibold">
@@ -274,12 +247,9 @@
                         <h3 class="mt-1 font-display text-lg font-extrabold text-slate-900 leading-tight">
                           {{ doc.title }}
                         </h3>
-                        <p class="mt-2 text-sm text-slate-600">
-                          {{ doc.subtitle }}
-                        </p>
+                        <p class="mt-2 text-sm text-slate-600">{{ doc.subtitle }}</p>
                       </div>
 
-                      <!-- File badge -->
                       <div class="shrink-0 flex flex-col items-end gap-2">
                         <span
                           class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
@@ -288,7 +258,6 @@
                             : 'border-sky-200 bg-sky-50 text-sky-700'"
                         >
                           <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white border border-slate-200">
-                            <!-- icon -->
                             <svg v-if="doc.type === 'PDF'" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
                               <path d="M7 3h7l3 3v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.7"/>
                               <path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="1.7"/>
@@ -303,13 +272,10 @@
                           {{ doc.type }}
                         </span>
 
-                        <span class="text-[11px] text-slate-500">
-                          {{ doc.meta }}
-                        </span>
+                        <span class="text-[11px] text-slate-500">{{ doc.meta }}</span>
                       </div>
                     </div>
 
-                    <!-- Chips -->
                     <div class="mt-4 flex flex-wrap gap-2">
                       <span
                         v-for="tag in doc.tags"
@@ -320,7 +286,6 @@
                       </span>
                     </div>
 
-                    <!-- Resumen colapsable -->
                     <details class="mt-4 rounded-xl border border-slate-200 bg-white p-3">
                       <summary class="cursor-pointer select-none text-xs font-semibold text-slate-700">
                         Resumen rápido
@@ -334,8 +299,6 @@
                       </ul>
                     </details>
 
-                    <!-- CTAs -->
-                    <!-- CTAs -->
                     <div class="mt-4 flex items-center gap-2">
                       <NuxtLink
                         :to="doc.href"
@@ -347,8 +310,7 @@
                               shadow-[0_10px_25px_rgba(37,99,235,0.35)]
                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       >
-                        Ver reglamento
-                        <span class="ml-1 text-xs">↗</span>
+                        Ver reglamento <span class="ml-1 text-xs">↗</span>
                       </NuxtLink>
 
                       <NuxtLink
@@ -367,12 +329,10 @@
                         </svg>
                       </NuxtLink>
                     </div>
-
                   </div>
                 </article>
               </div>
 
-              <!-- Nota UX -->
               <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                 <p class="text-sm text-slate-700">
                   Tip: si estás en celular, usa <span class="font-semibold">“Ver reglamento”</span> para abrirlo en una pestaña nueva.
@@ -387,140 +347,144 @@
           </p>
         </section>
 
-
-        <!-- ========== PATROCINADORES (mismo color que Top 5) ========== -->
+        <!-- ========== PATROCINADORES (SIMPLE CARRUSEL CON ÉNFASIS) ========== -->
         <section id="patrocinadores" class="mt-12">
-          <div
-            class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
-          >
-            <!-- Header con MISMO gradient que Top 5 -->
+          <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
+            <!-- Header (mismo gradiente) -->
             <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
               <div>
-                <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">
-                  aliados de la liga
-                </p>
-                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">
-                  Patrocinadores oficiales
-                </h2>
+                <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">aliados de la liga</p>
+                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">Patrocinadores</h2>
               </div>
               <div class="hidden sm:block text-xs text-blue-50/85 text-right">
-                <p>Espacios limitados para patrocinio.</p>
-                <p>Escríbenos en Instagram para colaborar.</p>
+                <p>Desliza / usa flechas</p>
+                <p>El del centro es el destacado</p>
               </div>
             </div>
 
-            <!-- Contenido claro -->
-            <div class="px-6 py-8 bg-white text-slate-900">
-              <div class="grid gap-8 md:grid-cols-3 items-stretch">
-                <!-- Texto + CTA -->
-                <div class="md:col-span-2 flex flex-col justify-between gap-4">
-                  <div>
-                    <p class="text-xs font-semibold tracking-[0.2em] text-blue-500 uppercase">
-                      Patrocinador destacado
-                    </p>
-                    <h4 class="mt-2 font-display text-2xl sm:text-3xl font-extrabold text-slate-900">
-                      {{ activeSponsor.name }}
-                    </h4>
-                    <p class="mt-2 text-sm text-slate-700">
-                      {{ activeSponsor.description }}
-                    </p>
-
-                    <div class="mt-3 flex flex-wrap gap-2">
-                      <span
-                        class="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-700"
-                      >
-                        {{ activeSponsor.tagline }}
-                      </span>
-                      <span
-                        class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700"
-                      >
-                        {{ activeSponsor.label }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="mt-4 flex items-center gap-3">
-                    <a
-                      :href="activeSponsor.url"
-                      target="_blank"
-                      rel="noopener"
-                      class="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-[0_10px_25px_rgba(37,99,235,0.4)]"
-                    >
-                      Visitar sitio
-                      <span class="ml-1 text-xs">↗</span>
-                    </a>
-                    <p class="text-[11px] text-slate-500">
-                      Toca una tarjeta abajo para cambiar de patrocinador.
-                    </p>
-                  </div>
+            <div class="px-6 py-8 bg-white">
+              <!-- Controles -->
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                    @click="prevSponsor"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                    @click="nextSponsor"
+                  >
+                    →
+                  </button>
                 </div>
 
-                <!-- Logo grande + mini stats -->
-                <div class="flex flex-col items-center justify-center gap-4">
-                  <div
-                    class="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-gradient-to-tr from-blue-400 via-white to-indigo-500 flex items-center justify-center shadow-[0_0_40px_rgba(59,130,246,0.7)]"
-                  >
-                    <img
-                      v-if="activeSponsor.logo"
-                      :src="activeSponsor.logo"
-                      :alt="activeSponsor.name"
-                      class="max-w-[70%] max-h-[70%] object-contain"
-                      loading="lazy"
-                    />
-                    <span v-else class="text-sm font-display font-bold text-slate-900">
-                      {{ activeSponsor.name }}
-                    </span>
-                  </div>
-
-                  <div class="grid grid-cols-3 gap-2 w-full text-[10px] text-slate-700">
-                    <div class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center">
-                      <div class="font-semibold text-xs text-slate-900">Promos</div>
-                      <div class="mt-1 opacity-80">Jugadores y staff</div>
-                    </div>
-                    <div class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center">
-                      <div class="font-semibold text-xs text-slate-900">Activaciones</div>
-                      <div class="mt-1 opacity-80">En campo</div>
-                    </div>
-                    <div class="rounded-xl bg-slate-50 border border-slate-200 px-2 py-2 text-center">
-                      <div class="font-semibold text-xs text-slate-900">MVP</div>
-                      <div class="mt-1 opacity-80">Premios especiales</div>
-                    </div>
-                  </div>
+                <div class="text-right">
+                  <p class="text-xs text-slate-500">Destacado</p>
+                  <p class="text-sm font-extrabold text-slate-900">{{ activeSponsor.name }}</p>
                 </div>
               </div>
 
-              <!-- Selector de patrocinadores -->
-              <div class="mt-6 border-t border-slate-200 pt-4">
-                <p class="text-[11px] text-slate-500 mb-2">
-                  Patrocinadores oficiales · desliza o toca una tarjeta
-                </p>
-                <div class="flex gap-3 overflow-x-auto pb-1">
-                  <button
-                    v-for="(sponsor, idx) in sponsors"
-                    :key="sponsor.id"
-                    type="button"
-                    class="group flex items-center gap-3 rounded-2xl border px-3 py-2 min-w-[190px] transition-all"
-                    :class="idx === activeSponsorIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'"
-                    @click="setActiveSponsor(idx)"
-                  >
-                    <div class="w-9 h-9 rounded-xl bg-white flex items-center justify-center overflow-hidden">
-                      <img
-                        v-if="sponsor.logo"
-                        :src="sponsor.logo"
-                        :alt="sponsor.name"
-                        class="w-full h-full object-contain"
-                        loading="lazy"
-                      />
-                      <span v-else class="text-[11px] font-semibold text-slate-700">
-                        {{ sponsor.name }}
+              <!-- Carrusel 3 tarjetas (prev / active / next) -->
+              <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+                <button
+                  v-for="(s, idx) in visibleSponsors"
+                  :key="`${s.id}-${idx}`"
+                  type="button"
+                  class="text-left rounded-3xl border transition-all duration-300 overflow-hidden"
+                  :class="sponsorCardClass(idx)"
+                  @click="idx !== 1 ? setActiveSponsorById(s.id) : undefined"
+                >
+                  <div class="p-5 h-full flex flex-col">
+                    <!-- top -->
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-[11px] uppercase tracking-[0.22em]" :class="idx === 1 ? 'text-blue-600' : 'text-slate-500'">
+                          {{ idx === 1 ? 'patrocinador destacado' : 'patrocinador' }}
+                        </p>
+                        <h3 class="mt-1 font-display font-extrabold leading-tight"
+                            :class="idx === 1 ? 'text-2xl text-slate-900' : 'text-lg text-slate-800'">
+                          {{ s.name }}
+                        </h3>
+                        <p class="mt-1 text-sm text-slate-600 line-clamp-2">{{ s.tagline }}</p>
+                      </div>
+
+                      <span
+                        class="shrink-0 inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                        :class="idx === 1 ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-50 text-slate-700 border border-slate-200'"
+                      >
+                        {{ s.label }}
                       </span>
                     </div>
-                    <div class="text-left">
-                      <div class="text-xs font-semibold text-slate-900">{{ sponsor.name }}</div>
-                      <div class="text-[11px] text-slate-500">{{ sponsor.tagline }}</div>
+
+                    <!-- logo -->
+                    <div class="mt-4 flex-1 flex items-center justify-center">
+                      <div
+                        class="w-full rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center"
+                        :class="idx === 1 ? 'h-40 sm:h-44' : 'h-28 sm:h-32'"
+                      >
+                        <img
+                          v-if="s.logo"
+                          :src="s.logo"
+                          :alt="s.name"
+                          class="max-h-[75%] max-w-[75%] object-contain"
+                          loading="lazy"
+                        />
+                        <div v-else class="text-sm font-semibold text-slate-500 px-6 text-center">
+                          Logo pendiente
+                        </div>
+                      </div>
                     </div>
-                  </button>
-                </div>
+
+                    <!-- desc + cta -->
+                    <p class="mt-4 text-sm text-slate-700 line-clamp-2">
+                      {{ s.description }}
+                    </p>
+
+                    <div class="mt-4 flex items-center justify-between gap-3">
+                      <span class="text-[11px] text-slate-500">
+                        {{ idx === 1 ? 'Toca los lados para cambiar' : 'Toca para destacar' }}
+                      </span>
+
+                      <a
+                        v-if="idx === 1 && !!activeSponsor.url"
+                        :href="activeSponsor.url"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold
+                               bg-blue-600 hover:bg-blue-500 text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)]"
+                        @click.stop
+                      >
+                        Visitar ↗
+                      </a>
+
+                      <span
+                        v-else-if="idx === 1 && !activeSponsor.url"
+                        class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold
+                               bg-slate-100 text-slate-500 border border-slate-200"
+                        title="Aún no hay enlace"
+                      >
+                        Sin enlace
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              <!-- dots -->
+              <div class="mt-6 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  v-for="sp in sponsors"
+                  :key="sp.id"
+                  type="button"
+                  class="h-2.5 w-2.5 rounded-full border transition"
+                  :class="sp.id === activeSponsor.id ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300 hover:border-slate-400'"
+                  :aria-label="`Ir a ${sp.name}`"
+                  @click="setActiveSponsorById(sp.id)"
+                />
               </div>
             </div>
           </div>
@@ -538,11 +502,8 @@
             <div class="md:col-span-2 space-y-2">
               <h2 class="font-display text-2xl font-extrabold text-slate-900">Ubicación</h2>
               <p class="opacity-95 text-slate-800">FES Acatlán · Entrada Principal (peatonal)</p>
-              <p class="text-sm opacity-90 text-slate-700">
-                Abre el mapa para ver la ruta exacta.
-              </p>
+              <p class="text-sm opacity-90 text-slate-700">Abre el mapa para ver la ruta exacta.</p>
 
-              <!-- ✅ Botón apuntando a TU shortlink -->
               <a
                 class="inline-flex items-center gap-2 mt-3 rounded-xl px-3 py-2 text-sm bg-white text-blue-600 border border-blue-200 hover:bg-blue-50"
                 :href="mapsOpenUrl"
@@ -555,11 +516,10 @@
 
             <div class="md:col-span-3">
               <div class="aspect-video rounded-[26px] overflow-hidden border border-white/70 shadow-lg bg-black/10">
-                <!-- ✅ IFRAME usando embed real (no el shortlink) -->
                 <iframe
                   class="w-full h-full"
                   :src="mapsEmbedSrc"
-                  style="border:0"
+                  style="border: 0"
                   loading="lazy"
                   referrerpolicy="no-referrer-when-downgrade"
                   allowfullscreen
@@ -589,22 +549,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useApi } from '@/composables/useApi'
 
 /* ===================== MAPA (apunta al shortlink) ===================== */
 const mapsShortUrl = 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9'
-
-// ✅ Coordenadas del destino real de ese shortlink (para que el iframe SÍ cargue)
 const mapsLat = 19.4820973
 const mapsLng = -99.2446694
 
-// ✅ Esto sí funciona en iframe
-const mapsEmbedSrc = computed(() => {
-  return `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`
-})
-
-// ✅ Botón abre tu shortlink tal cual
+const mapsEmbedSrc = computed(() => `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`)
 const mapsOpenUrl = mapsShortUrl
 
 /* ===================== FILTROS (rama y categoría) ===================== */
@@ -638,7 +591,6 @@ const clearFilters = () => {
 
 /* ===================== RAW DEL BACKEND (/points) ===================== */
 type ApiStandingAny = Partial<{
-  // snake_case
   standing_id: number
   season_id: number
   category_id: number
@@ -648,7 +600,6 @@ type ApiStandingAny = Partial<{
   table_points: number
   team_name: string
 
-  // camelCase
   standingId: number
   seasonId: number
   categoryId: number
@@ -658,21 +609,17 @@ type ApiStandingAny = Partial<{
   tablePoints: number
   teamName: string
 
-  // filtros (ideal que el back lo mande)
   gender: string
   categoryCode: string
 
-  // comunes
   gp: number
   wins: number
   losses: number
   draws: number
 }>
 
-/* Fetch reactivo por filtros */
 const { data: standings, pending, error, refresh } = useApi<ApiStandingAny[]>(pointsUrl)
 
-/* ========= VIEW MODEL PARA LA TABLA ========= */
 interface StandingRow {
   rank: number
   teamName: string
@@ -695,7 +642,6 @@ const topPositions = computed<StandingRow[]>(() => {
       const aPts = toNum(a.table_points ?? a.tablePoints)
       const bPts = toNum(b.table_points ?? b.tablePoints)
       if (bPts !== aPts) return bPts - aPts
-
       const aFor = toNum(a.points_for ?? a.pointsFor)
       const bFor = toNum(b.points_for ?? b.pointsFor)
       return bFor - aFor
@@ -703,7 +649,7 @@ const topPositions = computed<StandingRow[]>(() => {
     .slice(0, 5)
     .map((row, idx) => ({
       rank: idx + 1,
-      teamName: (row.team_name ?? row.teamName ?? '—') as string,
+      teamName: String(row.team_name ?? row.teamName ?? '—'),
       gamesPlayed: toNum(row.gp),
       wins: toNum(row.wins),
       goalsFor: toNum(row.points_for ?? row.pointsFor),
@@ -725,7 +671,7 @@ const formatEfficiency = (wins: number, gamesPlayed: number): string => {
   return (txt.endsWith('.0') ? txt.slice(0, -2) : txt) + '%'
 }
 
-/* ========= HERO CARRUSEL ========= */
+/* ===================== HERO CARRUSEL ===================== */
 interface HeroSlide {
   id: string
   src: string
@@ -751,22 +697,18 @@ const prevSlide = () => {
 }
 
 const goToSlide = (index: number) => {
-  if (index >= 0 && index < heroSlides.value.length) {
-    currentSlide.value = index
-  }
+  if (index >= 0 && index < heroSlides.value.length) currentSlide.value = index
 }
 
 onMounted(() => {
-  if (heroSlides.value.length > 1) {
-    intervalId = setInterval(nextSlide, 7000)
-  }
+  if (heroSlides.value.length > 1) intervalId = setInterval(nextSlide, 7000)
 })
 
 onBeforeUnmount(() => {
   if (intervalId) clearInterval(intervalId)
 })
 
-/* ========= PATROCINADORES ========= */
+/* ===================== PATROCINADORES (FIX TS: sin undefined) ===================== */
 interface Sponsor {
   id: string
   name: string
@@ -783,35 +725,142 @@ const sponsors = ref<Sponsor[]>([
     name: 'DICASS',
     logo: '/img/sponsors/dicass-logo.png',
     tagline: 'Innovación para el juego y el bienestar.',
-    description:
-      'Dicass acompaña a jugadores y familias con activaciones, alimentos y experiencias dentro del deportivo.',
+    description: 'Activaciones, alimentos y experiencias dentro del deportivo.',
     url: 'https://dicass.com.mx/',
     label: 'Patrocinador principal'
+  },
+  {
+    id: 'marti',
+    name: 'Martí',
+    logo: '/img/sponsors/marti-logo.png',
+    tagline: 'Todo para el deporte.',
+    description: 'Equipo y accesorios para entrenar y competir.',
+    url: 'https://www.marti.mx/',
+    label: 'Aliado'
+  },
+  {
+    id: 'ruffles',
+    name: 'Ruffles',
+    logo: '/img/sponsors/ruffles-logo.png',
+    tagline: 'Sabor para la jornada.',
+    description: 'Snacks para el after-game y activaciones.',
+    url: 'https://ruffles.com.mx/lmx/',
+    label: 'Aliado'
+  },
+  {
+    id: 'under-armour',
+    name: 'Under Armour',
+    logo: '/img/sponsors/underarmour-logo.png',
+    tagline: 'Performance gear.',
+    description: 'Ropa y accesorios de alto rendimiento.',
+    url: 'https://www.underarmour.com.mx/',
+    label: 'Aliado'
+  },
+  {
+    id: 'blitz',
+    name: 'Blitz',
+    logo: '/img/sponsors/blitzflag-logo.png',
+    tagline: 'Entrena fuerte.',
+    description: 'Accesorios y equipo para entrenamientos.',
+    url: 'https://www.instagram.com/blitzflag?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
+    label: 'Aliado'
+  },
+  {
+    id: 'medimex',
+    name: 'Medimex',
+    logo: '/img/sponsors/medimex-logo.png',
+    tagline: 'Salud deportiva.',
+    description: 'Atención y soporte para atletas.',
+    url: 'https://www.instagram.com/plan.medimex?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
+    label: 'Aliado'
   }
 ])
 
-const activeSponsorIndex = ref(0)
-const activeSponsor = computed<Sponsor>(() => sponsors.value[activeSponsorIndex.value]!)
+const FALLBACK_SPONSOR: Sponsor = {
+  id: 'fallback',
+  name: 'Patrocinador',
+  logo: '',
+  tagline: 'Próximamente',
+  description: 'Patrocinador por anunciar.',
+  url: '',
+  label: 'Aliado'
+}
 
-const setActiveSponsor = (idx: number) => {
-  if (idx < 0 || idx >= sponsors.value.length) return
-  activeSponsorIndex.value = idx
+const activeSponsorIndex = ref(0)
+
+watch(
+  () => sponsors.value.length,
+  (len) => {
+    if (len <= 0) {
+      activeSponsorIndex.value = 0
+      return
+    }
+    if (activeSponsorIndex.value < 0) activeSponsorIndex.value = 0
+    if (activeSponsorIndex.value >= len) activeSponsorIndex.value = 0
+  },
+  { immediate: true }
+)
+
+const activeSponsor = computed<Sponsor>(() => {
+  const list = sponsors.value
+  const len = list.length
+  if (len <= 0) return FALLBACK_SPONSOR
+  const i = ((activeSponsorIndex.value % len) + len) % len
+  return list[i] ?? FALLBACK_SPONSOR
+})
+
+const visibleSponsors = computed<Sponsor[]>(() => {
+  const list = sponsors.value
+  const len = list.length
+
+  if (len === 0) return [FALLBACK_SPONSOR, FALLBACK_SPONSOR, FALLBACK_SPONSOR]
+
+  const i = ((activeSponsorIndex.value % len) + len) % len
+  const cur = list[i] ?? FALLBACK_SPONSOR
+
+  if (len === 1) return [cur, cur, cur]
+
+  const prev = list[(i - 1 + len) % len] ?? FALLBACK_SPONSOR
+  const next = list[(i + 1) % len] ?? FALLBACK_SPONSOR
+  return [prev, cur, next]
+})
+
+const setActiveSponsorById = (id: string) => {
+  const idx = sponsors.value.findIndex((x) => x.id === id)
+  if (idx >= 0) activeSponsorIndex.value = idx
+}
+
+const nextSponsor = () => {
+  const len = sponsors.value.length
+  if (len <= 0) return
+  activeSponsorIndex.value = (activeSponsorIndex.value + 1) % len
+}
+
+const prevSponsor = () => {
+  const len = sponsors.value.length
+  if (len <= 0) return
+  activeSponsorIndex.value = (activeSponsorIndex.value - 1 + len) % len
+}
+
+const sponsorCardClass = (idx: number) => {
+  // idx 0 = prev, 1 = active, 2 = next
+  if (idx === 1) {
+    return 'border-blue-200 bg-white shadow-[0_18px_45px_rgba(37,99,235,0.18)] ring-1 ring-blue-200/60 scale-[1.02]'
+  }
+  return 'border-slate-200 bg-slate-50 hover:bg-slate-100/60 opacity-90 hover:opacity-100'
 }
 
 let sponsorsIntervalId: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  if (sponsors.value.length > 1) {
-    sponsorsIntervalId = setInterval(() => {
-      activeSponsorIndex.value = (activeSponsorIndex.value + 1) % sponsors.value.length
-    }, 9000)
-  }
+  if (sponsors.value.length > 1) sponsorsIntervalId = setInterval(() => nextSponsor(), 7000)
 })
 
 onBeforeUnmount(() => {
   if (sponsorsIntervalId) clearInterval(sponsorsIntervalId)
 })
-/* ========= REGLAMENTOS (3 documentos) ========= */
+
+/* ===================== REGLAMENTOS (3 documentos) ===================== */
 type ReglamentoType = 'PDF' | 'DOCX'
 
 interface ReglamentoDoc {
@@ -836,11 +885,7 @@ const reglamentos = ref<ReglamentoDoc[]>([
     type: 'PDF',
     meta: 'Lectura recomendada',
     tags: ['Reglas', 'Arbitraje', 'Juego limpio'],
-    bullets: [
-      'Ideal para jugadores nuevos y capitanes.',
-      'Úsalo como referencia rápida de reglas generales.',
-      'Recomendado antes del primer partido.'
-    ],
+    bullets: ['Ideal para jugadores nuevos y capitanes.', 'Úsalo como referencia rápida.', 'Recomendado antes del primer partido.'],
     href: '/reglamentos/FlagRules2023_spa.pdf',
     downloadName: 'FlagRules2023_spa.pdf'
   },
@@ -852,11 +897,7 @@ const reglamentos = ref<ReglamentoDoc[]>([
     type: 'DOCX',
     meta: 'Operación de liga',
     tags: ['Rosters', 'Pagos', 'Sanciones'],
-    bullets: [
-      'Define lineamientos de uniforme y control de jugadores.',
-      'Explica manejo de cédula y validación de rosters.',
-      'Incluye sanciones económicas y disciplina.'
-    ],
+    bullets: ['Lineamientos de uniforme y control.', 'Manejo de cédula y validación.', 'Sanciones económicas y disciplina.'],
     href: '/reglamentos/REGLAMENTO_ADMINISTRATIVO.docx',
     downloadName: 'REGLAMENTO_ADMINISTRATIVO.docx'
   },
@@ -868,14 +909,29 @@ const reglamentos = ref<ReglamentoDoc[]>([
     type: 'PDF',
     meta: 'Modalidad oficial',
     tags: ['Mixto', 'Formato', 'Reglas específicas'],
-    bullets: [
-      'Reglas enfocadas a modalidad mixta.',
-      'Incluye criterios y mecánicas de juego propias.',
-      'Recomendado para capitanes y QBs.'
-    ],
+    bullets: ['Reglas enfocadas a mixto.', 'Criterios y mecánicas propias.', 'Recomendado para capitanes y QBs.'],
     href: '/reglamentos/REGLAMENTO_FLAG_MIXTO_TOCHERO5.pdf',
     downloadName: 'REGLAMENTO_FLAG_MIXTO_TOCHERO5.pdf'
   }
 ])
-
 </script>
+
+<style scoped>
+/* Pequeñito (sin @apply para que no te marque errores) */
+.carousel-arrow {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.carousel-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+.carousel-dot--active {
+  transform: scale(1.05);
+}
+</style>
