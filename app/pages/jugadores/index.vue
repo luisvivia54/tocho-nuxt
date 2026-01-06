@@ -1,350 +1,400 @@
-<!-- app/pages/jugadores/index.vue -->
+<!-- app/pages/admin/jugadores/index.vue -->
 <template>
   <main class="min-h-screen bg-[#050816] text-slate-100 overflow-x-hidden">
-    <!-- HERO -->
-    <section class="relative overflow-hidden pt-20 sm:pt-24 md:pt-28 lg:pt-32">
-      <div class="pointer-events-none absolute inset-0 overflow-hidden">
-        <div class="absolute -top-24 left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-blue-500/12 blur-3xl"></div>
-        <div class="absolute top-20 -left-24 h-[420px] w-[520px] rounded-full bg-fuchsia-500/10 blur-3xl"></div>
-        <div class="absolute -bottom-24 -right-24 h-[460px] w-[560px] rounded-full bg-emerald-500/10 blur-3xl"></div>
+    <!-- Fondo -->
+    <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div class="absolute -top-28 left-1/2 h-[520px] w-[920px] -translate-x-1/2 rounded-full bg-blue-500/12 blur-3xl"></div>
+      <div class="absolute top-24 -left-28 h-[420px] w-[560px] rounded-full bg-fuchsia-500/10 blur-3xl"></div>
+      <div class="absolute -bottom-28 -right-28 h-[520px] w-[620px] rounded-full bg-emerald-500/10 blur-3xl"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,.08),transparent_55%),radial-gradient(circle_at_75%_15%,rgba(59,130,246,.10),transparent_45%)]"></div>
+      <div
+        class="absolute inset-0 opacity-25 [background:repeating-linear-gradient(90deg,rgba(255,255,255,.08)_0,rgba(255,255,255,.08)_1px,transparent_1px,transparent_72px)]"
+      ></div>
+    </div>
 
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,.08),transparent_55%),radial-gradient(circle_at_75%_15%,rgba(59,130,246,.10),transparent_45%)]"></div>
-        <div class="absolute inset-0 opacity-25 [background:repeating-linear-gradient(90deg,rgba(255,255,255,.08)_0,rgba(255,255,255,.08)_1px,transparent_1px,transparent_72px)]"></div>
-      </div>
-
-      <div class="relative mx-auto w-full max-w-7xl px-4 sm:px-6">
-        <header class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+    <section class="pt-20 sm:pt-24 md:pt-28 lg:pt-32">
+      <div class="mx-auto w-full max-w-7xl px-4 sm:px-6">
+        <!-- HEADER -->
+        <header class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div class="min-w-0">
             <p class="text-[10px] sm:text-[11px] uppercase tracking-[0.35em] text-slate-400">
-              TOCHERO5 · CENTRO DE ESTADÍSTICAS
+              TOCHERO5 · Consola Admin
             </p>
 
             <h1 class="mt-2 font-display text-3xl md:text-4xl font-extrabold text-white">
-              Jugadores
+              Jugadores <span class="text-white/70">(por equipo)</span>
             </h1>
 
             <p class="mt-2 text-sm text-slate-300 max-w-2xl">
-              Rankings y métricas por jugador. Usa los filtros para encontrar tu equipo y comparar números.
+              Selecciona un equipo para ver su roster. (Protegido por middleware admin)
             </p>
 
             <div class="mt-4 flex flex-wrap gap-2">
               <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-200">
-                Live data (backend)
+                Lectura
               </span>
               <span class="inline-flex items-center rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[10px] sm:text-[11px] font-semibold text-blue-100">
-                Rankings
+                Equipos → Roster
               </span>
-              <span class="inline-flex items-center rounded-full border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-1 text-[10px] sm:text-[11px] font-semibold text-fuchsia-100">
-                Líderes
+              <span class="inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[10px] sm:text-[11px] font-semibold text-emerald-100">
+                Datos del jugador
               </span>
             </div>
           </div>
 
-          <!-- ACCIONES (full width en móvil) -->
           <div class="w-full lg:w-auto flex flex-col sm:flex-row sm:items-center gap-2">
             <button
               type="button"
               class="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-white/10 transition"
+              :disabled="pendingAny"
               @click="refreshAll"
             >
               ⟳ Refrescar
             </button>
 
             <NuxtLink
-              to="/estadisticas"
-              class="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-white/10 transition text-center"
+              to="/jugadores"
+              class="w-full sm:w-auto inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-white/10 transition"
             >
-              Ver estadísticas (equipos)
+              Ver versión pública →
             </NuxtLink>
           </div>
         </header>
 
-        <!-- FILTROS -->
-        <section class="mt-6 sm:mt-7 rounded-3xl border border-white/10 bg-[#070b1d]/85 shadow-[0_25px_70px_rgba(0,0,0,0.55)] overflow-hidden">
-          <div class="px-4 sm:px-5 py-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h2 class="font-semibold text-white">Filtros</h2>
-              <p class="text-xs text-slate-400">Equipo, número y nombre del jugador.</p>
-            </div>
-
-            <button
-              type="button"
-              class="self-start sm:self-auto text-[11px] font-semibold text-slate-300 hover:text-white underline underline-offset-4"
-              @click="clearFilters"
-            >
-              Limpiar
-            </button>
-          </div>
-
-          <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-3">
-            <!-- Equipo -->
-            <div class="md:col-span-5">
-              <label class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Equipo</label>
-              <select
-                v-model="teamPick"
-                class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40"
-              >
-                <option value="ALL">Todos</option>
-                <option v-for="t in teamsVm" :key="t.teamId" :value="String(t.teamId)">
-                  {{ t.name }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Número -->
-            <div class="md:col-span-3">
-              <label class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Número</label>
-              <input
-                v-model.trim="numberPick"
-                inputmode="numeric"
-                placeholder="Ej. 7"
-                class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500/40"
-              />
-            </div>
-
-            <!-- Nombre -->
-            <div class="md:col-span-4">
-              <label class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Nombre del jugador</label>
-              <input
-                v-model.trim="namePick"
-                placeholder="Escribe para buscar…"
-                class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500/40"
-              />
-            </div>
-
-            <div class="md:col-span-12 flex items-center justify-between gap-2 pt-1">
-              <p class="text-[11px] text-slate-400">
-                Mostrando <span class="text-slate-200 font-semibold">{{ filteredPlayers.length }}</span> jugador(es)
-              </p>
-            </div>
-          </div>
-        </section>
-
         <!-- ESTADOS -->
         <div v-if="pendingAny" class="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5 text-sm text-slate-200">
-          Cargando jugadores…
+          Cargando equipos y rosters…
         </div>
 
         <div v-else-if="errorAny" class="mt-6 rounded-3xl border border-rose-500/25 bg-rose-500/10 p-5 text-sm text-rose-100">
-          Error cargando datos. Revisa que el backend esté disponible.
+          Error cargando datos. Revisa que el backend esté disponible (teams + teams/{id}/detail).
         </div>
 
-        <!-- CONTENIDO -->
-        <div v-else class="mt-6 grid lg:grid-cols-12 gap-6 min-w-0">
-          <!-- LÍDERES -->
-          <section class="lg:col-span-5 space-y-4 min-w-0">
-            <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 p-4 sm:p-5">
-              <div class="flex items-start justify-between gap-3">
+        <!-- LAYOUT -->
+        <div v-else class="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0">
+          <!-- SIDEBAR FILTROS -->
+          <aside class="lg:col-span-3 min-w-0">
+            <div class="lg:sticky lg:top-24 space-y-4">
+              <!-- Resumen -->
+              <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 p-4 sm:p-5">
+                <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400">resumen</p>
+
+                <div class="mt-3 grid grid-cols-3 gap-2">
+                  <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">Equipos</p>
+                    <p class="mt-1 text-lg font-extrabold text-white tabular-nums">{{ teamsFilteredAll.length }}</p>
+                  </div>
+                  <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">Jugadores</p>
+                    <p class="mt-1 text-lg font-extrabold text-white tabular-nums">{{ totalPlayers }}</p>
+                  </div>
+                  <div class="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">Roster</p>
+                    <p class="mt-1 text-lg font-extrabold text-white tabular-nums">
+                      {{ selectedTeamPlayersFiltered.length }}
+                    </p>
+                  </div>
+                </div>
+
+                <p class="mt-3 text-[11px] text-slate-400">
+                  Última actualización:
+                  <span class="text-slate-200 font-semibold">{{ lastUpdatedLabel }}</span>
+                </p>
+              </div>
+
+              <!-- Filtros -->
+              <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 overflow-hidden">
+                <div class="px-4 sm:px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 class="font-semibold text-white">Filtros</h2>
+                    <p class="text-xs text-slate-400">Filtra equipos y roster.</p>
+                  </div>
+                  <button
+                    type="button"
+                    class="text-[11px] font-semibold text-slate-300 hover:text-white underline underline-offset-4"
+                    @click="clearFilters"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+
+                <div class="p-4 sm:p-5 space-y-3">
+                  <!-- Equipo (texto) -->
+                  <div>
+                    <label class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Buscar equipo</label>
+                    <input
+                      v-model.trim="teamQuery"
+                      placeholder="Ej. Águilas…"
+                      class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500/40"
+                    />
+                  </div>
+
+                  <!-- Categoría -->
+                  <div>
+                    <label class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Categoría (code)</label>
+                    <select
+                      v-model="categoryPick"
+                      class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40"
+                    >
+                      <option value="ALL">Todas</option>
+                      <option v-for="c in categoryOptions" :key="c" :value="c">
+                        {{ c }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <!-- Rama -->
+                  <div>
+                    <label class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Rama (gender)</label>
+                    <select
+                      v-model="genderPick"
+                      class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/40"
+                    >
+                      <option value="ALL">Todas</option>
+                      <option value="VARONIL">VARONIL</option>
+                      <option value="FEMENIL">FEMENIL</option>
+                      <option value="MIXTO">MIXTO</option>
+                    </select>
+                  </div>
+
+                  <!-- Buscar jugador dentro del roster seleccionado -->
+                  <div class="pt-2">
+                    <label class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Buscar jugador (roster)</label>
+                    <input
+                      v-model.trim="playerQuery"
+                      placeholder="Nombre / # / CURP…"
+                      class="mt-1 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:ring-2 focus:ring-blue-500/40"
+                    />
+                    <p class="mt-2 text-[11px] text-slate-400">
+                      Tip: aquí sí busca por <span class="text-slate-200 font-semibold">#</span> y también por <span class="text-slate-200 font-semibold">CURP</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- DIRECTORIO EQUIPOS -->
+          <section class="lg:col-span-6 min-w-0">
+            <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
+              <div class="px-4 sm:px-5 py-4 border-b border-white/10 flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400">leaders</p>
-                  <h2 class="mt-1 font-display text-xl font-extrabold text-white">Top por categoría</h2>
+                  <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400">directorio</p>
+                  <h2 class="mt-1 font-display text-xl font-extrabold text-white">Equipos</h2>
                   <p class="mt-1 text-xs text-slate-400">
-                    Tablas estilo “poster”. Aquí es donde se siente full estadística.
+                    Click en un equipo para ver su roster a la derecha.
                   </p>
                 </div>
 
                 <span class="shrink-0 inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
-                  {{ seasonLabel }}
+                  Total: {{ teamsFilteredAll.length }}
                 </span>
               </div>
-            </div>
 
-            <PosterPanel
-              title="Intercepciones"
-              subtitle="DEFENSIVA"
-              accent="fuchsia"
-              :rows="leadersINT"
-              value-label="INT"
-              :value-fn="(p) => p.stats.int"
-            />
-
-            <PosterPanel
-              title="Anotaciones"
-              subtitle="PUNTOS"
-              accent="violet"
-              :rows="leadersTD"
-              value-label="TD"
-              :value-fn="(p) => p.stats.td"
-            />
-
-            <PosterPanel
-              title="Pases de anotación"
-              subtitle="QB"
-              accent="sky"
-              :rows="leadersPA"
-              value-label="PA"
-              :value-fn="(p) => p.stats.pa"
-            />
-
-            <PosterPanel
-              title="Sacks"
-              subtitle="PASS RUSH"
-              accent="emerald"
-              :rows="leadersSACK"
-              value-label="SACK"
-              :value-fn="(p) => p.stats.sack"
-            />
-          </section>
-
-          <!-- RANKING / TARJETAS -->
-          <section class="lg:col-span-7 space-y-4 min-w-0">
-            <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
-              <div class="px-4 sm:px-5 py-4 border-b border-white/10 flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400">ranking</p>
-                  <h2 class="mt-1 font-display text-xl font-extrabold text-white">Jugadores</h2>
-                  <p class="mt-1 text-xs text-slate-400">
-                    Ordenado por <span class="text-slate-200 font-semibold">Impacto</span> (TD + INT + PA + SACK).
-                    Paginado de <b class="text-slate-200">10 en 10</b>.
-                  </p>
-                </div>
-
-                <div class="flex items-center gap-2 shrink-0">
-                  <span class="hidden sm:inline text-[11px] text-slate-400">Total:</span>
-                  <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-200">
-                    {{ sortedPlayersAll.length }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- PAGINACIÓN TOP -->
-              <div class="px-4 sm:px-5 py-3 border-b border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <!-- Paginación -->
+              <div class="px-4 sm:px-5 py-3 border-b border-white/10 flex items-center justify-between gap-3">
                 <p class="text-[11px] text-slate-400">
                   Mostrando
-                  <span class="text-slate-200 font-semibold">{{ rangeStart }}</span>
-                  -
-                  <span class="text-slate-200 font-semibold">{{ rangeEnd }}</span>
+                  <span class="text-slate-200 font-semibold">{{ teamRangeStart }}</span>-
+                  <span class="text-slate-200 font-semibold">{{ teamRangeEnd }}</span>
                   de
-                  <span class="text-slate-200 font-semibold">{{ sortedPlayersAll.length }}</span>
+                  <span class="text-slate-200 font-semibold">{{ teamsFilteredAll.length }}</span>
                 </p>
 
-                <div class="flex items-center justify-between sm:justify-start gap-2">
+                <div class="flex items-center gap-2">
                   <button
                     type="button"
-                    class="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
-                    :disabled="page <= 1"
-                    @click="page = Math.max(1, page - 1)"
+                    class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40"
+                    :disabled="teamPage <= 1"
+                    @click="teamPage = Math.max(1, teamPage - 1)"
                   >
                     ←
                   </button>
 
                   <span class="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200">
-                    Página {{ page }} / {{ pageCount }}
+                    Página {{ teamPage }} / {{ teamPageCount }}
                   </span>
 
                   <button
                     type="button"
-                    class="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
-                    :disabled="page >= pageCount"
-                    @click="page = Math.min(pageCount, page + 1)"
+                    class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40"
+                    :disabled="teamPage >= teamPageCount"
+                    @click="teamPage = Math.min(teamPageCount, teamPage + 1)"
                   >
                     →
                   </button>
                 </div>
               </div>
 
-              <!-- LISTA -->
-              <div v-if="pagedPlayers.length === 0" class="px-4 sm:px-5 py-6 text-sm text-slate-300">
-                No hay jugadores para esos filtros.
+              <div class="overflow-x-auto">
+                <table class="min-w-[860px] w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-slate-400 border-b border-white/10">
+                      <th class="px-4 py-3">Equipo</th>
+                      <th class="px-4 py-3">Categoría</th>
+                      <th class="px-4 py-3">Rama</th>
+                      <th class="px-4 py-3">Jugadores</th>
+                      <th class="px-4 py-3">Capitán</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    <tr v-if="teamsPaged.length === 0">
+                      <td colspan="5" class="px-4 py-6 text-slate-400">
+                        No hay equipos para esos filtros.
+                      </td>
+                    </tr>
+
+                    <tr
+                      v-for="t in teamsPaged"
+                      :key="t.teamId"
+                      class="border-b border-white/5 hover:bg-white/5 cursor-pointer"
+                      :class="t.teamId === selectedTeamId ? 'bg-white/5' : ''"
+                      @click="selectTeam(t.teamId)"
+                    >
+                      <td class="px-4 py-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                          <div class="h-10 w-10 rounded-2xl border border-white/10 bg-black/20 overflow-hidden grid place-items-center shrink-0">
+                            <img
+                              v-if="t.logoUrl"
+                              :src="t.logoUrl"
+                              :alt="t.name"
+                              class="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                            <span v-else class="text-[12px] font-extrabold text-slate-200">
+                              {{ initials(t.name) }}
+                            </span>
+                          </div>
+                          <div class="min-w-0">
+                            <p class="font-semibold text-white truncate">{{ t.name }}</p>
+                            <p class="text-[11px] text-slate-400 truncate">ID: {{ t.teamId }}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td class="px-4 py-3 text-slate-200">
+                        {{ t.categoryCode || '—' }}
+                      </td>
+
+                      <td class="px-4 py-3 text-slate-200">
+                        {{ t.gender || '—' }}
+                      </td>
+
+                      <td class="px-4 py-3 text-slate-200 tabular-nums">
+                        {{ t.playersCount }}
+                      </td>
+
+                      <td class="px-4 py-3 text-slate-200">
+                        {{ t.captainName || 'Por definir' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
-              <div v-else class="p-4 sm:p-5 space-y-3">
-                <article
-                  v-for="(p, idx) in pagedPlayers"
-                  :key="p.id"
-                  class="rounded-3xl border border-white/10 bg-white/5 hover:bg-white/7 transition shadow-[0_18px_55px_rgba(0,0,0,0.35)] overflow-hidden"
-                >
-                  <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                    <!-- IZQUIERDA: RANK + FOTO + INFO -->
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                      <div class="h-10 w-10 rounded-2xl border border-white/10 bg-black/20 grid place-items-center text-sm font-extrabold text-slate-200 shrink-0">
-                        {{ (page - 1) * perPage + idx + 1 }}
-                      </div>
-
-                      <div class="h-12 w-12 rounded-2xl border border-white/10 bg-black/20 overflow-hidden grid place-items-center shrink-0">
-                        <img
-                          v-if="p.photoUrl"
-                          :src="p.photoUrl"
-                          :alt="p.fullName"
-                          class="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                        <span v-else class="text-[12px] font-extrabold text-slate-200">
-                          {{ initials(p.fullName) }}
-                        </span>
-                      </div>
-
-                      <div class="min-w-0">
-                        <p class="font-semibold text-white truncate">
-                          {{ p.fullName }}
-                          <span v-if="p.number != null" class="ml-2 text-slate-400 font-semibold">#{{ p.number }}</span>
-                        </p>
-
-                        <p class="mt-0.5 text-sm text-slate-200 truncate">
-                          {{ p.teamName || 'Sin equipo' }}
-                        </p>
-
-                        <p class="mt-0.5 text-[11px] text-slate-400 truncate">
-                          <span v-if="p.gender">{{ p.gender }}</span>
-                          <span v-if="p.categoryCode" class="ml-1">· {{ p.categoryCode }}</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <!-- DERECHA: STATS (2x2 en móvil, 4 en sm+) -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full sm:w-auto sm:min-w-[320px]">
-                      <div class="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 px-2.5 sm:px-3 py-2 text-center">
-                        <p class="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-fuchsia-100/80">INT</p>
-                        <p class="mt-0.5 text-base sm:text-lg font-extrabold text-fuchsia-100 tabular-nums">{{ p.stats.int }}</p>
-                      </div>
-
-                      <div class="rounded-2xl border border-violet-400/20 bg-violet-500/10 px-2.5 sm:px-3 py-2 text-center">
-                        <p class="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-violet-100/80">TD</p>
-                        <p class="mt-0.5 text-base sm:text-lg font-extrabold text-violet-100 tabular-nums">{{ p.stats.td }}</p>
-                      </div>
-
-                      <div class="rounded-2xl border border-sky-400/20 bg-sky-500/10 px-2.5 sm:px-3 py-2 text-center">
-                        <p class="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-sky-100/80">PA</p>
-                        <p class="mt-0.5 text-base sm:text-lg font-extrabold text-sky-100 tabular-nums">{{ p.stats.pa }}</p>
-                      </div>
-
-                      <div class="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-2.5 sm:px-3 py-2 text-center">
-                        <p class="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-emerald-100/80">SACK</p>
-                        <p class="mt-0.5 text-base sm:text-lg font-extrabold text-emerald-100 tabular-nums">{{ p.stats.sack }}</p>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              </div>
-
-              <!-- PAGINACIÓN BOTTOM -->
-              <div class="px-4 sm:px-5 py-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div class="px-4 sm:px-5 py-4 border-t border-white/10 flex items-center justify-between gap-3">
                 <p class="text-[11px] text-slate-400">
-                  Impacto = TD + INT + PA + SACK
+                  Este directorio viene de <span class="text-slate-200 font-semibold">/teams</span> + <span class="text-slate-200 font-semibold">/teams/{id}/detail</span>.
                 </p>
 
-                <div class="flex items-center gap-2">
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
-                    :disabled="page <= 1"
-                    @click="page = Math.max(1, page - 1)"
-                  >
-                    ← Anterior
-                  </button>
-
-                  <button
-                    type="button"
-                    class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-white/5"
-                    :disabled="page >= pageCount"
-                    @click="page = Math.min(pageCount, page + 1)"
-                  >
-                    Siguiente →
-                  </button>
-                </div>
+                <NuxtLink
+                  v-if="selectedTeam"
+                  :to="`/teams/${selectedTeam.teamId}`"
+                  class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
+                >
+                  Ver equipo →
+                </NuxtLink>
               </div>
             </div>
           </section>
+
+          <!-- ROSTER DEL EQUIPO -->
+          <aside class="lg:col-span-3 min-w-0">
+            <div class="lg:sticky lg:top-24">
+              <div class="rounded-3xl border border-white/10 bg-[#070b1d]/85 overflow-hidden">
+                <div class="px-4 sm:px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400">roster</p>
+                    <h3 class="mt-1 font-display text-lg font-extrabold text-white truncate">
+                      {{ selectedTeam ? selectedTeam.name : 'Selecciona un equipo' }}
+                    </h3>
+                    <p v-if="selectedTeam" class="mt-1 text-xs text-slate-400 truncate">
+                      {{ selectedTeam.playersCount }} jugador{{ selectedTeam.playersCount === 1 ? '' : 'es' }} ·
+                      {{ selectedTeam.categoryCode || '—' }} · {{ selectedTeam.gender || '—' }}
+                    </p>
+                  </div>
+
+                  <button
+                    v-if="selectedTeam"
+                    type="button"
+                    class="text-[11px] font-semibold text-slate-300 hover:text-white underline underline-offset-4"
+                    @click="selectedTeamId = null"
+                  >
+                    Quitar
+                  </button>
+                </div>
+
+                <div class="p-4 sm:p-5">
+                  <div v-if="!selectedTeam" class="rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
+                    <div class="mx-auto h-12 w-12 rounded-2xl border border-white/10 bg-black/20 grid place-items-center text-slate-200">
+                      <span class="text-xl">🏈</span>
+                    </div>
+                    <p class="mt-3 font-semibold text-white">Selecciona un equipo</p>
+                    <p class="mt-1 text-sm text-slate-400">
+                      Da click en una fila del directorio para ver su roster.
+                    </p>
+                  </div>
+
+                  <div v-else>
+                    <div v-if="selectedTeamPlayersFiltered.length === 0" class="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                      No hay jugadores para ese filtro dentro de este equipo.
+                    </div>
+
+                    <div v-else class="space-y-2 max-h-[560px] overflow-y-auto pr-1 custom-scrollbar">
+                      <article
+                        v-for="p in selectedTeamPlayersFiltered"
+                        :key="p.id"
+                        class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10 transition"
+                      >
+                        <div class="h-10 w-10 rounded-full overflow-hidden border border-white/10 bg-black/20 grid place-items-center shrink-0">
+                          <img
+                            v-if="p.photoUrl"
+                            :src="p.photoUrl"
+                            :alt="p.fullName"
+                            class="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                          <span v-else class="text-[11px] font-extrabold text-slate-200">
+                            {{ initials(p.fullName) }}
+                          </span>
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                          <p class="text-slate-100 font-semibold truncate">{{ p.fullName }}</p>
+
+                          <p class="mt-0.5 text-[11px] text-slate-400">
+                            <span v-if="p.jerseyNumber != null">#{{ p.jerseyNumber }}</span>
+                            <span v-if="p.jerseyNumber != null && ageFromBirthdate(p.birthdate) != null" class="mx-1 text-slate-500">·</span>
+                            <span v-if="ageFromBirthdate(p.birthdate) != null">{{ ageFromBirthdate(p.birthdate) }} años</span>
+                          </p>
+
+                          <!-- CURP (admin) -->
+                          <p v-if="p.curp" class="mt-1 text-[11px] text-slate-500 truncate">
+                            CURP: <span class="font-mono text-slate-300">{{ p.curp }}</span>
+                          </p>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p class="mt-3 text-[11px] text-slate-400">
+                Nota: esta vista es sólo lectura. Aquí usamos los mismos campos del endpoint <span class="text-slate-200 font-semibold">/teams/{id}/detail</span>.
+              </p>
+            </div>
+          </aside>
         </div>
 
         <div class="h-10"></div>
@@ -354,48 +404,65 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, ref, watch } from 'vue'
-import { useAsyncData, useRuntimeConfig, useRoute } from '#imports'
+import { computed, ref, watch } from 'vue'
+import { useAsyncData, useRuntimeConfig } from '#imports'
+
+definePageMeta({ middleware: ['admin'] })
 
 /** =========================
- *  API CONFIG
+ *  API
  *  ========================= */
 const config = useRuntimeConfig()
 const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
 const API_TEAMS = `${API_BASE}/teams`
-const API_STATS_PLAYERS = `${API_BASE}/stats/players`
 
-const route = useRoute()
+/** =========================
+ *  TYPES (como tu teams/{id}/detail)
+ *  ========================= */
+type Season = { id: number; name: string }
+type Category = { id: number; name: string; code: string; gender: string }
+type CaptainDto = { id: number; fullName: string }
 
-/** leagueId por default 1, pero soporta /jugadores?leagueId=2 */
-const leagueId = computed<number>(() => {
-  const q = route.query.leagueId
-  const v = Array.isArray(q) ? q[0] : q
-  const n = Number(v ?? 1)
-  return Number.isFinite(n) && n > 0 ? n : 1
-})
+type ApiTeam = {
+  teamId: number
+  season: Season | null
+  category: Category | null
+  name: string
+  shortName: string | null
+  logoUrl: string | null
+  colorPrimary: string | null
+  colorSecondary: string | null
+  captain: CaptainDto | string | null
+}
 
-/** seasonId opcional si luego lo usas: /jugadores?leagueId=1&seasonId=3 */
-const seasonId = computed<number | null>(() => {
-  const q = route.query.seasonId
-  const v = Array.isArray(q) ? q[0] : q
-  if (v == null || v === '') return null
-  const n = Number(v)
-  return Number.isFinite(n) && n > 0 ? n : null
-})
+type Player = {
+  id: number
+  fullName: string
+  curp: string
+  jerseyNumber: number | null
+  birthdate: string | null
+  photoUrl: string | null
+}
+
+type TeamDetailResponse = {
+  team: ApiTeam
+  players: Player[]
+  lastGames: any[]
+  gallery: any[]
+}
 
 /** =========================
  *  HELPERS
  *  ========================= */
+const toStr = (v: any) => String(v ?? '')
+const upper = (v: any) => toStr(v).toUpperCase()
+
 function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
   if (x && Array.isArray(x.items)) return x.items
   return []
 }
-
-const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
-const upper = (v: any) => String(v ?? '').toUpperCase()
 
 function initials(text: string) {
   const s = String(text || '').trim()
@@ -404,75 +471,42 @@ function initials(text: string) {
   return parts.map((p) => p[0]?.toUpperCase()).join('')
 }
 
-function dedupeById(list: any[]) {
-  const m = new Map<number, any>()
-  for (const x of list) {
-    const id = Number(x?.playerId ?? x?.player_id ?? x?.id)
-    if (!Number.isFinite(id)) continue
-    if (!m.has(id)) m.set(id, x)
-  }
-  return Array.from(m.values())
+function normalizeUrl(url: string | null): string | null {
+  if (!url || url === 'NULL') return null
+  return url
 }
 
-/** pool simple para no aventar 50 requests al mismo tiempo */
-async function mapPool<T, R>(
-  items: readonly T[],
-  worker: (item: T) => Promise<R>,
-  concurrency = 8
-): Promise<R[]> {
+function ageFromBirthdate(birthdate: string | null): number | null {
+  if (!birthdate) return null
+  const date = new Date(birthdate)
+  if (Number.isNaN(date.getTime())) return null
+  const now = new Date()
+  let age = now.getFullYear() - date.getFullYear()
+  const monthDiff = now.getMonth() - date.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) age -= 1
+  return age
+}
+
+/** pool simple */
+async function mapPool<T, R>(items: readonly T[], worker: (item: T) => Promise<R>, concurrency = 6): Promise<R[]> {
   const out = new Array<R>(items.length)
   let i = 0
-
   const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
     while (true) {
       const idx = i++
       if (idx >= items.length) break
-      const item = items[idx]!
-      out[idx] = await worker(item)
+      out[idx] = await worker(items[idx]!)
     }
   })
-
   await Promise.all(runners)
   return out
 }
 
 /** =========================
- *  TYPES
- *  ========================= */
-type TeamVM = {
-  teamId: number
-  name: string
-  shortName?: string
-  logoUrl?: string | null
-  code?: string
-  gender?: string
-}
-
-type PlayerStats = {
-  td: number
-  int: number
-  pa: number
-  sack: number
-  rec: number
-}
-
-type PlayerVM = {
-  id: number
-  fullName: string
-  number?: number | null
-  photoUrl?: string | null
-  teamId?: number | null
-  teamName?: string
-  gender?: string
-  categoryCode?: string
-  stats: PlayerStats
-}
-
-/** =========================
  *  FETCH TEAMS
  *  ========================= */
-const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
-  'players-teams',
+const { data: teamsRaw, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
+  'admin-jugadores-teams',
   async () => {
     try {
       const raw = await $fetch<any>(API_TEAMS)
@@ -483,382 +517,231 @@ const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refres
   }
 )
 
-const teamsVm = computed<TeamVM[]>(() => {
-  const list = unwrapList<any>(teamsData.value)
+const teamsBase = computed(() => {
+  const list = unwrapList<any>(teamsRaw.value)
   return list
     .map((x) => ({
       teamId: Number(x.teamId ?? x.team_id ?? x.id),
       name: String(x.name ?? x.teamName ?? 'Equipo'),
-      shortName: x.shortName ?? x.short_name ?? '',
-      logoUrl: x.logoUrl ?? x.logo_url ?? x.photoUrl ?? x.photo_url ?? null,
-      code: x.code ?? x.category?.code ?? x.rama ?? '',
-      gender: x.gender ?? x.category?.gender ?? '',
     }))
     .filter((t) => Number.isFinite(t.teamId))
+})
+
+/** =========================
+ *  FETCH TEAM DETAILS (players + category + captain, etc.)
+ *  ========================= */
+const { data: detailsRaw, pending: detailsPending, error: detailsErr, refresh: refreshDetails } = useAsyncData(
+  () => `admin-jugadores-team-details:${teamsBase.value.length}`,
+  async () => {
+    const base = teamsBase.value
+    if (!base.length) return []
+
+    const results = await mapPool(
+      base,
+      async (t) => {
+        try {
+          const res = await $fetch<TeamDetailResponse>(`${API_TEAMS}/${t.teamId}/detail`)
+          // normaliza photoUrls
+          const players = (res.players ?? []).map((p) => ({ ...p, photoUrl: normalizeUrl(p.photoUrl) }))
+          return { ...res, players }
+        } catch {
+          return null
+        }
+      },
+      6
+    )
+
+    return results.filter(Boolean) as TeamDetailResponse[]
+  },
+  { watch: [teamsBase] }
+)
+
+type TeamRow = {
+  teamId: number
+  name: string
+  logoUrl: string | null
+  categoryCode: string
+  gender: string
+  captainName: string
+  playersCount: number
+  players: Player[]
+}
+
+const teamsVm = computed<TeamRow[]>(() => {
+  const list = (detailsRaw.value ?? []) as TeamDetailResponse[]
+  return list
+    .map((d) => {
+      const t = d.team
+      const cap =
+        typeof t.captain === 'string'
+          ? t.captain
+          : (t.captain as any)?.fullName || ''
+
+      return {
+        teamId: t.teamId,
+        name: t.name,
+        logoUrl: normalizeUrl(t.logoUrl),
+        categoryCode: t.category?.code ?? '',
+        gender: upper(t.category?.gender ?? ''),
+        captainName: String(cap || ''),
+        playersCount: (d.players ?? []).length,
+        players: (d.players ?? []).slice(),
+      } satisfies TeamRow
+    })
     .sort((a, b) => a.name.localeCompare(b.name))
 })
 
-const teamById = computed(() => {
-  const m = new Map<number, TeamVM>()
-  for (const t of teamsVm.value) m.set(t.teamId, t)
-  return m
-})
-
-/** =========================
- *  FETCH STATS
- *  ========================= */
-type PlayerSeasonStatsApi = {
-  playerId?: number
-  player_id?: number
-  id?: number
-  fullName?: string
-  full_name?: string
-  td?: number
-  passTd?: number
-  pass_td?: number
-  interceptions?: number
-  intercep?: number
-  sacks?: number
-}
-
-const { data: statsData, pending: statsPending, error: statsErr, refresh: refreshStats } = useAsyncData(
-  () => `players-stats:${leagueId.value}:${seasonId.value ?? 'current'}`,
-  async () => {
-    try {
-      const params = new URLSearchParams()
-      params.set('leagueId', String(leagueId.value))
-      if (seasonId.value) params.set('seasonId', String(seasonId.value))
-
-      const raw = await $fetch<any>(`${API_STATS_PLAYERS}?${params.toString()}`)
-      return unwrapList<PlayerSeasonStatsApi>(raw)
-    } catch {
-      return []
-    }
-  },
-  { watch: [leagueId, seasonId] }
-)
-
-const statsByPlayerId = computed(() => {
-  const m = new Map<number, PlayerStats>()
-  const list = unwrapList<PlayerSeasonStatsApi>(statsData.value)
-
-  for (const x of list) {
-    const id = Number(x.playerId ?? x.player_id ?? x.id)
-    if (!Number.isFinite(id)) continue
-
-    const td = toNum(x.td)
-    const pa = toNum(x.passTd ?? x.pass_td)
-    const it = toNum((x as any).interceptions ?? (x as any).intercep)
-    const sack = toNum(x.sacks)
-
-    m.set(id, { td, pa, int: it, sack, rec: 0 })
+const categoryOptions = computed(() => {
+  const s = new Set<string>()
+  for (const t of teamsVm.value) {
+    const c = String(t.categoryCode || '').trim()
+    if (c) s.add(c)
   }
-  return m
-})
-
-/** =========================
- *  FETCH ROSTER GLOBAL (por equipos)
- *  ========================= */
-async function fetchRosterFromTeams(): Promise<any[]> {
-  const teams = teamsVm.value
-  if (!teams.length) return []
-
-  const chunks = await mapPool(
-    teams,
-    async (t) => {
-      try {
-        const raw = await $fetch<any>(`${API_TEAMS}/${t.teamId}/players`)
-        const list = unwrapList<any>(raw)
-        return list.map((p: any) => ({
-          ...p,
-          __teamId: t.teamId,
-          __teamName: t.name,
-        }))
-      } catch {
-        return []
-      }
-    },
-    8
-  )
-
-  return chunks.flat()
-}
-
-const { data: rosterData, pending: rosterPending, error: rosterErr, refresh: refreshRoster } = useAsyncData(
-  () => `players-roster:${teamsVm.value.length}`,
-  async () => {
-    return dedupeById(await fetchRosterFromTeams())
-  },
-  { watch: [teamsVm] }
-)
-
-/** =========================
- *  MAP TO VIEWMODEL (roster + stats join por playerId)
- *  ========================= */
-const playersVm = computed<PlayerVM[]>(() => {
-  const roster = unwrapList<any>(rosterData.value)
-  const statsMap = statsByPlayerId.value
-
-  const mappedFromRoster = roster
-    .map((x: any) => {
-      const id = Number(x.playerId ?? x.player_id ?? x.id)
-      if (!Number.isFinite(id)) return null
-
-      const fullName =
-        String(
-          x.fullName ??
-            x.full_name ??
-            x.name ??
-            [x.firstName ?? x.first_name, x.lastName ?? x.last_name].filter(Boolean).join(' ')
-        ).trim() || 'Jugador'
-
-      const number = x.number ?? x.jerseyNumber ?? x.jersey_number ?? x.num ?? null
-
-      const teamIdRaw = x.__teamId ?? x.teamId ?? x.team_id ?? x.team?.teamId ?? x.team?.id ?? null
-      const teamId = teamIdRaw == null ? null : Number(teamIdRaw) || null
-
-      const t = teamId ? teamById.value.get(teamId) : undefined
-      const teamName = String(x.__teamName ?? x.teamName ?? x.team_name ?? x.team?.name ?? t?.name ?? '').trim() || undefined
-
-      const gender = x.gender ?? t?.gender ?? ''
-      const categoryCode = x.categoryCode ?? x.category_code ?? t?.code ?? ''
-
-      const s = statsMap.get(id) ?? { td: 0, pa: 0, int: 0, sack: 0, rec: 0 }
-
-      return {
-        id,
-        fullName,
-        number: number == null ? null : toNum(number),
-        photoUrl: x.photoUrl ?? x.photo_url ?? x.photo ?? x.avatarUrl ?? null,
-        teamId,
-        teamName,
-        gender: gender ? upper(gender) : '',
-        categoryCode: categoryCode ? String(categoryCode) : '',
-        stats: { ...s },
-      } satisfies PlayerVM
-    })
-    .filter(Boolean) as PlayerVM[]
-
-  const idsInRoster = new Set(mappedFromRoster.map((p) => p.id))
-  for (const [pid, s] of statsMap.entries()) {
-    if (idsInRoster.has(pid)) continue
-    mappedFromRoster.push({
-      id: pid,
-      fullName: `Jugador ${pid}`,
-      number: null,
-      photoUrl: null,
-      teamId: null,
-      teamName: undefined,
-      gender: '',
-      categoryCode: '',
-      stats: { ...s },
-    })
-  }
-
-  return mappedFromRoster
+  return Array.from(s).sort((a, b) => a.localeCompare(b))
 })
 
 /** =========================
  *  FILTERS
  *  ========================= */
-const teamPick = ref<'ALL' | string>('ALL')
-const numberPick = ref('')
-const namePick = ref('')
+const teamQuery = ref('')
+const categoryPick = ref<'ALL' | string>('ALL')
+const genderPick = ref<'ALL' | string>('ALL')
+const playerQuery = ref('')
 
-watch([teamPick, numberPick, namePick], () => {
-  page.value = 1
-})
+const teamsFilteredAll = computed(() => {
+  const tq = teamQuery.value.trim().toLowerCase()
+  const cat = categoryPick.value
+  const gen = genderPick.value
 
-const filteredPlayers = computed(() => {
-  const tPick = teamPick.value
-  const qNum = numberPick.value.trim()
-  const qName = namePick.value.toLowerCase().trim()
-
-  return playersVm.value.filter((p) => {
-    if (tPick !== 'ALL') {
-      const id = Number(tPick)
-      if (Number.isFinite(id) && p.teamId !== id) return false
-    }
-
-    if (qNum) {
-      const n = String(p.number ?? '')
-      if (!n.includes(qNum)) return false
-    }
-
-    if (qName) {
-      const fn = String(p.fullName ?? '').toLowerCase()
-      if (!fn.includes(qName)) return false
-    }
-
+  return teamsVm.value.filter((t) => {
+    if (tq && !t.name.toLowerCase().includes(tq)) return false
+    if (cat !== 'ALL' && String(t.categoryCode || '') !== cat) return false
+    if (gen !== 'ALL' && upper(t.gender) !== gen) return false
     return true
   })
 })
 
+/** al cambiar filtros de equipos → página 1 */
+const teamPage = ref(1)
+watch([teamQuery, categoryPick, genderPick], () => (teamPage.value = 1))
+
 /** =========================
- *  SORT + PAGINATION
+ *  PAGINATION (equipos)
  *  ========================= */
-function impact(p: PlayerVM) {
-  return p.stats.td + p.stats.int + p.stats.pa + p.stats.sack
+const teamsPerPage = 10
+const teamPageCount = computed(() => Math.max(1, Math.ceil(teamsFilteredAll.value.length / teamsPerPage)))
+const teamsPaged = computed(() => {
+  const start = (teamPage.value - 1) * teamsPerPage
+  return teamsFilteredAll.value.slice(start, start + teamsPerPage)
+})
+const teamRangeStart = computed(() => {
+  const total = teamsFilteredAll.value.length
+  if (!total) return 0
+  return (teamPage.value - 1) * teamsPerPage + 1
+})
+const teamRangeEnd = computed(() => {
+  const total = teamsFilteredAll.value.length
+  if (!total) return 0
+  return Math.min(total, (teamPage.value - 1) * teamsPerPage + teamsPaged.value.length)
+})
+
+/** =========================
+ *  SELECCIÓN DE EQUIPO
+ *  ========================= */
+const selectedTeamId = ref<number | null>(null)
+
+watch(
+  () => teamsFilteredAll.value.map((t) => t.teamId).join(','),
+  () => {
+    // si no hay selección o la selección ya no existe, pon el primero
+    const ids = teamsFilteredAll.value.map((t) => t.teamId)
+    if (!ids.length) {
+      selectedTeamId.value = null
+      return
+    }
+    if (selectedTeamId.value == null || !ids.includes(selectedTeamId.value)) {
+      selectedTeamId.value = ids[0]!
+    }
+  },
+  { immediate: true }
+)
+
+function selectTeam(id: number) {
+  selectedTeamId.value = id
+  playerQuery.value = '' // opcional: al cambiar de equipo resetea búsqueda del roster
 }
 
-const sortedPlayersAll = computed(() => filteredPlayers.value.slice().sort((a, b) => impact(b) - impact(a)))
-
-const perPage = 10
-const page = ref(1)
-
-const pageCount = computed(() => {
-  const total = sortedPlayersAll.value.length
-  return Math.max(1, Math.ceil(total / perPage))
+const selectedTeam = computed(() => {
+  if (selectedTeamId.value == null) return null
+  return teamsVm.value.find((t) => t.teamId === selectedTeamId.value) ?? null
 })
 
-const pagedPlayers = computed(() => {
-  const start = (page.value - 1) * perPage
-  return sortedPlayersAll.value.slice(start, start + perPage)
+const selectedTeamPlayersFiltered = computed(() => {
+  const t = selectedTeam.value
+  if (!t) return []
+
+  const q = playerQuery.value.trim().toLowerCase()
+  const list = (t.players ?? []).slice()
+
+  // orden default: jersey asc, luego nombre
+  list.sort((a, b) => {
+    const an = a.jerseyNumber == null ? 9999 : a.jerseyNumber
+    const bn = b.jerseyNumber == null ? 9999 : b.jerseyNumber
+    if (an !== bn) return an - bn
+    return String(a.fullName).localeCompare(String(b.fullName))
+  })
+
+  if (!q) return list
+
+  return list.filter((p) => {
+    const name = String(p.fullName || '').toLowerCase()
+    const num = p.jerseyNumber == null ? '' : String(p.jerseyNumber)
+    const curp = String(p.curp || '').toLowerCase()
+    return name.includes(q) || num.includes(q) || curp.includes(q)
+  })
 })
 
-const rangeStart = computed(() => {
-  const total = sortedPlayersAll.value.length
-  if (!total) return 0
-  return (page.value - 1) * perPage + 1
-})
-
-const rangeEnd = computed(() => {
-  const total = sortedPlayersAll.value.length
-  if (!total) return 0
-  return Math.min(total, (page.value - 1) * perPage + pagedPlayers.value.length)
-})
+const totalPlayers = computed(() => teamsVm.value.reduce((acc, t) => acc + (t.playersCount || 0), 0))
 
 function clearFilters() {
-  teamPick.value = 'ALL'
-  numberPick.value = ''
-  namePick.value = ''
+  teamQuery.value = ''
+  categoryPick.value = 'ALL'
+  genderPick.value = 'ALL'
+  playerQuery.value = ''
+  teamPage.value = 1
 }
 
 /** =========================
- *  LEADERS
+ *  REFRESH
  *  ========================= */
-function topBy(fn: (p: PlayerVM) => number, n = 7): PlayerVM[] {
-  return filteredPlayers.value.slice().sort((a, b) => fn(b) - fn(a)).slice(0, n)
-}
+const pendingAny = computed(() => !!teamsPending.value || !!detailsPending.value)
+const errorAny = computed(() => !!teamsErr.value || !!detailsErr.value)
 
-const leadersINT = computed(() => topBy((p) => p.stats.int, 7))
-const leadersTD = computed(() => topBy((p) => p.stats.td, 7))
-const leadersPA = computed(() => topBy((p) => p.stats.pa, 7))
-const leadersSACK = computed(() => topBy((p) => p.stats.sack, 7))
-
-const seasonLabel = computed(() => {
-  const sid = seasonId.value ? `Season ${seasonId.value}` : 'Temporada actual'
-  return `Liga ${leagueId.value} · ${sid}`
+const lastUpdatedAt = ref<Date | null>(null)
+const lastUpdatedLabel = computed(() => {
+  if (!lastUpdatedAt.value) return '—'
+  const d = lastUpdatedAt.value
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 })
-
-const pendingAny = computed(() => !!teamsPending.value || !!rosterPending.value || !!statsPending.value)
-const errorAny = computed(() => !!teamsErr.value || !!rosterErr.value || !!statsErr.value)
 
 async function refreshAll() {
-  await Promise.all([refreshTeams(), refreshRoster(), refreshStats()])
+  await refreshTeams()
+  await refreshDetails()
+  lastUpdatedAt.value = new Date()
 }
-
-/** =========================
- *  POSTER PANEL (responsive móvil)
- *  ========================= */
-type Accent = 'fuchsia' | 'violet' | 'sky' | 'emerald'
-type AccentStyle = { ring: string; bg: string; text: string; chip: string }
-
-const PosterPanel = defineComponent({
-  name: 'PosterPanel',
-  props: {
-    title: { type: String, required: true },
-    subtitle: { type: String, required: true },
-    accent: { type: String as () => Accent, required: true },
-    rows: { type: Array as () => PlayerVM[], required: true },
-    valueLabel: { type: String, required: true },
-    valueFn: { type: Function as unknown as () => (p: PlayerVM) => number, required: true },
-  },
-  setup(props) {
-    const accentMap: Record<Accent, AccentStyle> = {
-      fuchsia: {
-        ring: 'border-fuchsia-400/25',
-        bg: 'from-fuchsia-600/20 via-fuchsia-600/5 to-transparent',
-        text: 'text-fuchsia-100',
-        chip: 'border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-100',
-      },
-      violet: {
-        ring: 'border-violet-400/25',
-        bg: 'from-violet-600/20 via-violet-600/5 to-transparent',
-        text: 'text-violet-100',
-        chip: 'border-violet-400/20 bg-violet-500/10 text-violet-100',
-      },
-      sky: {
-        ring: 'border-sky-400/25',
-        bg: 'from-sky-600/20 via-sky-600/5 to-transparent',
-        text: 'text-sky-100',
-        chip: 'border-sky-400/20 bg-sky-500/10 text-sky-100',
-      },
-      emerald: {
-        ring: 'border-emerald-400/25',
-        bg: 'from-emerald-600/20 via-emerald-600/5 to-transparent',
-        text: 'text-emerald-100',
-        chip: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100',
-      },
-    } as const
-
-    const a = computed<AccentStyle>(() => accentMap[props.accent] ?? accentMap.fuchsia)
-
-    return () =>
-      h(
-        'section',
-        { class: `relative overflow-hidden rounded-3xl border ${a.value.ring} bg-white/5 shadow-[0_20px_55px_rgba(0,0,0,0.45)]` },
-        [
-          h('div', { class: `absolute inset-0 bg-gradient-to-br ${a.value.bg} opacity-70` }),
-          h('div', { class: 'relative p-4 sm:p-5' }, [
-            h('div', { class: 'flex items-start justify-between gap-3' }, [
-              h('div', { class: 'min-w-0' }, [
-                h('p', { class: 'text-[10px] uppercase tracking-[0.26em] text-slate-400' }, props.subtitle),
-                h('h3', { class: `mt-1 font-display text-lg font-extrabold ${a.value.text}` }, props.title),
-              ]),
-              h(
-                'span',
-                { class: `shrink-0 inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${a.value.chip}` },
-                props.valueLabel
-              ),
-            ]),
-
-            h('div', { class: 'mt-3 rounded-2xl border border-white/10 bg-[#070b1d]/90 overflow-hidden' }, [
-              h(
-                'div',
-                { class: 'grid grid-cols-12 px-3 py-2 text-[9px] sm:text-[10px] uppercase tracking-[0.22em] text-slate-400 border-b border-white/10' },
-                [
-                  h('div', { class: 'col-span-1' }, 'Rk'),
-                  h('div', { class: 'col-span-8 sm:col-span-7' }, 'Jugador'),
-                  h('div', { class: 'hidden sm:block sm:col-span-3' }, 'Equipo'),
-                  h('div', { class: 'col-span-3 sm:col-span-1 text-right' }, props.valueLabel),
-                ]
-              ),
-
-              props.rows.length
-                ? props.rows.map((p, idx) =>
-                    h(
-                      'div',
-                      { class: 'grid grid-cols-12 px-3 py-2 text-sm border-b border-white/5 last:border-0 hover:bg-white/5' },
-                      [
-                        h('div', { class: 'col-span-1 font-semibold text-slate-200 tabular-nums' }, String(idx + 1)),
-                        h('div', { class: 'col-span-8 sm:col-span-7 min-w-0' }, [
-                          h('p', { class: 'font-semibold text-white truncate' }, [
-                            p.fullName,
-                            p.number != null ? h('span', { class: 'ml-2 text-slate-400 font-semibold' }, `#${p.number}`) : null,
-                          ]),
-                          h('p', { class: 'sm:hidden mt-0.5 text-[12px] text-slate-300 truncate' }, p.teamName || '—'),
-                        ]),
-                        h('div', { class: 'hidden sm:block sm:col-span-3 text-slate-200 truncate' }, p.teamName || '—'),
-                        h('div', { class: `col-span-3 sm:col-span-1 text-right font-extrabold ${a.value.text} tabular-nums` }, String(props.valueFn(p))),
-                      ]
-                    )
-                  )
-                : h('div', { class: 'px-3 py-4 text-sm text-slate-400' }, 'Sin datos para este panel (aún).'),
-            ]),
-          ]),
-        ]
-      )
-  },
-})
 </script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+</style>
