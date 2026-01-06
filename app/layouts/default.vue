@@ -32,7 +32,7 @@
           <NuxtLink to="/equipos" class="hover:text-white transition">Equipos</NuxtLink>
           <NuxtLink to="/estadisticas" class="hover:text-white transition">Estadísticas</NuxtLink>
 
-          <!-- ✅ NUEVO: Jugadores (público) -->
+          <!-- Jugadores (público) -->
           <NuxtLink to="/jugadores" class="hover:text-white transition">Jugadores</NuxtLink>
 
           <NuxtLink v-if="showRegistro" to="/registro" class="hover:text-white transition">
@@ -42,7 +42,18 @@
           <NuxtLink v-if="showMiEquipo" to="/mi-equipo" class="hover:text-white transition">
             Mi equipo
           </NuxtLink>
-          <!-- ✅ SOLO ADMIN -->
+
+          <!-- ✅ SOLO ADMIN: botones tipo pill -->
+          <NuxtLink
+            v-if="isAdmin"
+            to="/admin/partidos"
+            class="inline-flex items-center rounded-full px-3 py-1.5 text-[12px] font-semibold
+                   bg-blue-600/20 text-blue-100 border border-blue-400/40
+                   hover:bg-blue-600/30 hover:border-blue-300/60 transition"
+          >
+            Partidos (Admin)
+          </NuxtLink>
+
           <NuxtLink
             v-if="isAdmin"
             to="/admin/usuarios"
@@ -50,7 +61,17 @@
                    bg-blue-600/20 text-blue-100 border border-blue-400/40
                    hover:bg-blue-600/30 hover:border-blue-300/60 transition"
           >
-            Partidos (Admin)
+            Usuarios (Admin)
+          </NuxtLink>
+
+          <NuxtLink
+            v-if="isAdmin"
+            to="/admin/jugadores"
+            class="inline-flex items-center rounded-full px-3 py-1.5 text-[12px] font-semibold
+                   bg-blue-600/20 text-blue-100 border border-blue-400/40
+                   hover:bg-blue-600/30 hover:border-blue-300/60 transition"
+          >
+            Jugadores (Admin)
           </NuxtLink>
 
           <a
@@ -133,7 +154,6 @@
                   Estadísticas
                 </NuxtLink>
 
-                <!-- ✅ NUEVO: Jugadores (público) -->
                 <NuxtLink
                   to="/jugadores"
                   class="px-3 py-2 rounded-xl hover:bg-white/10"
@@ -161,14 +181,31 @@
                 </NuxtLink>
 
                 <!-- ✅ SOLO ADMIN -->
-                <NuxtLink
-                  v-if="isAdmin"
-                  to="/admin/usuarios"
-                  class="px-3 py-2 rounded-xl hover:bg-white/10 text-blue-100"
-                  @click="closeMobile"
-                >
-                  Usuarios (Admin)
-                </NuxtLink>
+                <div v-if="isAdmin" class="mt-1 pt-2 border-t border-white/10">
+                  <NuxtLink
+                    to="/admin/partidos"
+                    class="px-3 py-2 rounded-xl hover:bg-white/10 text-blue-100"
+                    @click="closeMobile"
+                  >
+                    Partidos (Admin)
+                  </NuxtLink>
+
+                  <NuxtLink
+                    to="/admin/usuarios"
+                    class="px-3 py-2 rounded-xl hover:bg-white/10 text-blue-100"
+                    @click="closeMobile"
+                  >
+                    Usuarios (Admin)
+                  </NuxtLink>
+
+                  <NuxtLink
+                    to="/admin/jugadores"
+                    class="px-3 py-2 rounded-xl hover:bg-white/10 text-blue-100"
+                    @click="closeMobile"
+                  >
+                    Jugadores (Admin)
+                  </NuxtLink>
+                </div>
               </div>
 
               <div class="px-4 pb-4 pt-2 border-t border-white/10 flex items-center justify-between gap-3">
