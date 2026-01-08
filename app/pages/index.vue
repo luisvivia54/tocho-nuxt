@@ -347,7 +347,7 @@
           </p>
         </section>
 
-        <!-- ========== PATROCINADORES (CARRUSEL + GRID ESCALABLE) ========== -->
+        <!-- ========== PATROCINADORES (SIMPLE CARRUSEL CON ÉNFASIS) ========== -->
         <section id="patrocinadores" class="mt-12">
           <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
             <!-- Header (mismo gradiente) -->
@@ -357,8 +357,8 @@
                 <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">Patrocinadores</h2>
               </div>
               <div class="hidden sm:block text-xs text-blue-50/85 text-right">
-                <p>Usa flechas o toca un logo</p>
-                <p>El centro es el destacado</p>
+                <p>Desliza / usa flechas</p>
+                <p>El del centro es el destacado</p>
               </div>
             </div>
 
@@ -389,17 +389,13 @@
               </div>
 
               <!-- Carrusel 3 tarjetas (prev / active / next) -->
-              <div class="mt-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+              <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
                 <button
                   v-for="(s, idx) in visibleSponsors"
                   :key="`${s.id}-${idx}`"
                   type="button"
                   class="text-left rounded-3xl border transition-all duration-300 overflow-hidden"
-                  :class="[
-                    sponsorCardClass(idx),
-                    idx === 1 ? 'md:col-span-6' : 'md:col-span-3',
-                    idx === 1 ? 'order-1 md:order-2' : (idx === 0 ? 'order-2 md:order-1' : 'order-3 md:order-3')
-                  ]"
+                  :class="sponsorCardClass(idx)"
                   @click="idx !== 1 ? setActiveSponsorById(s.id) : undefined"
                 >
                   <div class="p-5 h-full flex flex-col">
@@ -409,10 +405,8 @@
                         <p class="text-[11px] uppercase tracking-[0.22em]" :class="idx === 1 ? 'text-blue-600' : 'text-slate-500'">
                           {{ idx === 1 ? 'patrocinador destacado' : 'patrocinador' }}
                         </p>
-                        <h3
-                          class="mt-1 font-display font-extrabold leading-tight"
-                          :class="idx === 1 ? 'text-2xl text-slate-900' : 'text-lg text-slate-800'"
-                        >
+                        <h3 class="mt-1 font-display font-extrabold leading-tight"
+                            :class="idx === 1 ? 'text-2xl text-slate-900' : 'text-lg text-slate-800'">
                           {{ s.name }}
                         </h3>
                         <p class="mt-1 text-sm text-slate-600 line-clamp-2">{{ s.tagline }}</p>
@@ -452,7 +446,7 @@
 
                     <div class="mt-4 flex items-center justify-between gap-3">
                       <span class="text-[11px] text-slate-500">
-                        {{ idx === 1 ? 'Elige otro en la lista de abajo' : 'Toca para destacar' }}
+                        {{ idx === 1 ? 'Toca los lados para cambiar' : 'Toca para destacar' }}
                       </span>
 
                       <a
@@ -480,7 +474,7 @@
                 </button>
               </div>
 
-              <!-- dots (opcional, por si te gusta mantenerlos) -->
+              <!-- dots -->
               <div class="mt-6 flex flex-wrap items-center justify-center gap-2">
                 <button
                   v-for="sp in sponsors"
@@ -725,7 +719,6 @@ interface Sponsor {
   label: string
 }
 
-/** ✅ YA SIN MARTÍ y RUFFLES */
 const sponsors = ref<Sponsor[]>([
   {
     id: 'dicass',
@@ -735,6 +728,24 @@ const sponsors = ref<Sponsor[]>([
     description: 'Activaciones, alimentos y experiencias dentro del deportivo.',
     url: 'https://dicass.com.mx/',
     label: 'Patrocinador principal'
+  },
+  {
+    id: 'marti',
+    name: 'Martí',
+    logo: '/img/sponsors/marti-logo.png',
+    tagline: 'Todo para el deporte.',
+    description: 'Equipo y accesorios para entrenar y competir.',
+    url: 'https://www.marti.mx/',
+    label: 'Aliado'
+  },
+  {
+    id: 'ruffles',
+    name: 'Ruffles',
+    logo: '/img/sponsors/ruffles-logo.png',
+    tagline: 'Sabor para la jornada.',
+    description: 'Snacks para el after-game y activaciones.',
+    url: 'https://ruffles.com.mx/lmx/',
+    label: 'Aliado'
   },
   {
     id: 'under-armour',
@@ -751,7 +762,7 @@ const sponsors = ref<Sponsor[]>([
     logo: '/img/sponsors/blitzflag-logo.png',
     tagline: 'Entrena fuerte.',
     description: 'Accesorios y equipo para entrenamientos.',
-    url: 'https://www.instagram.com/blitzflag',
+    url: 'https://www.instagram.com/blitzflag?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
     label: 'Aliado'
   },
   {
@@ -760,7 +771,7 @@ const sponsors = ref<Sponsor[]>([
     logo: '/img/sponsors/medimex-logo.png',
     tagline: 'Salud deportiva.',
     description: 'Atención y soporte para atletas.',
-    url: 'https://www.instagram.com/plan.medimex',
+    url: 'https://www.instagram.com/plan.medimex?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
     label: 'Aliado'
   }
 ])
