@@ -439,21 +439,33 @@ type Category = {
 }
 
 type Game = {
-  game_id: number
-  season_id: number
-  status: string
-  match_date_utc: string
+  game_id?: number
+  gameId?: number
+  id?: number
+
+  season_id?: number
+  seasonId?: number
+
+  status?: string
+  match_date_utc?: string
+  matchDateUtc?: string
+  match_date?: string
+
   round_la?: string | null
   roundLabel?: string | null
+
   homeTeam?: Team | null
   awayTeam?: Team | null
   category?: Category | null
+
   home_team?: string | null
   away_team?: string | null
 
   // viene en /gamesFinal
   homeScore?: number | null
   awayScore?: number | null
+  home_score?: number | null
+  away_score?: number | null
 }
 
 type VMGame = {
@@ -536,16 +548,27 @@ const dateFmt = new Intl.DateTimeFormat('es-MX', {
   year: 'numeric',
 })
 
-/** fetch: scheduled + finals (se combinan por game_id) */
+/** 🔥 fetch: scheduled + finals (se combinan por ID) */
 const { data, pending, error, refresh } = useAsyncData<Game[]>(
   'games-calendar-admin-paged-5',
   async () => {
     const [scheduled, finals] = await Promise.all([
-      $fetch<Game[]>(`${API_BASE}/games`).catch(() => []),
-      $fetch<Game[]>(`${API_BASE}/gamesFinal`).catch(() => []),
+      $fetch<any>(`${API_BASE}/games`).catch(() => []),
+      $fetch<any>(`${API_BASE}/gamesFinal`).catch(() => []),
     ])
-    const map = new Map<number, Game>()
-    for (const g of [...scheduled, ...finals]) map.set(g.game_id, g)
+
+    const all = [
+      ...(Array.isArray(scheduled) ? scheduled : []),
+      ...(Array.isArray(finals) ? finals : []),
+    ]
+
+    const map = new Map<number, any>()
+    for (const g of all) {
+      const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
+      if (!id) continue
+      map.set(id, g)
+    }
+
     return Array.from(map.values())
   }
 )
@@ -577,9 +600,17 @@ watch(
     const dayLabelCache = new Map<string, string>()
 
     for (const g of list) {
-      const ms = toUtcMs(g.match_date_utc)
-      const d = new Date(ms)
-      const dateKey = d.toISOString().slice(0, 10)
+      const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
+      if (!id) continue
+
+      const seasonId = Number(g?.season_id ?? g?.seasonId ?? 0) || 0
+
+      const iso =
+        String(g?.match_date_utc ?? g?.matchDateUtc ?? g?.match_date ?? '').trim()
+
+      const ms = toUtcMs(iso)
+      const d = new Date(ms || Date.now())
+      const dateKey = (ms ? d.toISOString() : new Date().toISOString()).slice(0, 10)
 
       let dayLabel = dayLabelCache.get(dateKey)
       if (!dayLabel) {
@@ -599,38 +630,56 @@ watch(
         bucket[code] = (bucket[code] ?? 0) + 1
       }
 
-      const homeName = (g.home_team ?? g.homeTeam?.name ?? 'Local').trim()
-      const awayName = (g.away_team ?? g.awayTeam?.name ?? 'Visitante').trim()
+      const homeName = String(g.home_team ?? g.homeTeam?.name ?? 'Local').trim()
+      const awayName = String(g.away_team ?? g.awayTeam?.name ?? 'Visitante').trim()
 
-      const isFinal = upper(g.status) === 'FINAL'
-      const homeScore = isFinal ? (g.homeScore ?? null) : null
-      const awayScore = isFinal ? (g.awayScore ?? null) : null
+      // ✅ status confiable: si trae marcador asumimos FINAL
+      const rawStatus = String(g?.status ?? '').trim()
+      const hasScore =
+        g?.homeScore != null || g?.awayScore != null || g?.home_score != null || g?.away_score != null
+
+      const status = upper(rawStatus) || (hasScore ? 'FINAL' : 'SCHEDULED')
+      const isFinal = status === 'FINAL'
+
+      const homeScore = isFinal ? Number(g.homeScore ?? g.home_score ?? null) : null
+      const awayScore = isFinal ? Number(g.awayScore ?? g.away_score ?? null) : null
 
       out.push({
-        id: g.game_id,
-        seasonId: g.season_id,
-        status: g.status,
-        ms,
+        id,
+        seasonId,
+        status,
+        ms: ms || 0,
         dateKey,
         dayLabel,
         timeLabel: timeFmt.format(d),
         round,
         gender: gen,
         code,
-        categoryName: (g.category?.name ?? `Categoría ${g.category?.id ?? ''}`).trim(),
+        categoryName: String(g.category?.name ?? `Categoría ${g.category?.id ?? ''}`).trim(),
         homeName,
         awayName,
-        homeShort: (g.homeTeam?.shortName ?? '').trim(),
-        awayShort: (g.awayTeam?.shortName ?? '').trim(),
+        homeShort: String(g.homeTeam?.shortName ?? '').trim(),
+        awayShort: String(g.awayTeam?.shortName ?? '').trim(),
         homeLogo: g.homeTeam?.logoUrl ?? null,
         awayLogo: g.awayTeam?.logoUrl ?? null,
         isFinal,
-        homeScore,
-        awayScore,
+        homeScore: Number.isFinite(homeScore as any) ? homeScore : null,
+        awayScore: Number.isFinite(awayScore as any) ? awayScore : null,
       })
     }
 
-    out.sort((a, b) => a.ms - b.ms)
+    // 🔥 ORDEN: SCHEDULED arriba, FINAL abajo
+    out.sort((a, b) => {
+      const ra = statusRank(a.status)
+      const rb = statusRank(b.status)
+      if (ra !== rb) return ra - rb
+
+      // dentro de SCHEDULED/LIVE: próximos primero
+      if (ra <= 1) return (a.ms || 0) - (b.ms || 0)
+
+      // dentro de FINAL: más recientes primero
+      return (b.ms || 0) - (a.ms || 0)
+    })
 
     vmAll.value = markRaw(out)
     roundCounts.value = markRaw(rc)
@@ -854,6 +903,15 @@ function roundNumber(g: any): string | null {
 }
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
+}
+
+/** ✅ rank para ordenar: scheduled arriba, final abajo */
+function statusRank(st: string) {
+  const s = upper(st)
+  if (s === 'SCHEDULED') return 0
+  if (s === 'LIVE') return 1
+  if (s === 'FINAL') return 3
+  return 2
 }
 </script>
 

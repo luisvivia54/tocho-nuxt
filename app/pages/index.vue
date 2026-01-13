@@ -42,7 +42,7 @@
             <div class="grid md:grid-cols-5 gap-6 items-start">
               <div class="md:col-span-3">
                 <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900">
-                  Temporada 2025
+                  Temporada 2026
                 </h1>
                 <p class="mt-2 text-slate-700">Resultados, posiciones y registros en un solo lugar.</p>
                 <div class="mt-4 flex flex-wrap gap-3">
@@ -61,12 +61,255 @@
                 </div>
               </div>
 
-              <div class="md:col-span-2">
-                <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-slate-800 shadow-sm">
-                  <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Próximo juego</div>
-                  <div class="mt-1 text-sm text-slate-700">Aún no hay juegos programados.</div>
-                </div>
+              <!-- ========== PRÓXIMOS JUEGOS (SLIDER LIMPIO 1/2) ========== -->
+              <!-- ========== PRÓXIMOS JUEGOS (1 A LA VEZ · UX/UI) ========== -->
+<div class="md:col-span-2">
+  <div
+    class="rounded-2xl border border-blue-100 bg-white/70 p-4 md:p-5
+           shadow-[0_12px_28px_rgba(15,23,42,0.10)] backdrop-blur"
+  >
+    <!-- Header -->
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500">
+            Próximo juego
+          </p>
+
+          <span
+            v-if="upcomingTotal > 0"
+            class="inline-flex items-center rounded-full border border-blue-200 bg-white px-2 py-0.5 text-[11px] font-extrabold text-blue-700"
+          >
+            {{ upcomingIndex + 1 }} / {{ upcomingTotal }}
+          </span>
+        </div>
+
+        <p class="mt-1 text-[12px] text-slate-600">
+          Un partido a la vez, con todos los detalles.
+        </p>
+      </div>
+
+      <!-- Flechas -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-blue-200
+                 text-blue-700 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          @click="prevUpcoming()"
+          :disabled="upcomingTotal <= 1"
+          title="Anterior"
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-blue-200
+                 text-blue-700 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          @click="nextUpcoming()"
+          :disabled="upcomingTotal <= 1"
+          title="Siguiente"
+        >
+          →
+        </button>
+      </div>
+    </div>
+
+    <!-- Estados -->
+    <div
+      v-if="gamesPending"
+      class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
+    >
+      Cargando próximos juegos…
+    </div>
+
+    <div
+      v-else-if="!activeUpcoming"
+      class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
+    >
+      Aún no hay juegos programados.
+    </div>
+
+    <!-- Card PRO -->
+    <article
+      v-else
+      class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white
+             shadow-[0_14px_35px_rgba(15,23,42,0.10)]"
+    >
+      <!-- Top bar -->
+      <div class="p-4 md:p-5 border-b border-slate-200 bg-gradient-to-r from-white to-blue-50/40">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <!-- Left: chips -->
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold leading-none"
+                :class="String(activeUpcoming.status).toUpperCase() === 'LIVE'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : 'border-blue-200 bg-blue-50 text-blue-800'"
+              >
+                {{ String(activeUpcoming.status).toUpperCase() === 'LIVE' ? 'EN JUEGO' : 'PROGRAMADO' }}
+              </span>
+
+              <span
+                class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+              >
+                {{ activeUpcoming.categoryName }}
+              </span>
+
+              <span
+                v-if="activeUpcoming.genderLabel"
+                class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+              >
+                {{ activeUpcoming.genderLabel }}
+              </span>
+
+              <span
+                v-if="activeUpcoming.code"
+                class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+              >
+                {{ activeUpcoming.code }}
+              </span>
+
+              <span
+                v-if="activeUpcoming.round"
+                class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+              >
+                Jornada {{ activeUpcoming.round }}
+              </span>
+            </div>
+
+            <p class="mt-2 text-sm font-extrabold text-slate-900 leading-tight">
+              {{ activeUpcoming.dateLabel }}
+            </p>
+          </div>
+
+          <!-- Right: time + countdown -->
+          <div class="text-right shrink-0">
+            <p class="text-2xl md:text-[28px] font-extrabold text-slate-900 tabular-nums leading-none whitespace-nowrap">
+              {{ activeUpcoming.timeLabel }}
+            </p>
+
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Matchup -->
+      <div class="p-4 md:p-5">
+        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 md:gap-4">
+          <!-- HOME -->
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="relative shrink-0">
+              <div class="absolute -inset-2 rounded-3xl bg-blue-500/10 blur-xl"></div>
+              <div
+                class="relative h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center"
+              >
+                <img
+                  v-if="activeUpcoming.homeLogo"
+                  :src="activeUpcoming.homeLogo"
+                  :alt="activeUpcoming.homeName"
+                  class="h-full w-full object-contain p-1.5"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span v-else class="text-sm font-extrabold text-blue-700">
+                  {{ initials(activeUpcoming.homeName) }}
+                </span>
               </div>
+            </div>
+
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Local</p>
+              <p class="text-base font-extrabold text-slate-900 truncate">
+                {{ activeUpcoming.homeName }}
+              </p>
+            </div>
+          </div>
+
+          <!-- VS -->
+          <div class="flex flex-col items-center justify-center px-1">
+            <span class="text-[11px] font-extrabold text-slate-400">VS</span>
+            <span class="mt-1 h-1 w-10 rounded-full bg-slate-200"></span>
+          </div>
+
+          <!-- AWAY -->
+          <div class="flex items-center justify-end gap-3 min-w-0">
+            <div class="min-w-0 text-right">
+              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Visitante</p>
+              <p class="text-base font-extrabold text-slate-900 truncate">
+                {{ activeUpcoming.awayName }}
+              </p>
+            </div>
+
+            <div class="relative shrink-0">
+              <div class="absolute -inset-2 rounded-3xl bg-emerald-500/10 blur-xl"></div>
+              <div
+                class="relative h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center"
+              >
+                <img
+                  v-if="activeUpcoming.awayLogo"
+                  :src="activeUpcoming.awayLogo"
+                  :alt="activeUpcoming.awayName"
+                  class="h-full w-full object-contain p-1.5"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span v-else class="text-sm font-extrabold text-emerald-700">
+                  {{ initials(activeUpcoming.awayName) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <p class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">ID Partido</p>
+            <p class="mt-0.5 text-sm font-extrabold text-slate-900 tabular-nums">{{ activeUpcoming.id }}</p>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <p class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Temporada</p>
+            <p class="mt-0.5 text-sm font-extrabold text-slate-900">
+              {{ activeUpcoming.seasonId ? `Temporada ${activeUpcoming.seasonId}` : '—' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="mt-4 flex flex-wrap gap-2">
+          <NuxtLink
+            to="/partidos"
+            class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-extrabold
+                   bg-blue-600 text-white hover:bg-blue-500
+                   shadow-[0_10px_25px_rgba(37,99,235,0.35)]"
+          >
+            Ver todos los partidos
+          </NuxtLink>
+
+
+        </div>
+
+        <!-- Dots -->
+        <div v-if="upcomingTotal > 1" class="mt-4 flex items-center justify-center gap-1.5">
+          <button
+            v-for="(_, i) in upcomingTotal"
+            :key="i"
+            type="button"
+            class="h-2.5 w-2.5 rounded-full border border-blue-200"
+            :class="i === upcomingIndex ? 'bg-blue-600 border-blue-600' : 'bg-white hover:bg-blue-50'"
+            @click="goToUpcoming(i)"
+            :title="`Ir al juego ${i + 1}`"
+          />
+        </div>
+      </div>
+    </article>
+  </div>
+</div>
+<!-- /PRÓXIMOS JUEGOS -->
+
+              <!-- /Próximos juegos -->
             </div>
           </div>
         </div>
@@ -774,6 +1017,225 @@ onBeforeUnmount(() => {
   if (intervalId) clearInterval(intervalId)
 })
 
+/* ===================== PRÓXIMOS JUEGOS (SLIDER 1/2) ===================== */
+type ApiTeamLite = Partial<{ name: string; shortName: string; logoUrl: string }>
+type ApiCategoryLite = Partial<{ id: number; name: string; code: string; gender: string }>
+
+type ApiGameLite = Partial<{
+  game_id: number
+  gameId: number
+  id: number
+
+  season_id: number
+  seasonId: number
+
+  status: string
+
+  match_date_utc: string
+  matchDateUtc: string
+  match_date: string
+
+  round_la: string | null
+  roundLabel: string | null
+
+  home_team: string | null
+  away_team: string | null
+
+  homeTeam: ApiTeamLite | null
+  awayTeam: ApiTeamLite | null
+  category: ApiCategoryLite | null
+}>
+
+type UpcomingVM = {
+  id: number
+  seasonId: number
+  status: 'SCHEDULED' | 'LIVE' | string
+  ms: number
+  dateLabel: string
+  timeLabel: string
+  round: string | null
+
+  gender: string | null
+  genderLabel: string | null
+  code: string | null
+  categoryName: string
+
+  homeName: string
+  awayName: string
+  homeLogo: string | null
+  awayLogo: string | null
+}
+
+const { data: gamesRaw, pending: gamesPending } = useApi<ApiGameLite[]>('/games')
+
+const nowMs = ref(0)
+let nowTimer: any = null
+
+const gameTimeFmt = new Intl.DateTimeFormat('es-MX', {
+  timeZone: 'America/Mexico_City',
+  hour: '2-digit',
+  minute: '2-digit'
+})
+
+const gameDateFmt = new Intl.DateTimeFormat('es-MX', {
+  timeZone: 'America/Mexico_City',
+  weekday: 'short',
+  day: '2-digit',
+  month: 'short'
+})
+
+onMounted(() => {
+  nowMs.value = Date.now()
+  nowTimer = setInterval(() => (nowMs.value = Date.now()), 60_000)
+})
+
+onBeforeUnmount(() => {
+  if (nowTimer) clearInterval(nowTimer)
+})
+
+function upper(v: any) {
+  return String(v ?? '').toUpperCase()
+}
+
+function toUtcMs(matchUtc: string) {
+  const s = String(matchUtc || '').trim()
+  if (!s) return 0
+  const hasTZ = s.endsWith('Z') || /[+-]\d\d:\d\d$/.test(s)
+  return new Date(hasTZ ? s : `${s}Z`).getTime()
+}
+
+function roundNumber(g: any): string | null {
+  const raw = String(g?.roundLabel ?? g?.round_la ?? '').trim()
+  if (!raw) return null
+  const digits = raw.match(/\d+/g)?.join('') ?? ''
+  if (!digits) return null
+  return String(parseInt(digits, 10))
+}
+
+function niceGenderLabel(g: string | null) {
+  const x = upper(g)
+  if (x === 'VARONIL') return 'Varonil'
+  if (x === 'FEMENIL') return 'Femenil'
+  if (x === 'MIXTO') return 'Mixto'
+  return g ? String(g) : null
+}
+
+function initials(text: string) {
+  const s = String(text || '').trim()
+  if (!s) return 'T5'
+  const parts = s.split(/\s+/).slice(0, 2)
+  return parts.map((p) => p[0]?.toUpperCase()).join('')
+}
+
+function kickoffHint(ms: number, status: string) {
+  const st = upper(status)
+  if (st === 'LIVE') return 'Jugándose ahora'
+  const diff = ms - (nowMs.value || Date.now())
+  if (!Number.isFinite(diff)) return '—'
+  if (diff <= 0) return 'En breve'
+  const mins = Math.round(diff / 60000)
+  const hrs = Math.round(diff / 3600000)
+  const days = Math.round(diff / 86400000)
+  if (mins <= 59) return `En ${mins} min`
+  if (hrs <= 48) return `En ${hrs} h`
+  return `En ${days} día(s)`
+}
+
+const upcomingGames = computed<UpcomingVM[]>(() => {
+  const raw = gamesRaw.value as unknown
+  if (!Array.isArray(raw)) return []
+
+  const list = raw as ApiGameLite[]
+  const cutoff = (nowMs.value || Date.now()) - 20 * 60_000
+
+  const out: UpcomingVM[] = []
+
+  for (const g of list) {
+    const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
+    if (!id) continue
+
+    const iso = String(g?.match_date_utc ?? g?.matchDateUtc ?? g?.match_date ?? '').trim()
+    const ms = toUtcMs(iso)
+    if (!ms) continue
+
+    const st = upper(g?.status ?? '')
+    if (!(st === 'SCHEDULED' || st === 'LIVE')) continue
+    if (ms < cutoff) continue
+
+    const d = new Date(ms)
+    const dateLabelRaw = gameDateFmt.format(d)
+    const dateLabel = dateLabelRaw.replace('.', '').replace(/^\w/, (c) => c.toUpperCase())
+
+    const categoryName = String(g?.category?.name ?? `Categoría ${g?.category?.id ?? ''}`).trim()
+    const gender = g?.category?.gender ? upper(g.category.gender) : null
+    const code = g?.category?.code ? String(g.category.code) : null
+
+    const homeName = String(g?.home_team ?? g?.homeTeam?.name ?? 'Local').trim()
+    const awayName = String(g?.away_team ?? g?.awayTeam?.name ?? 'Visitante').trim()
+
+    out.push({
+      id,
+      seasonId: Number(g?.season_id ?? g?.seasonId ?? 0) || 0,
+      status: (st as any) || 'SCHEDULED',
+      ms,
+      dateLabel,
+      timeLabel: gameTimeFmt.format(d),
+      round: roundNumber(g),
+
+      gender,
+      genderLabel: niceGenderLabel(gender),
+      code,
+      categoryName,
+
+      homeName,
+      awayName,
+      homeLogo: (g?.homeTeam as any)?.logoUrl ?? null,
+      awayLogo: (g?.awayTeam as any)?.logoUrl ?? null
+    })
+  }
+
+  out.sort((a, b) => a.ms - b.ms)
+  return out
+})
+/* ===================== PRÓXIMOS JUEGOS (1 A LA VEZ) ===================== */
+const upcomingIndex = ref(0)
+
+const upcomingTotal = computed(() => upcomingGames.value.length)
+
+const activeUpcoming = computed(() => {
+  const n = upcomingTotal.value
+  if (n <= 0) return null
+  const i = Math.min(Math.max(0, upcomingIndex.value), n - 1)
+  return upcomingGames.value[i] ?? null
+})
+
+watch(
+  () => upcomingTotal.value,
+  (n) => {
+    if (n <= 0) upcomingIndex.value = 0
+    else if (upcomingIndex.value > n - 1) upcomingIndex.value = 0
+  },
+  { immediate: true }
+)
+
+const goToUpcoming = (i: number) => {
+  const n = upcomingTotal.value
+  if (n <= 0) return
+  upcomingIndex.value = Math.min(Math.max(0, i), n - 1)
+}
+
+const nextUpcoming = () => {
+  const n = upcomingTotal.value
+  if (n <= 1) return
+  upcomingIndex.value = (upcomingIndex.value + 1) % n
+}
+
+const prevUpcoming = () => {
+  const n = upcomingTotal.value
+  if (n <= 1) return
+  upcomingIndex.value = (upcomingIndex.value - 1 + n) % n
+}
+
 /* ===================== PATROCINADORES (NUEVO DISEÑO) ===================== */
 interface Sponsor {
   id: string
@@ -794,24 +1256,6 @@ const sponsors = ref<Sponsor[]>([
     description: 'Dicass acompaña a jugadores y familias con activaciones, alimentos y experiencias dentro del deportivo.',
     url: 'https://dicass.com.mx/',
     label: 'Patrocinador principal'
-  },
-  {
-    id: 'marti',
-    name: 'Martí',
-    logo: '/img/sponsors/marti-logo.png',
-    tagline: 'Todo para el deporte.',
-    description: 'Equipo y accesorios para entrenar y competir.',
-    url: 'https://www.marti.mx/',
-    label: 'Aliado'
-  },
-  {
-    id: 'ruffles',
-    name: 'Ruffles',
-    logo: '/img/sponsors/ruffles-logo.png',
-    tagline: 'Sabor para la jornada.',
-    description: 'Snacks para el after-game y activaciones.',
-    url: 'https://ruffles.com.mx/lmx/',
-    label: 'Aliado'
   },
   {
     id: 'under-armour',
