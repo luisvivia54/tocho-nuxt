@@ -7,10 +7,10 @@
         <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div class="space-y-2">
             <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">
-              Tochero5 · Consola Admin
+              Tochero5 
             </p>
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">
-              Partidos (Admin)
+              Partidos 
             </h1>
             <p class="text-sm text-slate-300 max-w-xl">
               Misma vista de calendario, pero en ruta <span class="text-slate-100 font-semibold">/admin/partidos</span>.
