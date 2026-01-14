@@ -415,9 +415,9 @@
                   <tr class="text-left text-slate-500 border-b border-slate-200/80">
                     <th class="px-3 py-2">Rk</th>
                     <th class="px-3 py-2">Equipo</th>
-                    <th class="px-3 py-2">PJ</th>
-                    <th class="px-3 py-2">PG</th>
-                    <th class="px-3 py-2">GF</th>
+                    <th class="px-3 py-2">J</th>
+                    <th class="px-3 py-2">G</th>
+                    <th class="px-3 py-2">PF</th>
                     <th class="px-3 py-2">Pts</th>
                     <th class="px-3 py-2">Índice</th>
                   </tr>

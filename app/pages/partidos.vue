@@ -6,15 +6,8 @@
         <!-- HEADER -->
         <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div class="space-y-2">
-            <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">
-              Tochero5 
-            </p>
-            <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">
-              Partidos 
-            </h1>
-            <p class="text-sm text-slate-300 max-w-xl">
-              Misma vista de calendario, pero en ruta <span class="text-slate-100 font-semibold">/admin/partidos</span>.
-            </p>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">Tochero5</p>
+            <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Partidos</h1>
           </div>
 
           <div class="flex items-center gap-2">
@@ -47,8 +40,35 @@
           class="mb-6 rounded-3xl border border-slate-800/70 bg-slate-900/45 px-4 py-4 md:px-6 shadow-[0_18px_45px_rgba(0,0,0,0.30)]"
         >
           <div class="grid gap-4 md:grid-cols-12">
+            <!-- Temporada (por NOMBRE) -->
+            <div class="md:col-span-4">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Temporada</p>
+                <button
+                  type="button"
+                  @click="seasonPick = 'ALL'"
+                  class="text-[11px] font-semibold text-slate-300 hover:text-slate-100 underline underline-offset-4"
+                >
+                  Limpiar
+                </button>
+              </div>
+
+              <div class="rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2">
+                <select v-model="seasonPick" class="w-full bg-transparent outline-none text-xs text-slate-100">
+                  <option value="ALL">Todas</option>
+                  <option v-for="s in seasonOptions" :key="s.id" :value="String(s.id)">
+                    {{ s.name }}
+                  </option>
+                </select>
+              </div>
+
+              <p class="mt-2 text-[11px] text-slate-500">
+                Filtras por el <span class="text-slate-300 font-semibold">nombre</span> mostrado (internamente usa el ID).
+              </p>
+            </div>
+
             <!-- Jornada -->
-            <div class="md:col-span-6">
+            <div class="md:col-span-8">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Jornada</p>
                 <button
@@ -101,7 +121,7 @@
             </div>
 
             <!-- Categoría -->
-            <div class="md:col-span-3">
+            <div class="md:col-span-6">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Categoría</p>
                 <button
@@ -134,7 +154,7 @@
             </div>
 
             <!-- Rama -->
-            <div class="md:col-span-3">
+            <div class="md:col-span-6">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Rama</p>
                 <button
@@ -223,7 +243,7 @@
         <section class="space-y-6">
           <div v-if="!pending && filteredTotal === 0" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
             <p class="text-sm text-slate-200 font-semibold">No hay partidos con esos filtros.</p>
-            <p class="text-xs text-slate-400 mt-1">Cambia jornada / categoría / rama o limpia filtros.</p>
+            <p class="text-xs text-slate-400 mt-1">Cambia temporada / jornada / categoría / rama o limpia filtros.</p>
           </div>
 
           <div v-for="group in grouped" :key="group.key" class="space-y-3">
@@ -272,7 +292,9 @@
               <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
                 <!-- Local -->
                 <div class="flex items-center gap-3 min-w-0">
-                  <div class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden">
+                  <div
+                    class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden"
+                  >
                     <img
                       v-if="g.homeLogo"
                       :src="g.homeLogo"
@@ -300,9 +322,7 @@
                 <div class="flex flex-col items-center justify-center min-w-[120px]">
                   <template v-if="g.isFinal">
                     <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Marcador</p>
-                    <div
-                      class="inline-flex items-center gap-3 rounded-2xl border border-emerald-400/35 bg-emerald-500/10 px-4 py-2"
-                    >
+                    <div class="inline-flex items-center gap-3 rounded-2xl border border-emerald-400/35 bg-emerald-500/10 px-4 py-2">
                       <span class="text-2xl md:text-3xl font-extrabold text-slate-50 tabular-nums">
                         {{ g.homeScore ?? '—' }}
                       </span>
@@ -332,7 +352,9 @@
                     </p>
                   </div>
 
-                  <div class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden">
+                  <div
+                    class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden"
+                  >
                     <img
                       v-if="g.awayLogo"
                       :src="g.awayLogo"
@@ -353,7 +375,10 @@
                 <p class="truncate">
                   ID: <span class="text-slate-200 font-semibold">{{ g.id }}</span>
                   <span class="text-slate-600">·</span>
-                  Temporada: <span class="text-slate-200 font-semibold">{{ g.seasonId }}</span>
+                  Temporada:
+                  <span class="text-slate-200 font-semibold">
+                    {{ g.seasonName || (g.seasonId ? `Temporada #${g.seasonId}` : '—') }}
+                  </span>
                 </p>
 
                 <span class="text-slate-500">
@@ -438,6 +463,11 @@ type Category = {
   gender?: Gender
 }
 
+type Season = {
+  id: number
+  name: string
+}
+
 type Game = {
   game_id?: number
   gameId?: number
@@ -445,6 +475,8 @@ type Game = {
 
   season_id?: number
   seasonId?: number
+  seasonName?: string
+  season?: { id?: number; name?: string } | null
 
   status?: string
   match_date_utc?: string
@@ -471,6 +503,7 @@ type Game = {
 type VMGame = {
   id: number
   seasonId: number
+  seasonName: string
   status: string
   ms: number
   dateKey: string
@@ -498,6 +531,7 @@ const config = useRuntimeConfig()
 const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
 
 /** filtros */
+const seasonPick = ref<'ALL' | string>('ALL')
 const roundPick = ref<'ALL' | string>('ALL')
 const roundInput = ref('')
 const categoria = ref<'ALL' | Gender>('ALL')
@@ -515,7 +549,7 @@ const pageSize = ref(5)
 const page = ref(1)
 const pageInput = ref('1')
 
-watch([roundPick, categoria, rama], () => {
+watch([seasonPick, roundPick, categoria, rama], () => {
   page.value = 1
   pageInput.value = '1'
 })
@@ -548,6 +582,54 @@ const dateFmt = new Intl.DateTimeFormat('es-MX', {
   year: 'numeric',
 })
 
+/** 🔥 fetch seasons (solo para mostrar NOMBRE de temporada) */
+const { data: seasonsRaw } = useAsyncData<any[]>(
+  'seasons-admin-lite',
+  async () => {
+    const try1 = await $fetch<any>(`${API_BASE}/seasons/list`).catch(() => null)
+    if (Array.isArray(try1)) return try1
+    const try2 = await $fetch<any>(`${API_BASE}/seasons`).catch(() => [])
+    return Array.isArray(try2) ? try2 : []
+  },
+  { server: false }
+)
+
+const seasonsMap = computed<Record<number, string>>(() => {
+  const out: Record<number, string> = {}
+  const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
+  for (const s of list) {
+    const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
+    if (!id) continue
+    const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
+    out[id] = name
+  }
+  return out
+})
+
+/* ===================== FIX: SEASON FILTER ROBUSTO ===================== */
+function seasonKey(name: string) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // quita acentos
+    .replace(/\s+/g, ' ')
+}
+
+const seasonNameToId = computed<Record<string, number>>(() => {
+  const out: Record<string, number> = {}
+  const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
+  for (const s of list) {
+    const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
+    if (!id) continue
+    const name = String(s?.name ?? s?.seasonName ?? s?.title ?? '').trim()
+    if (!name) continue
+    out[seasonKey(name)] = id
+  }
+  return out
+})
+/* ===================================================================== */
+
 /** 🔥 fetch: scheduled + finals (se combinan por ID) */
 const { data, pending, error, refresh } = useAsyncData<Game[]>(
   'games-calendar-admin-paged-5',
@@ -557,10 +639,7 @@ const { data, pending, error, refresh } = useAsyncData<Game[]>(
       $fetch<any>(`${API_BASE}/gamesFinal`).catch(() => []),
     ])
 
-    const all = [
-      ...(Array.isArray(scheduled) ? scheduled : []),
-      ...(Array.isArray(finals) ? finals : []),
-    ]
+    const all = [...(Array.isArray(scheduled) ? scheduled : []), ...(Array.isArray(finals) ? finals : [])]
 
     const map = new Map<number, any>()
     for (const g of all) {
@@ -570,7 +649,8 @@ const { data, pending, error, refresh } = useAsyncData<Game[]>(
     }
 
     return Array.from(map.values())
-  }
+  },
+  { server: false }
 )
 
 watch([pending], () => {
@@ -578,9 +658,7 @@ watch([pending], () => {
   pageInput.value = '1'
 })
 
-const errorMsg = computed(() =>
-  error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''
-)
+const errorMsg = computed(() => (error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''))
 
 /** VM + contadores */
 const vmAll = shallowRef<VMGame[]>(markRaw([]))
@@ -589,8 +667,8 @@ const genderCounts = shallowRef<Record<string, number>>(markRaw({}))
 const ramaCountsByGender = shallowRef<Record<string, Record<string, number>>>(markRaw({}))
 
 watch(
-  data,
-  (raw) => {
+  [data, seasonsMap, seasonNameToId],
+  ([raw]) => {
     const list = raw ?? []
     const out: VMGame[] = []
     const rc: Record<string, number> = {}
@@ -603,11 +681,24 @@ watch(
       const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
       if (!id) continue
 
-      const seasonId = Number(g?.season_id ?? g?.seasonId ?? 0) || 0
+      let seasonId = Number(g?.season_id ?? g?.seasonId ?? g?.season?.id ?? 0) || 0
 
-      const iso =
-        String(g?.match_date_utc ?? g?.matchDateUtc ?? g?.match_date ?? '').trim()
+      let seasonName =
+        String(g?.seasonName ?? g?.season?.name ?? '').trim() ||
+        (seasonId ? (seasonsMap.value[seasonId] || `Temporada #${seasonId}`) : '')
 
+      // ✅ si NO viene seasonId pero SÍ viene seasonName, inferimos el ID desde el catálogo
+      if (!seasonId && seasonName) {
+        const guess = seasonNameToId.value[seasonKey(seasonName)] || 0
+        if (guess) seasonId = guess
+      }
+
+      // ✅ si ya tenemos ID pero el nombre venía vacío, lo resolvemos
+      if (!seasonName && seasonId) {
+        seasonName = seasonsMap.value[seasonId] || `Temporada #${seasonId}`
+      }
+
+      const iso = String(g?.match_date_utc ?? g?.matchDateUtc ?? g?.match_date ?? '').trim()
       const ms = toUtcMs(iso)
       const d = new Date(ms || Date.now())
       const dateKey = (ms ? d.toISOString() : new Date().toISOString()).slice(0, 10)
@@ -635,8 +726,7 @@ watch(
 
       // ✅ status confiable: si trae marcador asumimos FINAL
       const rawStatus = String(g?.status ?? '').trim()
-      const hasScore =
-        g?.homeScore != null || g?.awayScore != null || g?.home_score != null || g?.away_score != null
+      const hasScore = g?.homeScore != null || g?.awayScore != null || g?.home_score != null || g?.away_score != null
 
       const status = upper(rawStatus) || (hasScore ? 'FINAL' : 'SCHEDULED')
       const isFinal = status === 'FINAL'
@@ -647,6 +737,7 @@ watch(
       out.push({
         id,
         seasonId,
+        seasonName,
         status,
         ms: ms || 0,
         dateKey,
@@ -673,12 +764,8 @@ watch(
       const ra = statusRank(a.status)
       const rb = statusRank(b.status)
       if (ra !== rb) return ra - rb
-
-      // dentro de SCHEDULED/LIVE: próximos primero
-      if (ra <= 1) return (a.ms || 0) - (b.ms || 0)
-
-      // dentro de FINAL: más recientes primero
-      return (b.ms || 0) - (a.ms || 0)
+      if (ra <= 1) return (a.ms || 0) - (b.ms || 0) // próximos primero
+      return (b.ms || 0) - (a.ms || 0) // finales recientes primero
     })
 
     vmAll.value = markRaw(out)
@@ -693,6 +780,32 @@ watch(
 )
 
 /** opciones */
+const seasonOptions = computed<Season[]>(() => {
+  // 1) si seasons endpoint responde, úsalo
+  const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
+  const fromApi: Season[] = list
+    .map((s: any) => {
+      const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
+      const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
+      return { id, name }
+    })
+    .filter((s) => s.id > 0 && !!s.name)
+
+  if (fromApi.length) {
+    return [...fromApi].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  }
+
+  // 2) fallback: deriva de games
+  const m = new Map<number, string>()
+  for (const g of vmAll.value) {
+    if (!g.seasonId) continue
+    m.set(g.seasonId, g.seasonName || `Temporada #${g.seasonId}`)
+  }
+  return Array.from(m.entries())
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+})
+
 const roundOptions = computed(() => {
   return Object.entries(roundCounts.value)
     .map(([round, count]) => ({ round, count }))
@@ -716,6 +829,14 @@ const ramaOptions = computed(() => {
 
 /** filtros -> lista plana (para paginar) */
 const filteredAll = computed(() => {
+  const sp = seasonPick.value === 'ALL' ? 0 : Number(seasonPick.value || 0)
+
+  // ✅ nombre seleccionado para fallback por nombre (si el juego no trae seasonId)
+  const selectedSeasonName = sp
+    ? (seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`)
+    : ''
+  const selectedSeasonKey = sp ? seasonKey(selectedSeasonName) : ''
+
   const rp = roundPick.value === 'ALL' ? null : normalizeRound(roundPick.value)
   const cg = categoria.value === 'ALL' ? null : upper(categoria.value)
   const rc = rama.value === 'ALL' ? null : upper(rama.value)
@@ -724,6 +845,16 @@ const filteredAll = computed(() => {
 
   const out: VMGame[] = []
   for (const g of vmAll.value) {
+    // ✅ season robusto: por id si existe, si no por nombre normalizado
+    if (sp) {
+      const gid = Number(g.seasonId || 0)
+      if (gid) {
+        if (gid !== sp) continue
+      } else {
+        if (seasonKey(g.seasonName || '') !== selectedSeasonKey) continue
+      }
+    }
+
     if (rp && normalizeRound(g.round ?? '') !== rp) continue
     if (cg && upper(g.gender ?? '') !== cg) continue
     if (cg && rc && upper(g.code ?? '') !== rc) continue
@@ -776,6 +907,7 @@ const pageRangeLabel = computed(() => {
 
 /** acciones */
 function resetFilters() {
+  seasonPick.value = 'ALL'
   roundPick.value = 'ALL'
   roundInput.value = ''
   categoria.value = 'ALL'
@@ -814,8 +946,7 @@ function applyPageInput() {
 
 /* ---------- helpers UI ---------- */
 function segBtn(active: boolean, tone: 'base' | 'blue' | 'emerald' | 'amber' = 'base', disabled = false) {
-  const base =
-    'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-[11px] font-semibold transition select-none'
+  const base = 'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-[11px] font-semibold transition select-none'
   const off = 'border-transparent text-slate-300 hover:bg-slate-900/60 hover:text-slate-100'
   const dis = 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-slate-300'
   if (disabled) return `${base} ${off} ${dis}`
