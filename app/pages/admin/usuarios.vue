@@ -552,503 +552,540 @@
     </div>
   </main>
 </template>
-
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRuntimeConfig, useNuxtApp, useState } from '#imports'
-import { $fetch } from 'ofetch'
-import { useAuthz } from '@/composables/useAuthz'
-
-type RoleDb = 'ADMIN' | 'CAPTAIN' | 'USER'
-type PatchRole = 'CAPTAIN' | 'USER'
-
-type AdminUserRowDTO = {
-  id: number
-  keycloakId: string
-  email: string
-  fullName: string
-  role: string
-  maxTeamsAllowed: number
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-type SpringPage<T> = {
-  content: T[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-}
-
-type User = {
-  id: number
-  keycloakId: string
-  email: string
-  fullName: string
-  role: RoleDb
-  maxTeamsAllowed: number
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-  flags: { verified: boolean }
-  initials: string
-  avatarStyle: Record<string, string>
-}
-
-type AdminUserPatchRequest = {
-  role?: PatchRole
-  maxTeamsAllowed?: number
-  isActive?: boolean
-}
-
-function toPatchRole(r: RoleDb): PatchRole | undefined {
-  return r === 'CAPTAIN' ? 'CAPTAIN' : r === 'USER' ? 'USER' : undefined
-}
-
-/* ---------------- API base ----------------
-   .env:
-   NUXT_PUBLIC_API_BASE=https://tocho5-api.tochero5.mx/api
-*/
-const config = useRuntimeConfig()
-const API_BASE = computed(() => {
-  return (
-    (config.public as any).apiBase ||
-    (config.public as any).apiUrl ||
-    'https://tocho5-api.tochero5.mx/api'
-  )
-})
-
-/* ---------------- Auth / KC token ---------------- */
-const nuxtApp = useNuxtApp()
-const { isAuthenticated } = useAuthz() as any
-const kcReady = useState<boolean>('kcReady', () => false)
-
-const canCallApi = computed(() => {
-  return process.client && kcReady.value && !!isAuthenticated.value
-})
-
-function getKc() {
-  return (nuxtApp as any).$kc
-}
-
-async function getAccessToken(): Promise<string> {
-  if (!process.client) return ''
-
-  const kc = getKc()
-  if (!kc || !kcReady.value) return ''
-
-  try {
-    if (typeof kc.updateToken === 'function') {
-      await kc.updateToken(30)
-    }
-  } catch {
-    // ignore
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+  import { useRuntimeConfig, useNuxtApp, useState } from '#imports'
+  import { $fetch } from 'ofetch'
+  import { useAuthz } from '@/composables/useAuthz'
+  
+  type RoleDb = 'ADMIN' | 'CAPTAIN' | 'USER'
+  type PatchRole = 'CAPTAIN' | 'USER'
+  
+  type AdminUserRowDTO = {
+    id: number
+    keycloakId: string
+    email: string
+    fullName: string
+    role: string
+    maxTeamsAllowed: number
+    isActive: boolean
+    createdAt: string
+    updatedAt: string
   }
-
-  return typeof kc.token === 'string' ? kc.token : ''
-}
-
-type ApiFetchOpts = {
-  method?: string
-  headers?: Record<string, string>
-  body?: any
-  requireAuth?: boolean
-}
-
-async function apiFetch<T>(path: string, opts: ApiFetchOpts = {}): Promise<T> {
-  const requireAuth = opts.requireAuth ?? true
-  const token = await getAccessToken()
-
-  if (requireAuth && !token) {
-    throw new Error('NO_TOKEN')
+  
+  type SpringPage<T> = {
+    content: T[]
+    totalElements: number
+    totalPages: number
+    number: number
+    size: number
   }
-
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    ...(opts.headers || {}),
+  
+  type User = {
+    id: number
+    keycloakId: string
+    email: string
+    fullName: string
+    role: RoleDb
+    maxTeamsAllowed: number
+    isActive: boolean
+    createdAt: string
+    updatedAt: string
+    flags: { verified: boolean }
+    initials: string
+    avatarStyle: Record<string, string>
   }
-
-  if (token) headers.Authorization = `Bearer ${token}`
-
-  const url = path.startsWith('http') ? path : `${API_BASE.value}${path}`
-
-  return await $fetch<T>(url, {
-    ...opts,
-    headers,
+  
+  type AdminUserPatchRequest = {
+    role?: PatchRole
+    maxTeamsAllowed?: number
+    isActive?: boolean
+  }
+  
+  function toPatchRole(r: RoleDb): PatchRole | undefined {
+    return r === 'CAPTAIN' ? 'CAPTAIN' : r === 'USER' ? 'USER' : undefined
+  }
+  
+  /* ---------------- API base ---------------- */
+  const config = useRuntimeConfig()
+  const API_BASE = computed(() => {
+    return (
+      (config.public as any).apiBase ||
+      (config.public as any).apiUrl ||
+      'https://tocho5-api.tochero5.mx/api'
+    )
   })
-}
-
-/* -------- state -------- */
-const users = ref<User[]>([])
-const totalElements = ref(0)
-const totalPages = ref(1)
-
-const query = ref('')
-const roleOnly = ref<'all' | RoleDb>('all')
-const sortKey = ref<'createdDesc' | 'nameAsc' | 'teamsDesc'>('createdDesc')
-
-const page = ref(0) // backend 0-based
-const pageSize = ref(25)
-
-const isLoading = ref(false)
-const isSaving = ref(false)
-
-const selectedUserId = ref<number | null>(null)
-const roleDraft = ref<RoleDb>('USER')
-const teamsDraft = ref<number>(0)
-
-const dirtyIds = ref<Set<number>>(new Set())
-const draftById = ref<Record<number, AdminUserPatchRequest>>({})
-
-const searchInput = ref<HTMLInputElement | null>(null)
-
-/* -------- computed -------- */
-const selectedUser = computed(() => {
-  if (!selectedUserId.value) return null
-  return users.value.find(u => u.id === selectedUserId.value) || null
-})
-
-watch(selectedUser, (u) => {
-  if (!u) return
-  roleDraft.value = u.role
-  teamsDraft.value = clampTeams(u.maxTeamsAllowed)
-})
-
-/* -------- load (debounced) -------- */
-let tReload: any = null
-function scheduleReload() {
-  if (tReload) clearTimeout(tReload)
-  tReload = setTimeout(() => reloadNow(), 260)
-}
-onBeforeUnmount(() => { if (tReload) clearTimeout(tReload) })
-
-watch([query, roleOnly, sortKey, pageSize], () => {
-  page.value = 0
-  selectedUserId.value = null
-  scheduleReload()
-})
-
-watch(page, () => {
-  if (page.value < 0) page.value = 0
-  if (page.value > totalPages.value - 1) page.value = Math.max(0, totalPages.value - 1)
-  scheduleReload()
-})
-
-async function reloadNow() {
-  if (!canCallApi.value) {
-    // no spamear toasts; solo si intentan manualmente
-    return
+  
+  /* ---------------- Auth / KC token ---------------- */
+  const nuxtApp = useNuxtApp()
+  const { isAuthenticated } = useAuthz() as any
+  const kcReady = useState<boolean>('kcReady', () => false)
+  
+  const canCallApi = computed(() => process.client && kcReady.value && !!isAuthenticated.value)
+  
+  function getKc() {
+    return (nuxtApp as any).$kc
   }
-
-  isLoading.value = true
-  try {
-    const params = new URLSearchParams()
-    if (query.value.trim()) params.set('q', query.value.trim())
-    if (roleOnly.value !== 'all') params.set('role', roleOnly.value)
-    params.set('page', String(page.value))
-    params.set('size', String(pageSize.value))
-    params.set('sort', sortKey.value)
-
-    const res = await apiFetch<SpringPage<AdminUserRowDTO>>(`/admin/users?${params.toString()}`)
-    users.value = (res.content || []).map(rowToUser)
-    totalElements.value = Number(res.totalElements ?? 0)
-    totalPages.value = Math.max(1, Number(res.totalPages ?? 1))
-
-    if (selectedUserId.value && !users.value.some(u => u.id === selectedUserId.value)) {
-      selectedUserId.value = null
+  
+  function getMyKeycloakId(): string {
+    const kc = getKc()
+    // keycloak-js usa `subject` y/o `tokenParsed.sub`
+    return (kc?.subject as string) || (kc?.tokenParsed?.sub as string) || ''
+  }
+  
+  async function getAccessToken(): Promise<string> {
+    if (!process.client) return ''
+    const kc = getKc()
+    if (!kc || !kcReady.value) return ''
+  
+    try {
+      if (typeof kc.updateToken === 'function') await kc.updateToken(30)
+    } catch {
+      // ignore
     }
-  } catch (e: any) {
-    const msg = String(e?.message || '')
-    if (msg.includes('NO_TOKEN')) {
-      toast('No hay token aún (esperando Keycloak)…', 'info')
-    } else if (e?.status === 401) {
-      toast('401: Token inválido/expirado o sin rol admin', 'danger')
-    } else {
-      toast('Error cargando usuarios', 'danger')
+  
+    return typeof kc.token === 'string' ? kc.token : ''
+  }
+  
+  type ApiFetchOpts = {
+    method?: string
+    headers?: Record<string, string>
+    body?: any
+    requireAuth?: boolean
+  }
+  
+  async function apiFetch<T>(path: string, opts: ApiFetchOpts = {}): Promise<T> {
+    const requireAuth = opts.requireAuth ?? true
+    const token = await getAccessToken()
+  
+    if (requireAuth && !token) throw new Error('NO_TOKEN')
+  
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      ...(opts.headers || {}),
     }
-  } finally {
-    isLoading.value = false
-  }
-}
-
-/* ✅ Carga SOLO cuando ya esté listo Keycloak + auth */
-watch(
-  () => ({ ready: kcReady.value, auth: !!isAuthenticated.value }),
-  async ({ ready, auth }) => {
-    if (ready && auth && users.value.length === 0 && !isLoading.value) {
-      await reloadNow()
-    }
-  },
-  { immediate: true }
-)
-
-/* -------- actions -------- */
-function openUser(id: number) {
-  selectedUserId.value = id
-}
-function closeUser() {
-  selectedUserId.value = null
-}
-
-function bumpTeams(delta: number) {
-  teamsDraft.value = clampTeams((Number(teamsDraft.value) || 0) + delta)
-}
-
-function resetDraft() {
-  const u = selectedUser.value
-  if (!u) return
-  roleDraft.value = u.role
-  teamsDraft.value = clampTeams(u.maxTeamsAllowed)
-  toast('Cambios descartados', 'info')
-}
-
-function applyChanges() {
-  const u = selectedUser.value
-  if (!u) return
-
-  // Admin no cambia rol
-  let nextRole: RoleDb = u.role
-  if (u.role !== 'ADMIN') {
-    nextRole = (roleDraft.value === 'CAPTAIN' ? 'CAPTAIN' : 'USER')
-  } else {
-    roleDraft.value = 'ADMIN'
-  }
-
-  let nextTeams = clampTeams(teamsDraft.value)
-
-  // regla opcional: USER máximo 1
-  if (nextRole === 'USER' && nextTeams > 1) {
-    nextTeams = 1
-    teamsDraft.value = 1
-    toast('Usuario: límite recortado a 1', 'info')
-  }
-
-  // UI optimista
-  u.role = nextRole
-  u.maxTeamsAllowed = nextTeams
-  u.updatedAt = new Date().toISOString()
-  refreshUi(u)
-
-  // patch (SIN ADMIN)
-  const patch: AdminUserPatchRequest = {
-    maxTeamsAllowed: nextTeams,
-  }
-  const pr = toPatchRole(nextRole)
-  if (pr) patch.role = pr
-
-  draftById.value = { ...draftById.value, [u.id]: patch }
-  dirtyIds.value = new Set(dirtyIds.value).add(u.id)
-  toast('Cambios aplicados (pendientes de guardar)', 'success')
-}
-
-async function saveDirty() {
-  const ids = Array.from(dirtyIds.value)
-  if (!ids.length) return
-
-  if (!canCallApi.value) {
-    toast('No autenticado todavía (Keycloak)…', 'info')
-    return
-  }
-
-  isSaving.value = true
-  try {
-    for (const id of ids) {
-      const patch = draftById.value[id]
-      if (!patch) {
-        const nd = new Set(dirtyIds.value); nd.delete(id); dirtyIds.value = nd
-        continue
+    if (token) headers.Authorization = `Bearer ${token}`
+  
+    const url = path.startsWith('http') ? path : `${API_BASE.value}${path}`
+  
+    // retry 1 vez si 401 por token vencido
+    try {
+      return await $fetch<T>(url, { ...opts, headers })
+    } catch (e: any) {
+      if (e?.status === 401 && process.client) {
+        const kc = getKc()
+        try {
+          if (kc && typeof kc.updateToken === 'function') {
+            await kc.updateToken(0)
+            const token2 = await getAccessToken()
+            const headers2 = { ...headers }
+            if (token2) headers2.Authorization = `Bearer ${token2}`
+            return await $fetch<T>(url, { ...opts, headers: headers2 })
+          }
+        } catch {
+          // ignore
+        }
       }
-
-      try {
-        const updated = await apiFetch<AdminUserRowDTO>(`/admin/users/${id}`, {
-          method: 'PATCH',
-          body: patch,
-        })
-
-        const idx = users.value.findIndex(u => u.id === id)
-        if (idx >= 0) users.value[idx] = rowToUser(updated)
-
-        const nd = new Set(dirtyIds.value); nd.delete(id); dirtyIds.value = nd
-        const { [id]: _, ...rest } = draftById.value
-        draftById.value = rest
-
+      throw e
+    }
+  }
+  
+  /* -------- state -------- */
+  const users = ref<User[]>([])
+  const totalElements = ref(0)
+  const totalPages = ref(1)
+  
+  const query = ref('')
+  const roleOnly = ref<'all' | RoleDb>('all')
+  const sortKey = ref<'createdDesc' | 'nameAsc' | 'teamsDesc'>('createdDesc')
+  
+  const page = ref(0)
+  const pageSize = ref(25)
+  
+  const isLoading = ref(false)
+  const isSaving = ref(false)
+  
+  const selectedUserId = ref<number | null>(null)
+  const roleDraft = ref<RoleDb>('USER')
+  const teamsDraft = ref<number>(0)
+  
+  const dirtyIds = ref<Set<number>>(new Set())
+  const draftById = ref<Record<number, AdminUserPatchRequest>>({})
+  
+  const searchInput = ref<HTMLInputElement | null>(null)
+  
+  /* -------- computed -------- */
+  const selectedUser = computed(() => {
+    if (!selectedUserId.value) return null
+    return users.value.find(u => u.id === selectedUserId.value) || null
+  })
+  
+  watch(selectedUser, (u) => {
+    if (!u) return
+    roleDraft.value = u.role
+    teamsDraft.value = clampTeams(u.maxTeamsAllowed)
+  })
+  
+  /* -------- load (debounced) -------- */
+  let tReload: any = null
+  function scheduleReload() {
+    if (tReload) clearTimeout(tReload)
+    tReload = setTimeout(() => reloadNow(), 260)
+  }
+  onBeforeUnmount(() => { if (tReload) clearTimeout(tReload) })
+  
+  watch([query, roleOnly, sortKey, pageSize], () => {
+    page.value = 0
+    selectedUserId.value = null
+    scheduleReload()
+  })
+  
+  watch(page, () => {
+    if (page.value < 0) page.value = 0
+    if (page.value > totalPages.value - 1) page.value = Math.max(0, totalPages.value - 1)
+    scheduleReload()
+  })
+  
+  async function reloadNow() {
+    if (!canCallApi.value) return
+    isLoading.value = true
+    try {
+      const params = new URLSearchParams()
+      if (query.value.trim()) params.set('q', query.value.trim())
+      if (roleOnly.value !== 'all') params.set('role', roleOnly.value)
+      params.set('page', String(page.value))
+      params.set('size', String(pageSize.value))
+      params.set('sort', sortKey.value)
+  
+      const res = await apiFetch<SpringPage<AdminUserRowDTO>>(`/admin/users?${params.toString()}`)
+      users.value = (res.content || []).map(rowToUser)
+      totalElements.value = Number(res.totalElements ?? 0)
+      totalPages.value = Math.max(1, Number(res.totalPages ?? 1))
+  
+      if (selectedUserId.value && !users.value.some(u => u.id === selectedUserId.value)) {
+        selectedUserId.value = null
+      }
+    } catch (e: any) {
+      const msg = String(e?.message || '')
+      if (msg.includes('NO_TOKEN')) toast('No hay token aún (Keycloak)…', 'info')
+      else if (e?.status === 401) toast('401: token inválido o sin rol admin', 'danger')
+      else toast('Error cargando usuarios', 'danger')
+    } finally {
+      isLoading.value = false
+    }
+  }
+  
+  /* ✅ carga cuando KC esté listo */
+  watch(
+    () => ({ ready: kcReady.value, auth: !!isAuthenticated.value }),
+    async ({ ready, auth }) => {
+      if (ready && auth && users.value.length === 0 && !isLoading.value) await reloadNow()
+    },
+    { immediate: true }
+  )
+  
+  /* -------- actions -------- */
+  function openUser(id: number) { selectedUserId.value = id }
+  function closeUser() { selectedUserId.value = null }
+  
+  function bumpTeams(delta: number) {
+    teamsDraft.value = clampTeams((Number(teamsDraft.value) || 0) + delta)
+  }
+  
+  function resetDraft() {
+    const u = selectedUser.value
+    if (!u) return
+    roleDraft.value = u.role
+    teamsDraft.value = clampTeams(u.maxTeamsAllowed)
+    toast('Cambios descartados', 'info')
+  }
+  
+  /**
+   * Guarda 1 usuario (DB + Keycloak).
+   * - si el usuario editado soy yo y me quité admin => logout para forzar relogin.
+   */
+  async function saveOne(id: number) {
+    const patch = draftById.value[id]
+    if (!patch) return
+  
+    try {
+      const updated = await apiFetch<AdminUserRowDTO>(`/admin/users/${id}`, {
+        method: 'PATCH',
+        body: patch,
+      })
+  
+      // actualizar UI con respuesta real
+      const idx = users.value.findIndex(u => u.id === id)
+      if (idx >= 0) users.value[idx] = rowToUser(updated)
+  
+      // limpiar dirty
+      const nd = new Set(dirtyIds.value); nd.delete(id); dirtyIds.value = nd
+      const { [id]: _, ...rest } = draftById.value
+      draftById.value = rest
+  
+      // UX: avisar que KC fue afectado (si role fue parte del patch)
+      if (patch.role || patch.isActive === false) {
+        toast('Keycloak: rol/sesión actualizados (re-login requerido para ese usuario)', 'info')
+      } else {
         toast(`Guardado: ${shortKc(updated.keycloakId)}`, 'success')
-      } catch (e: any) {
-        if (e?.status === 401) toast('401 guardando: token/rol', 'danger')
-        else toast(`Falló guardar usuario ${id}`, 'danger')
       }
+  
+      // si me edité a mi mismo y toqué rol (me puedo quedar sin admin)
+      const myKcId = getMyKeycloakId()
+      if (myKcId && updated.keycloakId === myKcId && patch.role) {
+        toast('Te cambiaste tu rol: cerrando sesión…', 'danger')
+        const kc = getKc()
+        setTimeout(() => {
+          try { kc?.logout?.() } catch {}
+        }, 350)
+      }
+    } catch (e: any) {
+      // dejarlo en dirty para reintentar
+      toast(e?.status === 401 ? '401 guardando: token/rol admin' : `Falló guardar usuario ${id}`, 'danger')
+      throw e
     }
-  } finally {
-    isSaving.value = false
   }
-}
-
-function clearAll() {
-  query.value = ''
-  roleOnly.value = 'all'
-  sortKey.value = 'createdDesc'
-  page.value = 0
-  toast('Filtros reiniciados', 'info')
-}
-
-/* -------- UI helpers -------- */
-type ToastTone = 'success' | 'info' | 'danger'
-type Toast = { id: string; message: string; tone: ToastTone; meta: string }
-const toasts = ref<Toast[]>([])
-const toastTimers = new Map<string, any>()
-
-function toast(message: string, tone: ToastTone = 'info') {
-  const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
-  const meta = new Date().toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit' })
-  toasts.value = [{ id, message, tone, meta }, ...toasts.value].slice(0, 4)
-  const timer = setTimeout(() => removeToast(id), 3200)
-  toastTimers.set(id, timer)
-}
-function removeToast(id: string) {
-  const timer = toastTimers.get(id)
-  if (timer) clearTimeout(timer)
-  toastTimers.delete(id)
-  toasts.value = toasts.value.filter(t => t.id !== id)
-}
-onBeforeUnmount(() => {
-  toastTimers.forEach(t => clearTimeout(t))
-  toastTimers.clear()
-})
-
-function chipClass(active: boolean) {
-  return [
-    'rounded-2xl px-3 py-2 text-xs font-semibold ring-1 transition focus:outline-none focus:ring-2 focus:ring-cyan-400/30',
-    active ? 'bg-cyan-500/15 text-cyan-100 ring-cyan-400/20' : 'bg-black/20 text-slate-200 ring-white/10 hover:bg-black/30',
-  ]
-}
-
-function badgeClass(tone: string) {
-  const map: Record<string, string> = {
-    indigo: 'bg-indigo-500/10 text-indigo-200 ring-indigo-400/20',
-    purple: 'bg-purple-500/10 text-purple-200 ring-purple-400/20',
-    slate: 'bg-white/5 text-slate-200 ring-white/10',
+  
+  function applyChanges() {
+    const u = selectedUser.value
+    if (!u) return
+  
+    // Admin no cambia rol
+    let nextRole: RoleDb = u.role
+    if (u.role !== 'ADMIN') {
+      nextRole = (roleDraft.value === 'CAPTAIN' ? 'CAPTAIN' : 'USER')
+    } else {
+      roleDraft.value = 'ADMIN'
+    }
+  
+    let nextTeams = clampTeams(teamsDraft.value)
+  
+    // regla opcional: USER máximo 1
+    if (nextRole === 'USER' && nextTeams > 1) {
+      nextTeams = 1
+      teamsDraft.value = 1
+      toast('Usuario: límite recortado a 1', 'info')
+    }
+  
+    // patch (SIN ADMIN)
+    const patch: AdminUserPatchRequest = { maxTeamsAllowed: nextTeams }
+    const pr = toPatchRole(nextRole)
+    if (pr) patch.role = pr
+  
+    // UI optimista
+    u.role = nextRole
+    u.maxTeamsAllowed = nextTeams
+    u.updatedAt = new Date().toISOString()
+    refreshUi(u)
+  
+    // dejarlo dirty + auto-guardar
+    draftById.value = { ...draftById.value, [u.id]: patch }
+    dirtyIds.value = new Set(dirtyIds.value).add(u.id)
+  
+    toast('Aplicado. Guardando…', 'info')
+  
+    // 🔥 auto-save (lo que querías)
+    ;(async () => {
+      if (!canCallApi.value) {
+        toast('No autenticado todavía (Keycloak)…', 'info')
+        return
+      }
+      isSaving.value = true
+      try {
+        await saveOne(u.id)
+      } finally {
+        isSaving.value = false
+      }
+    })()
   }
-  return ['inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1', map[tone] || map.slate]
-}
-
-function roleTone(r: RoleDb) {
-  return r === 'ADMIN' ? 'indigo' : r === 'CAPTAIN' ? 'purple' : 'slate'
-}
-function roleLabel(r: RoleDb) {
-  return r === 'ADMIN' ? 'Admin' : r === 'CAPTAIN' ? 'Capitán' : 'Usuario'
-}
-
-function toastIconWrap(tone: ToastTone) {
-  return tone === 'success'
-    ? 'bg-emerald-500/10 text-emerald-100 ring-emerald-400/20'
-    : tone === 'danger'
-      ? 'bg-red-500/10 text-red-100 ring-red-400/20'
-      : 'bg-cyan-500/10 text-cyan-100 ring-cyan-400/20'
-}
-
-function fmtDate(iso: string) {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: '2-digit' })
-}
-
-function shortKc(kc: string) {
-  const s = (kc || '').trim()
-  if (s.length <= 10) return s || '—'
-  return `${s.slice(0, 6)}…${s.slice(-4)}`
-}
-
-function clampTeams(v: any) {
-  const n = Number(v)
-  if (!Number.isFinite(n)) return 0
-  return Math.max(0, Math.min(99, Math.floor(n)))
-}
-
-/* -------- perf: avatar + initials -------- */
-function initialsOf(name: string) {
-  const n = (name || '').trim()
-  if (!n) return 'U'
-  const parts = n.split(/\s+/).slice(0, 2)
-  return parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U'
-}
-function avatarHue(seed: string) {
-  const s = (seed || 'x').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  const hues = [190, 210, 240, 265, 285]
-  return hues[s % hues.length] ?? 210
-}
-function avatarStyle(seed: string) {
-  const h = avatarHue(seed)
-  return {
-    background: `linear-gradient(135deg, hsla(${h}, 90%, 60%, .25), hsla(${(h + 50) % 360}, 90%, 60%, .18))`,
+  
+  async function saveDirty() {
+    const ids = Array.from(dirtyIds.value)
+    if (!ids.length) return
+  
+    if (!canCallApi.value) {
+      toast('No autenticado todavía (Keycloak)…', 'info')
+      return
+    }
+  
+    isSaving.value = true
+    try {
+      for (const id of ids) {
+        try {
+          await saveOne(id)
+        } catch {
+          // ya mostró toast y queda dirty para reintentar
+        }
+      }
+    } finally {
+      isSaving.value = false
+    }
   }
-}
-
-function normalizeRole(v: any): RoleDb {
-  const s = String(v ?? '').trim().toUpperCase()
-  if (!s) return 'USER'
-  if (s.includes('ADMIN')) return 'ADMIN'
-  if (s.includes('CAPTAIN') || s.includes('CAPITAN')) return 'CAPTAIN'
-  return 'USER'
-}
-
-function rowToUser(r: AdminUserRowDTO): User {
-  const role = normalizeRole(r.role)
-  const initials = initialsOf(r.fullName)
-  const style = avatarStyle(r.email || r.keycloakId || r.fullName)
-
-  return {
-    id: r.id,
-    keycloakId: r.keycloakId,
-    email: r.email,
-    fullName: r.fullName,
-    role,
-    maxTeamsAllowed: clampTeams(r.maxTeamsAllowed),
-    isActive: !!r.isActive,
-    createdAt: r.createdAt,
-    updatedAt: r.updatedAt,
-    flags: { verified: role === 'ADMIN' },
-    initials,
-    avatarStyle: style,
+  
+  function clearAll() {
+    query.value = ''
+    roleOnly.value = 'all'
+    sortKey.value = 'createdDesc'
+    page.value = 0
+    toast('Filtros reiniciados', 'info')
   }
-}
-
-function refreshUi(u: User) {
-  u.initials = initialsOf(u.fullName)
-  u.avatarStyle = avatarStyle(u.email || u.keycloakId || u.fullName)
-}
-
-/* -------- stats -------- */
-const stats = computed(() => {
-  const icon = {
-    users: 'M16 21a4 4 0 00-8 0M12 11a4 4 0 100-8 4 4 0 000 8zM20 21a6 6 0 00-9-5.2',
-    captain: 'M12 2l3 7h7l-5.5 4 2.1 7L12 16l-6.6 4 2.1-7L2 9h7l3-7z',
-    shield: 'M12 2l8 4v6c0 5-3.4 9.4-8 10-4.6-.6-8-5-8-10V6l8-4z',
+  
+  /* -------- UI helpers (toasts, labels, etc.) -------- */
+  type ToastTone = 'success' | 'info' | 'danger'
+  type Toast = { id: string; message: string; tone: ToastTone; meta: string }
+  const toasts = ref<Toast[]>([])
+  const toastTimers = new Map<string, any>()
+  
+  function toast(message: string, tone: ToastTone = 'info') {
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const meta = new Date().toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    toasts.value = [{ id, message, tone, meta }, ...toasts.value].slice(0, 4)
+    const timer = setTimeout(() => removeToast(id), 3200)
+    toastTimers.set(id, timer)
   }
-  return [
-    { label: 'Usuarios', value: totalElements.value, hint: 'Total (según filtro)', iconPath: icon.users },
-    { label: 'Capitanes (página)', value: users.value.filter(u => u.role === 'CAPTAIN').length, hint: 'Conteo de esta página', iconPath: icon.captain },
-    { label: 'Admins (página)', value: users.value.filter(u => u.role === 'ADMIN').length, hint: 'Conteo de esta página', iconPath: icon.shield },
-  ]
-})
-
-/* ⌘K para focus en búsqueda */
-function onKeydown(e: KeyboardEvent) {
-  const isMac = navigator.platform.toLowerCase().includes('mac')
-  const cmdk =
-    (isMac && e.metaKey && e.key.toLowerCase() === 'k') ||
-    (!isMac && e.ctrlKey && e.key.toLowerCase() === 'k')
-
-  if (cmdk) {
-    e.preventDefault()
-    searchInput.value?.focus()
-    toast('Búsqueda rápida', 'info')
+  function removeToast(id: string) {
+    const timer = toastTimers.get(id)
+    if (timer) clearTimeout(timer)
+    toastTimers.delete(id)
+    toasts.value = toasts.value.filter(t => t.id !== id)
   }
-}
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
-</script>
+  onBeforeUnmount(() => {
+    toastTimers.forEach(t => clearTimeout(t))
+    toastTimers.clear()
+  })
+  
+  function chipClass(active: boolean) {
+    return [
+      'rounded-2xl px-3 py-2 text-xs font-semibold ring-1 transition focus:outline-none focus:ring-2 focus:ring-cyan-400/30',
+      active ? 'bg-cyan-500/15 text-cyan-100 ring-cyan-400/20' : 'bg-black/20 text-slate-200 ring-white/10 hover:bg-black/30',
+    ]
+  }
+  
+  function badgeClass(tone: string) {
+    const map: Record<string, string> = {
+      indigo: 'bg-indigo-500/10 text-indigo-200 ring-indigo-400/20',
+      purple: 'bg-purple-500/10 text-purple-200 ring-purple-400/20',
+      slate: 'bg-white/5 text-slate-200 ring-white/10',
+    }
+    return ['inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1', map[tone] || map.slate]
+  }
+  
+  function roleTone(r: RoleDb) {
+    return r === 'ADMIN' ? 'indigo' : r === 'CAPTAIN' ? 'purple' : 'slate'
+  }
+  function roleLabel(r: RoleDb) {
+    return r === 'ADMIN' ? 'Admin' : r === 'CAPTAIN' ? 'Capitán' : 'Usuario'
+  }
+  
+  function toastIconWrap(tone: ToastTone) {
+    return tone === 'success'
+      ? 'bg-emerald-500/10 text-emerald-100 ring-emerald-400/20'
+      : tone === 'danger'
+        ? 'bg-red-500/10 text-red-100 ring-red-400/20'
+        : 'bg-cyan-500/10 text-cyan-100 ring-cyan-400/20'
+  }
+  
+  function fmtDate(iso: string) {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return iso
+    return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: '2-digit' })
+  }
+  
+  function shortKc(kc: string) {
+    const s = (kc || '').trim()
+    if (s.length <= 10) return s || '—'
+    return `${s.slice(0, 6)}…${s.slice(-4)}`
+  }
+  
+  function clampTeams(v: any) {
+    const n = Number(v)
+    if (!Number.isFinite(n)) return 0
+    return Math.max(0, Math.min(99, Math.floor(n)))
+  }
+  
+  function initialsOf(name: string) {
+    const n = (name || '').trim()
+    if (!n) return 'U'
+    const parts = n.split(/\s+/).slice(0, 2)
+    return parts.map(p => p[0]?.toUpperCase() || '').join('') || 'U'
+  }
+  function avatarHue(seed: string) {
+    const s = (seed || 'x').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+    const hues = [190, 210, 240, 265, 285]
+    return hues[s % hues.length] ?? 210
+  }
+  function avatarStyle(seed: string) {
+    const h = avatarHue(seed)
+    return {
+      background: `linear-gradient(135deg, hsla(${h}, 90%, 60%, .25), hsla(${(h + 50) % 360}, 90%, 60%, .18))`,
+    }
+  }
+  
+  function normalizeRole(v: any): RoleDb {
+    const s = String(v ?? '').trim().toUpperCase()
+    if (!s) return 'USER'
+    if (s.includes('ADMIN')) return 'ADMIN'
+    if (s.includes('CAPTAIN') || s.includes('CAPITAN')) return 'CAPTAIN'
+    return 'USER'
+  }
+  
+  function rowToUser(r: AdminUserRowDTO): User {
+    const role = normalizeRole(r.role)
+    const initials = initialsOf(r.fullName)
+    const style = avatarStyle(r.email || r.keycloakId || r.fullName)
+  
+    return {
+      id: r.id,
+      keycloakId: r.keycloakId,
+      email: r.email,
+      fullName: r.fullName,
+      role,
+      maxTeamsAllowed: clampTeams(r.maxTeamsAllowed),
+      isActive: !!r.isActive,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      flags: { verified: role === 'ADMIN' },
+      initials,
+      avatarStyle: style,
+    }
+  }
+  
+  function refreshUi(u: User) {
+    u.initials = initialsOf(u.fullName)
+    u.avatarStyle = avatarStyle(u.email || u.keycloakId || u.fullName)
+  }
+  
+  /* -------- stats -------- */
+  const stats = computed(() => {
+    const icon = {
+      users: 'M16 21a4 4 0 00-8 0M12 11a4 4 0 100-8 4 4 0 000 8zM20 21a6 6 0 00-9-5.2',
+      captain: 'M12 2l3 7h7l-5.5 4 2.1 7L12 16l-6.6 4 2.1-7L2 9h7l3-7z',
+      shield: 'M12 2l8 4v6c0 5-3.4 9.4-8 10-4.6-.6-8-5-8-10V6l8-4z',
+    }
+    return [
+      { label: 'Usuarios', value: totalElements.value, hint: 'Total (según filtro)', iconPath: icon.users },
+      { label: 'Capitanes (página)', value: users.value.filter(u => u.role === 'CAPTAIN').length, hint: 'Conteo de esta página', iconPath: icon.captain },
+      { label: 'Admins (página)', value: users.value.filter(u => u.role === 'ADMIN').length, hint: 'Conteo de esta página', iconPath: icon.shield },
+    ]
+  })
+  
+  /* ⌘K para focus */
+  function onKeydown(e: KeyboardEvent) {
+    const isMac = navigator.platform.toLowerCase().includes('mac')
+    const cmdk =
+      (isMac && e.metaKey && e.key.toLowerCase() === 'k') ||
+      (!isMac && e.ctrlKey && e.key.toLowerCase() === 'k')
+  
+    if (cmdk) {
+      e.preventDefault()
+      searchInput.value?.focus()
+      toast('Búsqueda rápida', 'info')
+    }
+  }
+  onMounted(() => window.addEventListener('keydown', onKeydown))
+  onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+  </script>
+  
 
 <style scoped>
 .bg-surface {
