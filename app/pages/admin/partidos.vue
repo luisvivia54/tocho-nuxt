@@ -1,3 +1,4 @@
+<!-- app/pages/admin/partidos.vue -->
 <template>
   <main
     class="min-h-screen bg-[#050816] text-slate-50"
@@ -11,7 +12,7 @@
             <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Tochero5 · Consola Admin</p>
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Partidos</h1>
             <p class="mt-1 text-sm text-slate-400">
-              Flujo: <b>Categoría</b> → <b>Local</b> y <b>Visitante</b> → <b>Fecha/Hora</b> → <b>Cancha</b> → Finalizar + Stats
+              Flujo: <b>Categoría</b> → <b>Local</b> y <b>Visitante</b> → <b>Fecha/Hora</b> → <b>Jornada</b> → <b>Cancha</b> → Finalizar + Stats
             </p>
           </div>
 
@@ -171,6 +172,8 @@
                     Rama <span class="text-slate-100 font-semibold">{{ homeTeam.category?.code || '—' }}</span>
                     <span class="text-slate-500">·</span>
                     {{ niceGender(homeTeam.category?.gender || '—') }}
+                    <span class="text-slate-500">·</span>
+                    ID <span class="text-slate-100 font-semibold">{{ homeTeam.teamId }}</span>
                   </p>
                 </div>
 
@@ -242,6 +245,8 @@
                     Rama <span class="text-slate-100 font-semibold">{{ awayTeam.category?.code || '—' }}</span>
                     <span class="text-slate-500">·</span>
                     {{ niceGender(awayTeam.category?.gender || '—') }}
+                    <span class="text-slate-500">·</span>
+                    ID <span class="text-slate-100 font-semibold">{{ awayTeam.teamId }}</span>
                   </p>
 
                   <button
@@ -255,7 +260,7 @@
                 </div>
               </div>
 
-              <!-- Fecha/Hora/Cancha + Actions -->
+              <!-- Fecha/Hora/Jornada/Cancha + Actions -->
               <div class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 <div class="md:col-span-3">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha</label>
@@ -285,7 +290,22 @@
                   </div>
                 </div>
 
-                <div class="md:col-span-4">
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-semibold text-slate-300 mb-1">Jornada</label>
+                  <div class="relative">
+                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">🏁</span>
+                    <input
+                      v-model.number="form.jornada"
+                      type="number"
+                      min="1"
+                      inputmode="numeric"
+                      placeholder="Ej. 1"
+                      class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 pl-9 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div class="md:col-span-2">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Cancha / Sede (opcional)</label>
                   <input
                     v-model.trim="form.field"
@@ -388,9 +408,16 @@
                             <span class="text-slate-600">·</span>
                             {{ g.categoryLabel || '—' }}
                             <span class="text-slate-600">·</span>
+                            Jornada: <span class="text-slate-200 font-semibold">{{ g.jornada ?? '—' }}</span>
+                            <span class="text-slate-600">·</span>
                             Cancha: <span class="text-slate-200">{{ g.field || '—' }}</span>
                             <span class="text-slate-600">·</span>
                             ID: <span class="text-slate-200 font-semibold">{{ g.id }}</span>
+                          </p>
+                          <p class="mt-0.5 text-[11px] text-slate-500 truncate">
+                            HomeID: <span class="text-slate-200 font-semibold">{{ g.homeTeamId ?? '—' }}</span>
+                            <span class="text-slate-600">·</span>
+                            AwayID: <span class="text-slate-200 font-semibold">{{ g.awayTeamId ?? '—' }}</span>
                           </p>
                         </div>
 
@@ -730,13 +757,11 @@ function onKeyKick(e: KeyboardEvent) {
   if (keys.includes(e.key)) kickNoBlur()
 }
 onMounted(() => {
-  // “pre” scroll: wheel/pointer/touch/keys
   window.addEventListener('wheel', kickNoBlur, { passive: true })
   window.addEventListener('pointerdown', kickNoBlur, { passive: true })
   window.addEventListener('touchstart', kickNoBlur, { passive: true })
   window.addEventListener('touchmove', kickNoBlur, { passive: true })
   window.addEventListener('keydown', onKeyKick)
-  // scroll real (mantiene el estado)
   window.addEventListener('scroll', kickNoBlur, { passive: true })
 })
 onBeforeUnmount(() => {
@@ -775,7 +800,7 @@ const isAdmin = computed<boolean>(() => {
  *  ========================= */
 const config = useRuntimeConfig()
 const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
-const DEFAULT_SEASON_ID = Number((config.public as any)?.seasonId ?? 1)
+const DEFAULT_SEASON_ID = Number((config.public as any)?.seasonId ?? 2)
 
 const API_GAMES = `${API_BASE}/games`
 const API_GAMES_FINAL = `${API_BASE}/gamesFinal`
@@ -812,6 +837,7 @@ type GameVM = {
   categoryId?: number
   homeTeamId?: number
   awayTeamId?: number
+  jornada?: number
   field?: string
   homeScore?: number | null
   awayScore?: number | null
@@ -850,7 +876,7 @@ function initials(text: string) {
   return parts.map((p) => p[0]?.toUpperCase()).join('')
 }
 function toLocalDateTime(iso: string) {
-  const d = new Date(iso)
+  const d = new Date(ensureUtc(iso))
   const yyyy = d.getFullYear()
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
@@ -858,6 +884,7 @@ function toLocalDateTime(iso: string) {
   const mi = String(d.getMinutes()).padStart(2, '0')
   return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${mi}` }
 }
+
 function localToUtcIso(date: string, time: string) {
   const d = new Date(`${date}T${time}:00`)
   return d.toISOString()
@@ -1049,7 +1076,7 @@ watch(
 
     const arr: GameVM[] = list.map((g: any) => {
       const id = Number(g.game_id ?? g.gameId ?? g.id)
-      const iso = String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? '')
+      const iso = ensureUtc(String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? ''))
       const status = String(g.status ?? 'SCHEDULED')
 
       const d = iso ? new Date(iso) : new Date()
@@ -1073,6 +1100,8 @@ watch(
       const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined
       const field = String(g.field ?? g.location ?? '')
 
+      const jornada = Number(g.jornada ?? g.matchday ?? g.round ?? g.week ?? 0) || undefined
+
       return {
         id,
         status,
@@ -1086,6 +1115,7 @@ watch(
         categoryId,
         homeTeamId,
         awayTeamId,
+        jornada,
         field,
         homeScore: g.homeScore ?? g.home_score ?? null,
         awayScore: g.awayScore ?? g.away_score ?? null,
@@ -1119,7 +1149,8 @@ const form = ref({
   categoryId: 0,
   date: '',
   time: '',
-  field: '',
+  jornada: 0,
+  field: '', // ✅ opcional
 })
 
 const catHint = computed(() => {
@@ -1139,10 +1170,19 @@ function clearForm() {
   awayInput.value = ''
   homeOpen.value = false
   awayOpen.value = false
-  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: '', time: '', field: '' }
+  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: '', time: '', jornada: 0, field: '' }
   formError.value = ''
   formOk.value = ''
 }
+function ensureUtc(iso: string) {
+  const s = String(iso ?? '').trim()
+  if (!s) return s
+  // si ya trae Z o offset (+00:00 / -06:00), no tocar
+  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
+  // si viene sin zona, asumimos que ES UTC y le pegamos Z
+  return `${s}Z`
+}
+
 
 function loadForEdit(g: GameVM) {
   editingId.value = g.id
@@ -1160,6 +1200,7 @@ function loadForEdit(g: GameVM) {
 
   form.value.seasonId = g.seasonId ?? DEFAULT_SEASON_ID
   form.value.categoryId = g.categoryId ?? form.value.categoryId
+  form.value.jornada = Number(g.jornada ?? 0)
   form.value.field = String(g.field ?? '')
 
   homeInput.value = homeTeam.value?.name || ''
@@ -1175,6 +1216,8 @@ function validateForm() {
   if (homeTeamId.value === awayTeamId.value) return 'Local y Visitante no pueden ser el mismo equipo.'
   if (!form.value.date) return 'Falta la fecha.'
   if (!form.value.time) return 'Falta la hora.'
+  if (!form.value.jornada || Number(form.value.jornada) < 1) return 'Falta la jornada.'
+  // ✅ cancha/campo es opcional (NO validar)
   return ''
 }
 
@@ -1189,10 +1232,35 @@ async function saveGame() {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
     const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
 
-    const payload: any = {
-      game_id: editingId.value ?? undefined,
-      gameId: editingId.value ?? undefined,
-      id: editingId.value ?? undefined,
+    const isEdit = !!editingId.value
+
+    // ✅ payload para CREATE (POST /games) — SIN ID
+    const payloadCreate: any = {
+      season_id: seasonId,
+      seasonId,
+
+      category_id: form.value.categoryId,
+      categoryId: form.value.categoryId,
+
+      home_team_id: homeTeamId.value,
+      homeTeamId: homeTeamId.value,
+
+      away_team_id: awayTeamId.value,
+      awayTeamId: awayTeamId.value,
+
+      match_date_utc: isoUtc,
+      matchDateUtc: isoUtc,
+
+      // tu backend usa roundLabel, aquí lo llenamos con Jornada
+      round_label: `J${Number(form.value.jornada)}`,
+      roundLabel: `J${Number(form.value.jornada)}`,
+    }
+
+    // ✅ payload para EDIT (POST /partido/update) — CON ID + extras legacy
+    const payloadEdit: any = {
+      game_id: editingId.value,
+      gameId: editingId.value,
+      id: editingId.value,
 
       season_id: seasonId,
       seasonId,
@@ -1205,8 +1273,10 @@ async function saveGame() {
 
       status: 'SCHEDULED',
 
+      // opcionales/legacy
       field: form.value.field,
       location: form.value.field,
+      jornada: Number(form.value.jornada),
 
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
@@ -1215,9 +1285,18 @@ async function saveGame() {
       awayTeamId: awayTeamId.value,
     }
 
-    await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payload })
+    if (!isEdit) {
+      // ✅ CREAR: pega a /games
+      const resp: any = await $fetch(API_GAMES, { method: 'POST', body: payloadCreate })
+      const newId = Number(resp?.gameId ?? resp?.game_id ?? resp?.id ?? 0) || null
 
-    formOk.value = editingId.value ? `Partido actualizado (ID ${editingId.value}).` : 'Partido creado.'
+      formOk.value = newId ? `Partido creado (ID ${newId}).` : 'Partido creado.'
+    } else {
+      // ✅ EDITAR: sigue usando el update viejo
+      await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payloadEdit })
+      formOk.value = `Partido actualizado (ID ${editingId.value}).`
+    }
+
     await refreshGames()
 
     const ok = formOk.value
@@ -1230,6 +1309,7 @@ async function saveGame() {
     saving.value = false
   }
 }
+
 
 function swapTeams() {
   const a = homeTeamId.value
@@ -1417,7 +1497,6 @@ async function ensureRoster(teamId: number) {
   try {
     const players = await $fetch<any>(API_TEAM_PLAYERS(teamId))
     const arr = Array.isArray(players) ? players : []
-    // normaliza por si el back manda distinto
     rosterMap.value.set(
       teamId,
       arr.map((p: any) => ({
@@ -1470,7 +1549,6 @@ const rosterSelectKey = computed(() => {
 })
 
 watch([finishPanelId, () => statDraft.value.side], async () => {
-  // al cambiar panel o side: reset + cargar roster correcto
   statDraft.value.playerId = 0
   rosterHint.value = ''
 
@@ -1563,12 +1641,10 @@ async function openFinish(g: GameVM) {
   rosterHint.value = ''
   statsOpen.value = true
 
-  // precache ambos rosters
   const h = g.homeTeamId || 0
   const a = g.awayTeamId || 0
   await Promise.all([h ? ensureRoster(h) : Promise.resolve(), a ? ensureRoster(a) : Promise.resolve()])
 
-  // default
   statDraft.value.side = 'HOME'
   statDraft.value.playerId = 0
   statDraft.value.qty = 1
@@ -1614,8 +1690,10 @@ async function finishGame(g: GameVM) {
   const homeId = g.homeTeamId
   const awayId = g.awayTeamId
   const categoryId = g.categoryId
-  if (!homeId || !awayId || !categoryId) {
-    finishError.value = 'Este juego no trae IDs (home/away/category). Usa “Abrir en formulario”.'
+  const jornada = g.jornada
+
+  if (!homeId || !awayId || !categoryId || !jornada) {
+    finishError.value = 'Este juego no trae IDs/jornada (home/away/category/jornada). Usa “Abrir en formulario”.'
     return
   }
 
@@ -1639,19 +1717,25 @@ async function finishGame(g: GameVM) {
 
       status: 'FINAL',
 
+      // ✅ IDs
       home_team_id: homeId,
       homeTeamId: homeId,
 
       away_team_id: awayId,
       awayTeamId: awayId,
 
+      // ✅ scores
       homeScore: Number(finishHomeScore.value ?? 0),
       awayScore: Number(finishAwayScore.value ?? 0),
       home_score: Number(finishHomeScore.value ?? 0),
       away_score: Number(finishAwayScore.value ?? 0),
 
+      // ✅ cancha opcional
       field: g.field || '',
       location: g.field || '',
+
+      // ✅ jornada obligatoria
+      jornada: Number(jornada),
     }
 
     await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payload })
