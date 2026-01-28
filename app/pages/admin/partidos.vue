@@ -731,7 +731,6 @@
     </section>
   </main>
 </template>
-
 <script setup lang="ts">
 import { computed, ref, watch, shallowRef, onMounted, onBeforeUnmount } from 'vue'
 import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from '#imports'
@@ -803,11 +802,11 @@ const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5
 const DEFAULT_SEASON_ID = Number((config.public as any)?.seasonId ?? 2)
 
 const API_GAMES = `${API_BASE}/games`
-const API_GAMES_FINAL = `${API_BASE}/gamesFinal`
+const API_GAMES_FINAL = `${API_BASE}/gamesFinal` // ✅ SOLO LECTURA (GET). NO POST (te da 405)
 const API_TEAMS = `${API_BASE}/teams`
 const API_TEAMS_LIST = `${API_BASE}/teams/list`
 const API_CATEGORIES = `${API_BASE}/categories`
-const API_PARTIDO_UPDATE = `${API_BASE}/partido/update`
+const API_PARTIDO_UPDATE = `${API_BASE}/partido/update` // ✅ FINALIZAR AQUÍ
 const API_TEAM_PLAYERS = (teamId: number) => `${API_BASE}/teams/${teamId}/players`
 const PLAYER_STATS_URL = (gameId: number) => `${API_BASE}/games/${gameId}/player-stats`
 
@@ -884,7 +883,6 @@ function toLocalDateTime(iso: string) {
   const mi = String(d.getMinutes()).padStart(2, '0')
   return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${mi}` }
 }
-
 function localToUtcIso(date: string, time: string) {
   const d = new Date(`${date}T${time}:00`)
   return d.toISOString()
@@ -1174,15 +1172,13 @@ function clearForm() {
   formError.value = ''
   formOk.value = ''
 }
+
 function ensureUtc(iso: string) {
   const s = String(iso ?? '').trim()
   if (!s) return s
-  // si ya trae Z o offset (+00:00 / -06:00), no tocar
   if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
-  // si viene sin zona, asumimos que ES UTC y le pegamos Z
   return `${s}Z`
 }
-
 
 function loadForEdit(g: GameVM) {
   editingId.value = g.id
@@ -1217,7 +1213,6 @@ function validateForm() {
   if (!form.value.date) return 'Falta la fecha.'
   if (!form.value.time) return 'Falta la hora.'
   if (!form.value.jornada || Number(form.value.jornada) < 1) return 'Falta la jornada.'
-  // ✅ cancha/campo es opcional (NO validar)
   return ''
 }
 
@@ -1231,10 +1226,8 @@ async function saveGame() {
   try {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
     const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
-
     const isEdit = !!editingId.value
 
-    // ✅ payload para CREATE (POST /games) — SIN ID
     const payloadCreate: any = {
       season_id: seasonId,
       seasonId,
@@ -1251,12 +1244,10 @@ async function saveGame() {
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
 
-      // tu backend usa roundLabel, aquí lo llenamos con Jornada
       round_label: `J${Number(form.value.jornada)}`,
       roundLabel: `J${Number(form.value.jornada)}`,
     }
 
-    // ✅ payload para EDIT (POST /partido/update) — CON ID + extras legacy
     const payloadEdit: any = {
       game_id: editingId.value,
       gameId: editingId.value,
@@ -1273,7 +1264,6 @@ async function saveGame() {
 
       status: 'SCHEDULED',
 
-      // opcionales/legacy
       field: form.value.field,
       location: form.value.field,
       jornada: Number(form.value.jornada),
@@ -1286,13 +1276,10 @@ async function saveGame() {
     }
 
     if (!isEdit) {
-      // ✅ CREAR: pega a /games
       const resp: any = await $fetch(API_GAMES, { method: 'POST', body: payloadCreate })
       const newId = Number(resp?.gameId ?? resp?.game_id ?? resp?.id ?? 0) || null
-
       formOk.value = newId ? `Partido creado (ID ${newId}).` : 'Partido creado.'
     } else {
-      // ✅ EDITAR: sigue usando el update viejo
       await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payloadEdit })
       formOk.value = `Partido actualizado (ID ${editingId.value}).`
     }
@@ -1309,7 +1296,6 @@ async function saveGame() {
     saving.value = false
   }
 }
-
 
 function swapTeams() {
   const a = homeTeamId.value
@@ -1539,7 +1525,7 @@ const currentRosterOptions = computed(() => {
   return teamId ? getRoster(teamId) : []
 })
 
-/** 🔥 key que SÍ cambia al cambiar de equipo/side/roster */
+/** key que cambia al cambiar de equipo/side/roster */
 const rosterSelectKey = computed(() => {
   const gid = finishPanelId.value || 0
   const side = statDraft.value.side
@@ -1681,69 +1667,44 @@ async function tryPostPlayerStats(gameId: number) {
   }
 }
 
+/** ✅ FINALIZAR: body mínimo EXACTO a /partido/update */
+async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: number) {
+  const body = {
+    game_id: String(gameId),
+    home_score: Number(homeScore),
+    away_score: Number(awayScore),
+  }
+  return await $fetch<any>(API_PARTIDO_UPDATE, { method: 'POST', body })
+}
+
 async function finishGame(g: GameVM) {
   finishError.value = ''
   finishOk.value = ''
   statsWarn.value = ''
   statsOk.value = ''
 
-  const homeId = g.homeTeamId
-  const awayId = g.awayTeamId
-  const categoryId = g.categoryId
-  const jornada = g.jornada
+  if (!g?.id) {
+    finishError.value = 'No hay game_id válido.'
+    return
+  }
 
-  if (!homeId || !awayId || !categoryId || !jornada) {
-    finishError.value = 'Este juego no trae IDs/jornada (home/away/category/jornada). Usa “Abrir en formulario”.'
+  const hs = Number(finishHomeScore.value ?? 0)
+  const as = Number(finishAwayScore.value ?? 0)
+  if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
+    finishError.value = 'Scores inválidos.'
     return
   }
 
   finishing.value = true
   try {
-    const seasonId = Number(g.seasonId ?? DEFAULT_SEASON_ID)
+    await postFinalizeOnly(g.id, hs, as)
 
-    const payload: any = {
-      game_id: g.id,
-      gameId: g.id,
-      id: g.id,
-
-      season_id: seasonId,
-      seasonId,
-
-      category_id: categoryId,
-      categoryId,
-
-      match_date_utc: g.match_date_utc,
-      matchDateUtc: g.match_date_utc,
-
-      status: 'FINAL',
-
-      // ✅ IDs
-      home_team_id: homeId,
-      homeTeamId: homeId,
-
-      away_team_id: awayId,
-      awayTeamId: awayId,
-
-      // ✅ scores
-      homeScore: Number(finishHomeScore.value ?? 0),
-      awayScore: Number(finishAwayScore.value ?? 0),
-      home_score: Number(finishHomeScore.value ?? 0),
-      away_score: Number(finishAwayScore.value ?? 0),
-
-      // ✅ cancha opcional
-      field: g.field || '',
-      location: g.field || '',
-
-      // ✅ jornada obligatoria
-      jornada: Number(jornada),
-    }
-
-    await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payload })
-
-    finishOk.value = `Partido ${g.id} marcado como FINAL.`
+    finishOk.value = `Partido ${g.id} finalizado (${hs} - ${as}).`
     await refreshGames()
 
+    // stats opcionales
     await tryPostPlayerStats(g.id)
+
     setTimeout(() => (finishOk.value = ''), 2000)
   } catch (e: any) {
     finishError.value = e?.data?.message || e?.message || 'No se pudo finalizar. Revisa el backend.'
@@ -1766,6 +1727,7 @@ async function hardRefresh() {
   await Promise.all([refreshTeams(), refreshGames()])
 }
 </script>
+
 
 <style scoped>
 .date-time {

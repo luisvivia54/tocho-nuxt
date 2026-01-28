@@ -43,7 +43,27 @@
               </p>
 
               <!-- FILTROS -->
-              <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- ✅ Temporada -->
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                    Temporada
+                  </label>
+                  <select
+                    v-model="seasonPick"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="ALL">Todas</option>
+                    <option v-for="s in seasonOptions" :key="s.id" :value="String(s.id)">
+                      {{ s.name }}
+                    </option>
+                  </select>
+                  <p class="mt-1 text-[11px] text-slate-500">
+                    Default: <span class="font-semibold text-slate-700">{{ defaultSeasonLabel }}</span>
+                  </p>
+                </div>
+
                 <!-- Categoría (categoryCode) -->
                 <div>
                   <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
@@ -169,7 +189,9 @@
                   <div class="min-w-0">
                     <p class="font-semibold text-slate-900 truncate">{{ row.teamName }}</p>
                     <p class="mt-1 text-xs text-slate-600">
-                      Categoría:
+                      Temporada:
+                      <span class="font-semibold text-slate-800">{{ row.seasonName }}</span>
+                      · Categoría:
                       <span class="font-semibold text-slate-800">{{ row.categoryCode || '—' }}</span>
                       · Rama:
                       <span class="font-semibold text-slate-800">{{ prettyDivision(row.gender) }}</span>
@@ -215,10 +237,11 @@
 
             <!-- DESKTOP: Tabla -->
             <div class="hidden md:block rounded-2xl bg-white border border-slate-200 shadow-[0_12px_30px_rgba(15,23,42,0.08)] overflow-x-auto">
-              <table class="min-w-[980px] w-full text-sm">
+              <table class="min-w-[1020px] w-full text-sm">
                 <thead>
                   <tr class="text-left text-slate-500 border-b border-slate-200/80">
                     <th class="px-3 py-2">Equipo</th>
+                    <th class="px-3 py-2">Temporada</th>
                     <th class="px-3 py-2">Categoría</th>
                     <th class="px-3 py-2">Rama</th>
                     <th class="px-3 py-2">PJ</th>
@@ -238,6 +261,7 @@
                     class="border-b border-slate-100 last:border-0 hover:bg-slate-50/70"
                   >
                     <td class="px-3 py-2 font-semibold text-slate-900">{{ row.teamName }}</td>
+                    <td class="px-3 py-2 text-slate-800">{{ row.seasonName }}</td>
                     <td class="px-3 py-2 text-slate-800">{{ row.categoryCode || '—' }}</td>
 
                     <td class="px-3 py-2">
@@ -277,7 +301,7 @@
                   </tr>
 
                   <tr v-if="filteredRows.length === 0">
-                    <td colspan="10" class="px-3 py-3 text-sm text-slate-500">
+                    <td colspan="11" class="px-3 py-3 text-sm text-slate-500">
                       No hay equipos que coincidan con los filtros seleccionados.
                     </td>
                   </tr>
@@ -356,7 +380,6 @@
                 />
               </div>
 
-              <!-- ✅ AQUÍ: quitamos el Endpoint -->
               <div class="md:col-span-12 flex flex-wrap items-center gap-2 pt-1">
                 <p class="text-[11px] text-slate-500">
                   Mostrando <span class="text-slate-900 font-semibold">{{ sortedPlayers.length }}</span> jugador(es)
@@ -563,6 +586,12 @@ function setView(v: View) {
 }
 
 /* =========================
+   API BASE (1 sola vez)
+========================= */
+const config = useRuntimeConfig()
+const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
+
+/* =========================
    EQUIPOS
 ========================= */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
@@ -582,6 +611,7 @@ interface ApiStanding {
   categoryId: number
   seasonId: number
   categoryCode: string
+  seasonName?: string
 }
 
 interface RowVM {
@@ -589,6 +619,8 @@ interface RowVM {
   teamName: string
   gender: Gender | string
   categoryCode: string
+  seasonId: number
+  seasonName: string
   gp: number
   wins: number
   losses: number
@@ -599,6 +631,43 @@ interface RowVM {
   diff: number
   winRate: string
 }
+
+const DEFAULT_SEASON_ID = 2
+const seasonPick = ref<'ALL' | string>(String(DEFAULT_SEASON_ID))
+
+type SeasonOpt = { id: number; name: string }
+
+const { data: seasonsRaw } = useAsyncData<any[]>(
+  'seasons-stats-lite',
+  async () => {
+    const try1 = await $fetch<any>(`${API_BASE}/seasons/list`).catch(() => null)
+    if (Array.isArray(try1)) return try1
+    const try2 = await $fetch<any>(`${API_BASE}/seasons`).catch(() => [])
+    return Array.isArray(try2) ? try2 : []
+  },
+  { server: false, default: () => [] }
+)
+
+const seasonOptions = computed<SeasonOpt[]>(() => {
+  const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
+  const out = list
+    .map((s: any) => {
+      const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
+      const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
+      return { id, name }
+    })
+    .filter((s) => s.id > 0)
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  return out
+})
+
+const seasonsMap = computed<Record<number, string>>(() => {
+  const m: Record<number, string> = {}
+  for (const s of seasonOptions.value) m[s.id] = s.name
+  return m
+})
+
+const defaultSeasonLabel = computed(() => seasonsMap.value[DEFAULT_SEASON_ID] || `Temporada #${DEFAULT_SEASON_ID}`)
 
 const categoryOptions = [
   { label: 'Libre', value: 'Libre' },
@@ -616,8 +685,13 @@ const searchQuery = ref('')
 
 const pointsUrl = computed(() => {
   const params = new URLSearchParams()
+
+  // ✅ seasonId
+  if (seasonPick.value !== 'ALL') params.set('seasonId', seasonPick.value)
+
   if (selectedCategoryCode.value !== 'all') params.set('categoryCode', selectedCategoryCode.value)
   if (selectedGender.value !== 'all') params.set('gender', selectedGender.value)
+
   const qs = params.toString()
   return qs ? `/points?${qs}` : '/points'
 })
@@ -625,12 +699,16 @@ const pointsUrl = computed(() => {
 const { data: standings, pending: pendingStandings, error: errorStandings, refresh: refreshStandings } =
   useApi<ApiStanding[]>(pointsUrl)
 
+// ✅ por si tu backend aún no filtra: filtramos aquí también
 const allRows = computed<RowVM[]>(() => {
   const raw = standings.value as unknown
   if (!Array.isArray(raw)) return []
   const rows = raw as ApiStanding[]
 
+  const sp = seasonPick.value === 'ALL' ? 0 : Number(seasonPick.value || 0)
+
   return rows
+    .filter((s) => (sp ? Number(s.seasonId || 0) === sp : true))
     .slice()
     .sort((a, b) => (b.tablePoints ?? 0) - (a.tablePoints ?? 0))
     .map((s) => {
@@ -648,11 +726,18 @@ const allRows = computed<RowVM[]>(() => {
           ? (rate % 1 === 0 ? rate.toFixed(0) : rate.toFixed(1)) + '%'
           : '0%'
 
+      const sid = Number(s.seasonId || 0)
+      const sName =
+        String(s.seasonName ?? '').trim() ||
+        (sid ? (seasonsMap.value[sid] || `Temporada #${sid}`) : '—')
+
       return {
         key: `${s.teamId}-${s.seasonId}-${s.categoryId}`,
         teamName: s.teamName ?? '—',
         gender: s.gender ?? '—',
         categoryCode: s.categoryCode ?? '—',
+        seasonId: sid,
+        seasonName: sName,
         gp,
         wins,
         losses,
@@ -673,10 +758,13 @@ const filteredRows = computed<RowVM[]>(() => {
 })
 
 const clearTeamFilters = () => {
+  seasonPick.value = String(DEFAULT_SEASON_ID)
   selectedCategoryCode.value = 'all'
   selectedGender.value = 'all'
   searchQuery.value = ''
 }
+
+watch(pointsUrl, () => refreshStandings())
 
 const prettyDivision = (division: string | null | undefined): string => {
   if (!division) return '—'
@@ -690,8 +778,6 @@ const prettyDivision = (division: string | null | undefined): string => {
 /* =========================
    JUGADORES (API_BASE + $fetch)
 ========================= */
-const config = useRuntimeConfig()
-const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
 const API_TEAMS = `${API_BASE}/teams`
 const API_PLAYERS = `${API_BASE}/players`
 
