@@ -1,6 +1,6 @@
 <!-- app/pages/admin/partidos.vue -->
 <template>
-  <main class="bg-slate-950 min-h-screen text-slate-50">
+  <main class="bg-slate-950 min-h-screen text-slate-50 overflow-x-hidden">
     <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="max-w-6xl mx-auto px-4 sm:px-6">
         <!-- HEADER -->
@@ -10,7 +10,9 @@
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Partidos</h1>
 
             <!-- TEMPORADA FIX -->
-            <div class="inline-flex items-center gap-2 rounded-2xl border border-slate-800/70 bg-slate-900/55 px-3 py-1.5">
+            <div
+              class="inline-flex items-center gap-2 rounded-2xl border border-slate-800/70 bg-slate-900/55 px-3 py-1.5"
+            >
               <span class="text-[11px] uppercase tracking-[0.16em] text-slate-400">Temporada</span>
               <span class="text-[12px] font-semibold text-slate-100">
                 {{ currentSeasonLabel }}
@@ -28,8 +30,6 @@
               ⟳ Refrescar
             </button>
 
-
-
             <NuxtLink
               to="/"
               class="inline-flex items-center justify-center rounded-2xl bg-slate-900/40 border border-slate-700/70 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition touch-manipulation md:ml-0 sm:col-span-2"
@@ -40,7 +40,9 @@
         </header>
 
         <!-- FILTROS (mobile-first) -->
-        <section class="mb-6 rounded-3xl border border-slate-800/70 bg-slate-900/45 p-4 md:p-6 shadow-[0_18px_45px_rgba(0,0,0,0.30)]">
+        <section
+          class="mb-6 rounded-3xl border border-slate-800/70 bg-slate-900/45 p-4 md:p-6 shadow-[0_18px_45px_rgba(0,0,0,0.30)] overflow-hidden"
+        >
           <!-- mini-stepper mobile -->
           <div class="md:hidden mb-4">
             <div class="grid grid-cols-3 gap-2">
@@ -55,13 +57,14 @@
               </div>
             </div>
             <p class="mt-2 text-[11px] text-slate-400">
-              Para filtrar por <b class="text-slate-200">jornada</b>, primero elige <b class="text-slate-200">categoría</b> y <b class="text-slate-200">rama</b>.
+              Para filtrar por <b class="text-slate-200">jornada</b>, primero elige
+              <b class="text-slate-200">categoría</b> y <b class="text-slate-200">rama</b>.
             </p>
           </div>
 
-          <div class="grid gap-4 md:grid-cols-12">
+          <div class="grid gap-4 md:grid-cols-12 min-w-0">
             <!-- Temporada (SIN "Todas", default ID 2) -->
-            <div class="md:col-span-4">
+            <div class="md:col-span-4 min-w-0">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Temporada</p>
                 <span class="text-[11px] text-slate-500">Predeterminada: #2</span>
@@ -75,13 +78,11 @@
                 </select>
               </div>
 
-              <p class="mt-2 text-[11px] text-slate-500">
-                Nota: se quitó “Todas las temporadas”.
-              </p>
+              <p class="mt-2 text-[11px] text-slate-500">Nota: se quitó “Todas las temporadas”.</p>
             </div>
 
             <!-- Categoría (PASO 1) -->
-            <div class="md:col-span-4">
+            <div class="md:col-span-4 min-w-0">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Categoría</p>
                 <button
@@ -114,7 +115,7 @@
             </div>
 
             <!-- Rama (PASO 2) -->
-            <div class="md:col-span-4">
+            <div class="md:col-span-4 min-w-0">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Rama</p>
                 <button
@@ -163,7 +164,7 @@
             </div>
 
             <!-- Jornada (PASO 3 - AL FINAL) -->
-            <div class="md:col-span-12">
+            <div class="md:col-span-12 min-w-0">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Jornada</p>
 
@@ -183,8 +184,8 @@
                 class="rounded-3xl border border-slate-800/70 bg-slate-950/35 p-3 md:p-4"
                 :class="!canPickRound ? 'opacity-60' : ''"
               >
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div class="flex-1">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 min-w-0">
+                  <div class="flex-1 min-w-0">
                     <div class="seg-wrap">
                       <button
                         type="button"
@@ -211,11 +212,14 @@
                     </div>
 
                     <p v-if="!canPickRound" class="mt-2 text-[11px] text-slate-500">
-                      Para habilitar jornadas: elige <b class="text-slate-200">categoría</b> y <b class="text-slate-200">rama</b>.
+                      Para habilitar jornadas: elige <b class="text-slate-200">categoría</b> y
+                      <b class="text-slate-200">rama</b>.
                     </p>
                   </div>
 
-                  <div class="flex items-center gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2 self-start md:self-auto">
+                  <div
+                    class="flex items-center gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2 self-start md:self-auto"
+                  >
                     <span class="text-slate-500 text-xs">#</span>
                     <input
                       v-model.trim="roundInput"
@@ -241,7 +245,7 @@
             </div>
 
             <!-- Estado / Contadores -->
-            <div class="md:col-span-12">
+            <div class="md:col-span-12 min-w-0">
               <div class="mt-1 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 <p class="text-[11px] text-slate-400">
                   <span v-if="pending">Cargando partidos…</span>
@@ -253,7 +257,10 @@
                     partido(s)
                     <span v-if="filteredTotal > 0" class="text-slate-600">·</span>
                     <span v-if="filteredTotal > 0" class="text-slate-300">
-                      Página <span class="text-slate-100 font-semibold">{{ page }}</span>/<span class="text-slate-100 font-semibold">{{ totalPages }}</span>
+                      Página <span class="text-slate-100 font-semibold">{{ page }}</span>/<span
+                        class="text-slate-100 font-semibold"
+                        >{{ totalPages }}</span
+                      >
                     </span>
                   </span>
                 </p>
@@ -276,11 +283,12 @@
 
         <!-- LISTA -->
         <section class="space-y-6">
-          <div v-if="!pending && filteredTotal === 0" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+          <div
+            v-if="!pending && filteredTotal === 0"
+            class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6"
+          >
             <p class="text-sm text-slate-200 font-semibold">No hay partidos con esos filtros.</p>
-            <p class="text-xs text-slate-400 mt-1">
-              Elige categoría → rama → (opcional) jornada, o limpia filtros.
-            </p>
+            <p class="text-xs text-slate-400 mt-1">Elige categoría → rama → (opcional) jornada, o limpia filtros.</p>
           </div>
 
           <div v-for="group in grouped" :key="group.key" class="space-y-3">
@@ -301,7 +309,10 @@
                 <div class="flex items-center gap-2 text-[11px] text-slate-300 flex-wrap">
                   <span :class="badgeClass(g.status)">
                     <span v-if="upper(g.status) === 'SCHEDULED'" class="h-1.5 w-1.5 rounded-full bg-blue-300" />
-                    <span v-else-if="upper(g.status) === 'FINAL'" class="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+                    <span
+                      v-else-if="upper(g.status) === 'FINAL'"
+                      class="h-1.5 w-1.5 rounded-full bg-emerald-300"
+                    />
                     <span v-else class="h-1.5 w-1.5 rounded-full bg-slate-400" />
                     {{ statusLabel(g.status) }}
                   </span>
@@ -329,7 +340,9 @@
               <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center gap-3">
                 <!-- Local -->
                 <div class="flex items-center gap-3 min-w-0">
-                  <div class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden shrink-0">
+                  <div
+                    class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden shrink-0"
+                  >
                     <img
                       v-if="g.homeLogo"
                       :src="g.homeLogo"
@@ -389,7 +402,9 @@
                     </p>
                   </div>
 
-                  <div class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden shrink-0">
+                  <div
+                    class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden shrink-0"
+                  >
                     <img
                       v-if="g.awayLogo"
                       :src="g.awayLogo"
@@ -857,7 +872,8 @@ const currentSeasonLabel = computed(() => {
 /** counts scoped por season (mejor UX) */
 const seasonScopedGames = computed(() => {
   const sp = safeSeasonId()
-  const selectedSeasonName = seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`
+  const selectedSeasonName =
+    seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`
   const selectedSeasonKey = seasonKey(selectedSeasonName)
 
   return vmAll.value.filter((g) => {
@@ -916,7 +932,8 @@ const roundOptions = computed(() => {
 /** filtros -> lista plana */
 const filteredAll = computed(() => {
   const sp = safeSeasonId()
-  const selectedSeasonName = seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`
+  const selectedSeasonName =
+    seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`
   const selectedSeasonKey = seasonKey(selectedSeasonName)
 
   const rp = roundPick.value === 'ALL' ? null : normalizeRound(roundPick.value)
@@ -1032,7 +1049,8 @@ function applyPageInput() {
 
 /* ---------- helpers UI ---------- */
 function segBtn(active: boolean, tone: 'base' | 'blue' | 'emerald' | 'amber' = 'base', disabled = false) {
-  const base = 'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-[11px] font-semibold transition select-none touch-manipulation'
+  const base =
+    'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-[11px] font-semibold transition select-none touch-manipulation whitespace-nowrap'
   const off = 'border-transparent text-slate-300 hover:bg-slate-900/60 hover:text-slate-100'
   const dis = 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-slate-300'
   if (disabled) return `${base} ${off} ${dis}`
@@ -1145,10 +1163,13 @@ function safeSeasonId() {
 </script>
 
 <style scoped>
-/* ✅ mobile-first: chips scroll horizontal, desktop wrap */
+/* ✅ mobile-first: chips scroll horizontal, desktop wrap (SIN desbordar) */
 .seg-wrap {
-  display: inline-flex;
+  display: flex;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
   align-items: center;
   gap: 0.35rem;
   border-radius: 1rem;
@@ -1157,7 +1178,10 @@ function safeSeasonId() {
   padding: 0.35rem;
 
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+
   flex-wrap: nowrap;
 }
 
