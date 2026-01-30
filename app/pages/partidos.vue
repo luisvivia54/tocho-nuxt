@@ -2,60 +2,73 @@
 <template>
   <main class="bg-slate-950 min-h-screen text-slate-50">
     <section class="pt-24 md:pt-28 lg:pt-32">
-      <div class="max-w-6xl mx-auto px-6">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6">
         <!-- HEADER -->
-        <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
           <div class="space-y-2">
             <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">Tochero5</p>
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Partidos</h1>
+
+            <!-- TEMPORADA FIX -->
+            <div class="inline-flex items-center gap-2 rounded-2xl border border-slate-800/70 bg-slate-900/55 px-3 py-1.5">
+              <span class="text-[11px] uppercase tracking-[0.16em] text-slate-400">Temporada</span>
+              <span class="text-[12px] font-semibold text-slate-100">
+                {{ currentSeasonLabel }}
+              </span>
+            </div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <!-- acciones (mobile stack / desktop row) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-center gap-2">
             <button
               type="button"
               @click="refresh()"
-              class="inline-flex items-center justify-center rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition"
+              class="inline-flex items-center justify-center rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition touch-manipulation"
             >
               ⟳ Refrescar
             </button>
 
-            <NuxtLink
-              to="/partidos"
-              class="inline-flex items-center justify-center rounded-2xl bg-slate-900/40 border border-slate-700/70 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition"
-            >
-              ← Ir a Partidos (público)
-            </NuxtLink>
+
 
             <NuxtLink
               to="/"
-              class="inline-flex items-center justify-center rounded-2xl bg-slate-900/40 border border-slate-700/70 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition"
+              class="inline-flex items-center justify-center rounded-2xl bg-slate-900/40 border border-slate-700/70 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition touch-manipulation md:ml-0 sm:col-span-2"
             >
               ← Inicio
             </NuxtLink>
           </div>
         </header>
 
-        <!-- FILTROS -->
-        <section
-          class="mb-6 rounded-3xl border border-slate-800/70 bg-slate-900/45 px-4 py-4 md:px-6 shadow-[0_18px_45px_rgba(0,0,0,0.30)]"
-        >
+        <!-- FILTROS (mobile-first) -->
+        <section class="mb-6 rounded-3xl border border-slate-800/70 bg-slate-900/45 p-4 md:p-6 shadow-[0_18px_45px_rgba(0,0,0,0.30)]">
+          <!-- mini-stepper mobile -->
+          <div class="md:hidden mb-4">
+            <div class="grid grid-cols-3 gap-2">
+              <div :class="stepPillClass(stepState >= 1)">
+                <span class="opacity-80">1</span> Categoría
+              </div>
+              <div :class="stepPillClass(stepState >= 2)">
+                <span class="opacity-80">2</span> Rama
+              </div>
+              <div :class="stepPillClass(stepState >= 3)">
+                <span class="opacity-80">3</span> Jornada
+              </div>
+            </div>
+            <p class="mt-2 text-[11px] text-slate-400">
+              Para filtrar por <b class="text-slate-200">jornada</b>, primero elige <b class="text-slate-200">categoría</b> y <b class="text-slate-200">rama</b>.
+            </p>
+          </div>
+
           <div class="grid gap-4 md:grid-cols-12">
-            <!-- Temporada (por NOMBRE) -->
+            <!-- Temporada (SIN "Todas", default ID 2) -->
             <div class="md:col-span-4">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Temporada</p>
-                <button
-                  type="button"
-                  @click="seasonPick = 'ALL'"
-                  class="text-[11px] font-semibold text-slate-300 hover:text-slate-100 underline underline-offset-4"
-                >
-                  Limpiar
-                </button>
+                <span class="text-[11px] text-slate-500">Predeterminada: #2</span>
               </div>
 
               <div class="rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2">
                 <select v-model="seasonPick" class="w-full bg-transparent outline-none text-xs text-slate-100">
-                  <option value="ALL">Todas</option>
                   <option v-for="s in seasonOptions" :key="s.id" :value="String(s.id)">
                     {{ s.name }}
                   </option>
@@ -63,65 +76,12 @@
               </div>
 
               <p class="mt-2 text-[11px] text-slate-500">
-                Filtras por el <span class="text-slate-300 font-semibold">nombre</span> mostrado (internamente usa el ID).
+                Nota: se quitó “Todas las temporadas”.
               </p>
             </div>
 
-            <!-- Jornada -->
-            <div class="md:col-span-8">
-              <div class="flex items-center justify-between gap-3 mb-2">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Jornada</p>
-                <button
-                  type="button"
-                  @click="roundPick = 'ALL'"
-                  class="text-[11px] font-semibold text-slate-300 hover:text-slate-100 underline underline-offset-4"
-                >
-                  Limpiar
-                </button>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2">
-                <div class="seg-wrap">
-                  <button type="button" @click="roundPick = 'ALL'" :class="segBtn(roundPick === 'ALL')">
-                    Todas
-                  </button>
-
-                  <button
-                    v-for="r in roundOptions"
-                    :key="r.round"
-                    type="button"
-                    @click="roundPick = r.round"
-                    :class="segBtn(roundPick === r.round, 'amber')"
-                    :title="`${r.count} partido(s)`"
-                  >
-                    J{{ r.round }}
-                    <span class="ml-2 count-pill">{{ r.count }}</span>
-                  </button>
-                </div>
-
-                <div class="flex items-center gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2">
-                  <span class="text-slate-500 text-xs">#</span>
-                  <input
-                    v-model.trim="roundInput"
-                    type="text"
-                    inputmode="numeric"
-                    placeholder="Ej. 3"
-                    class="w-20 bg-transparent outline-none placeholder:text-slate-500 text-xs text-slate-100"
-                    @keydown.enter.prevent="applyRoundInput()"
-                  />
-                  <button
-                    type="button"
-                    class="text-[11px] font-semibold text-blue-200 hover:text-blue-100 underline underline-offset-4"
-                    @click="applyRoundInput()"
-                  >
-                    Aplicar
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Categoría -->
-            <div class="md:col-span-6">
+            <!-- Categoría (PASO 1) -->
+            <div class="md:col-span-4">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Categoría</p>
                 <button
@@ -153,8 +113,8 @@
               </div>
             </div>
 
-            <!-- Rama -->
-            <div class="md:col-span-6">
+            <!-- Rama (PASO 2) -->
+            <div class="md:col-span-4">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Rama</p>
                 <button
@@ -196,6 +156,88 @@
               <p v-if="!canPickRama" class="mt-2 text-[11px] text-slate-500">
                 Selecciona una categoría para habilitar rama.
               </p>
+
+              <p v-else-if="needsRama" class="mt-2 text-[11px] text-amber-200">
+                ⚠️ Para ver partidos de esa categoría, selecciona la rama.
+              </p>
+            </div>
+
+            <!-- Jornada (PASO 3 - AL FINAL) -->
+            <div class="md:col-span-12">
+              <div class="flex items-center justify-between gap-3 mb-2">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Jornada</p>
+
+                <button
+                  type="button"
+                  @click="roundPick = 'ALL'"
+                  class="text-[11px] font-semibold underline underline-offset-4"
+                  :class="canPickRound ? 'text-slate-300 hover:text-slate-100' : 'text-slate-500 cursor-not-allowed'"
+                  :disabled="!canPickRound"
+                  :title="!canPickRound ? 'Elige categoría y rama primero' : ''"
+                >
+                  Limpiar
+                </button>
+              </div>
+
+              <div
+                class="rounded-3xl border border-slate-800/70 bg-slate-950/35 p-3 md:p-4"
+                :class="!canPickRound ? 'opacity-60' : ''"
+              >
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div class="flex-1">
+                    <div class="seg-wrap">
+                      <button
+                        type="button"
+                        @click="roundPick = 'ALL'"
+                        :disabled="!canPickRound"
+                        :class="segBtn(roundPick === 'ALL', 'base', !canPickRound)"
+                        :title="!canPickRound ? 'Elige categoría y rama primero' : ''"
+                      >
+                        Todas
+                      </button>
+
+                      <button
+                        v-for="r in roundOptions"
+                        :key="r.round"
+                        type="button"
+                        @click="roundPick = r.round"
+                        :disabled="!canPickRound"
+                        :class="segBtn(roundPick === r.round, 'amber', !canPickRound)"
+                        :title="!canPickRound ? 'Elige categoría y rama primero' : `${r.count} partido(s)`"
+                      >
+                        J{{ r.round }}
+                        <span class="ml-2 count-pill">{{ r.count }}</span>
+                      </button>
+                    </div>
+
+                    <p v-if="!canPickRound" class="mt-2 text-[11px] text-slate-500">
+                      Para habilitar jornadas: elige <b class="text-slate-200">categoría</b> y <b class="text-slate-200">rama</b>.
+                    </p>
+                  </div>
+
+                  <div class="flex items-center gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2 self-start md:self-auto">
+                    <span class="text-slate-500 text-xs">#</span>
+                    <input
+                      v-model.trim="roundInput"
+                      type="text"
+                      inputmode="numeric"
+                      placeholder="Ej. 3"
+                      class="w-20 bg-transparent outline-none placeholder:text-slate-500 text-xs text-slate-100"
+                      :disabled="!canPickRound"
+                      @keydown.enter.prevent="applyRoundInput()"
+                    />
+                    <button
+                      type="button"
+                      class="text-[11px] font-semibold underline underline-offset-4"
+                      :class="canPickRound ? 'text-blue-200 hover:text-blue-100' : 'text-slate-500 cursor-not-allowed'"
+                      :disabled="!canPickRound"
+                      @click="applyRoundInput()"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Estado / Contadores -->
@@ -215,13 +257,6 @@
                     </span>
                   </span>
                 </p>
-
-                <div
-                  v-if="needsRama"
-                  class="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100"
-                >
-                  ⚠️ Selecciona la rama.
-                </div>
 
                 <button
                   type="button"
@@ -243,7 +278,9 @@
         <section class="space-y-6">
           <div v-if="!pending && filteredTotal === 0" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
             <p class="text-sm text-slate-200 font-semibold">No hay partidos con esos filtros.</p>
-            <p class="text-xs text-slate-400 mt-1">Cambia temporada / jornada / categoría / rama o limpia filtros.</p>
+            <p class="text-xs text-slate-400 mt-1">
+              Elige categoría → rama → (opcional) jornada, o limpia filtros.
+            </p>
           </div>
 
           <div v-for="group in grouped" :key="group.key" class="space-y-3">
@@ -256,11 +293,11 @@
             <article
               v-for="g in group.items"
               :key="g.id"
-              class="rounded-3xl border border-slate-800/80 bg-slate-900/55 px-4 md:px-6 py-4 md:py-5 hover:border-slate-600 transition shadow-[0_12px_32px_rgba(0,0,0,0.22)]"
-              style="content-visibility:auto; contain-intrinsic-size: 220px;"
+              class="rounded-3xl border border-slate-800/80 bg-slate-900/55 p-4 md:px-6 md:py-5 hover:border-slate-600 transition shadow-[0_12px_32px_rgba(0,0,0,0.22)]"
+              style="content-visibility:auto; contain-intrinsic-size: 240px;"
             >
               <!-- Header -->
-              <div class="flex items-center justify-between gap-3 mb-3">
+              <div class="flex items-start justify-between gap-3 mb-3">
                 <div class="flex items-center gap-2 text-[11px] text-slate-300 flex-wrap">
                   <span :class="badgeClass(g.status)">
                     <span v-if="upper(g.status) === 'SCHEDULED'" class="h-1.5 w-1.5 rounded-full bg-blue-300" />
@@ -275,26 +312,24 @@
                   <span class="text-slate-500" v-if="g.gender">·</span>
                   <span v-if="g.gender">{{ niceGender(g.gender) }}</span>
 
-                  <span class="text-slate-500" v-if="g.round">·</span>
-                  <span v-if="g.round">Jornada: {{ g.round }}</span>
-
                   <span class="text-slate-500" v-if="g.code">·</span>
                   <span v-if="g.code">Rama: {{ g.code }}</span>
+
+                  <span class="text-slate-500" v-if="g.round">·</span>
+                  <span v-if="g.round">J{{ g.round }}</span>
                 </div>
 
-                <div class="text-right text-[11px] text-slate-300">
+                <div class="text-right text-[11px] text-slate-300 shrink-0">
                   <p class="font-semibold text-slate-100">{{ g.timeLabel }}</p>
                   <p class="text-slate-500">{{ timeHintMs(g.ms, g.status) }}</p>
                 </div>
               </div>
 
-              <!-- Main -->
-              <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
+              <!-- Main (mejor mobile) -->
+              <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center gap-3">
                 <!-- Local -->
                 <div class="flex items-center gap-3 min-w-0">
-                  <div
-                    class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden"
-                  >
+                  <div class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden shrink-0">
                     <img
                       v-if="g.homeLogo"
                       :src="g.homeLogo"
@@ -309,7 +344,7 @@
                   </div>
 
                   <div class="min-w-0">
-                    <p class="text-sm md:text-base font-semibold text-slate-50 truncate">
+                    <p class="text-base font-semibold text-slate-50 truncate">
                       {{ g.homeName }}
                     </p>
                     <p class="text-[11px] text-slate-400 truncate">
@@ -319,15 +354,15 @@
                 </div>
 
                 <!-- Centro -->
-                <div class="flex flex-col items-center justify-center min-w-[120px]">
+                <div class="flex flex-col items-center justify-center sm:min-w-[140px]">
                   <template v-if="g.isFinal">
                     <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Marcador</p>
                     <div class="inline-flex items-center gap-3 rounded-2xl border border-emerald-400/35 bg-emerald-500/10 px-4 py-2">
-                      <span class="text-2xl md:text-3xl font-extrabold text-slate-50 tabular-nums">
+                      <span class="text-3xl font-extrabold text-slate-50 tabular-nums">
                         {{ g.homeScore ?? '—' }}
                       </span>
                       <span class="text-slate-500 font-bold">-</span>
-                      <span class="text-2xl md:text-3xl font-extrabold text-slate-50 tabular-nums">
+                      <span class="text-3xl font-extrabold text-slate-50 tabular-nums">
                         {{ g.awayScore ?? '—' }}
                       </span>
                     </div>
@@ -336,15 +371,17 @@
 
                   <template v-else>
                     <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Horario</p>
-                    <p class="text-lg md:text-xl font-bold text-slate-50">{{ g.timeLabel }}</p>
+                    <p class="text-xl font-bold text-slate-50">{{ g.timeLabel }}</p>
                     <p class="text-[11px] mt-0.5 text-slate-500">A la espera de kickoff</p>
                   </template>
                 </div>
 
                 <!-- Visitante -->
-                <div class="flex items-center justify-end gap-3 min-w-0">
+                <div class="flex items-center justify-between sm:justify-end gap-3 min-w-0">
+                  <div class="sm:hidden h-px flex-1 bg-slate-800/70"></div>
+
                   <div class="text-right min-w-0">
-                    <p class="text-sm md:text-base font-semibold text-slate-50 truncate">
+                    <p class="text-base font-semibold text-slate-50 truncate">
                       {{ g.awayName }}
                     </p>
                     <p class="text-[11px] text-slate-400 truncate">
@@ -352,9 +389,7 @@
                     </p>
                   </div>
 
-                  <div
-                    class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden"
-                  >
+                  <div class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden shrink-0">
                     <img
                       v-if="g.awayLogo"
                       :src="g.awayLogo"
@@ -371,7 +406,7 @@
               </div>
 
               <!-- Footer -->
-              <div class="mt-4 flex items-center justify-between gap-3 text-[11px] text-slate-400">
+              <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] text-slate-400">
                 <p class="truncate">
                   ID: <span class="text-slate-200 font-semibold">{{ g.id }}</span>
                   <span class="text-slate-600">·</span>
@@ -390,7 +425,7 @@
 
           <!-- PAGINACIÓN -->
           <div v-if="!pending && filteredTotal > 0" class="pt-2">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <p class="text-[11px] text-slate-400">
                 Mostrando
                 <span class="text-slate-100 font-semibold">{{ pageRangeLabel }}</span>
@@ -398,17 +433,26 @@
                 <span class="text-slate-100 font-semibold">{{ filteredTotal }}</span>
               </p>
 
-              <div class="flex items-center gap-2">
+              <div class="grid grid-cols-2 sm:flex items-center gap-2 w-full md:w-auto">
                 <button
                   type="button"
                   @click="prevPage()"
                   :disabled="page <= 1"
-                  class="rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  class="rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation"
                 >
                   ← Anterior
                 </button>
 
-                <div class="flex items-center gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2">
+                <button
+                  type="button"
+                  @click="nextPage()"
+                  :disabled="page >= totalPages"
+                  class="rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation"
+                >
+                  Siguiente →
+                </button>
+
+                <div class="col-span-2 sm:col-span-1 flex items-center gap-2 rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2 w-full sm:w-auto">
                   <span class="text-[11px] text-slate-400">Página</span>
                   <input
                     v-model.trim="pageInput"
@@ -426,15 +470,6 @@
                     Ir
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  @click="nextPage()"
-                  :disabled="page >= totalPages"
-                  class="rounded-2xl border border-slate-700/70 bg-slate-900/40 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-900/70 hover:border-slate-500 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Siguiente →
-                </button>
               </div>
             </div>
           </div>
@@ -530,8 +565,11 @@ type Group = { key: string; label: string; items: VMGame[] }
 const config = useRuntimeConfig()
 const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
 
+/** ✅ temporada default fija */
+const DEFAULT_SEASON_ID = 2
+
 /** filtros */
-const seasonPick = ref<'ALL' | string>('ALL')
+const seasonPick = ref<string>(String(DEFAULT_SEASON_ID)) // ✅ ya no existe "ALL" para temporada
 const roundPick = ref<'ALL' | string>('ALL')
 const roundInput = ref('')
 const categoria = ref<'ALL' | Gender>('ALL')
@@ -539,9 +577,25 @@ const rama = ref<'ALL' | string>('ALL')
 
 const canPickRama = computed(() => categoria.value !== 'ALL')
 const needsRama = computed(() => categoria.value !== 'ALL' && rama.value === 'ALL')
+const canPickRound = computed(() => categoria.value !== 'ALL' && rama.value !== 'ALL' && !needsRama.value)
+
+const stepState = computed(() => {
+  if (categoria.value === 'ALL') return 1
+  if (rama.value === 'ALL') return 2
+  return 3
+})
 
 watch(categoria, () => {
   rama.value = 'ALL'
+  // ✅ si cambias categoría, resetea jornada
+  roundPick.value = 'ALL'
+  roundInput.value = ''
+})
+
+watch(rama, () => {
+  // ✅ si cambias rama, resetea jornada
+  roundPick.value = 'ALL'
+  roundInput.value = ''
 })
 
 /** paginación (5 por página) */
@@ -582,7 +636,7 @@ const dateFmt = new Intl.DateTimeFormat('es-MX', {
   year: 'numeric',
 })
 
-/** 🔥 fetch seasons (solo para mostrar NOMBRE de temporada) */
+/** 🔥 fetch seasons */
 const { data: seasonsRaw } = useAsyncData<any[]>(
   'seasons-admin-lite',
   async () => {
@@ -606,13 +660,12 @@ const seasonsMap = computed<Record<number, string>>(() => {
   return out
 })
 
-/* ===================== FIX: SEASON FILTER ROBUSTO ===================== */
 function seasonKey(name: string) {
   return String(name || '')
     .trim()
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // quita acentos
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ')
 }
 
@@ -628,9 +681,8 @@ const seasonNameToId = computed<Record<string, number>>(() => {
   }
   return out
 })
-/* ===================================================================== */
 
-/** 🔥 fetch: scheduled + finals (se combinan por ID) */
+/** 🔥 fetch games */
 const { data, pending, error, refresh } = useAsyncData<Game[]>(
   'games-calendar-admin-paged-5',
   async () => {
@@ -640,41 +692,27 @@ const { data, pending, error, refresh } = useAsyncData<Game[]>(
     ])
 
     const all = [...(Array.isArray(scheduled) ? scheduled : []), ...(Array.isArray(finals) ? finals : [])]
-
     const map = new Map<number, any>()
     for (const g of all) {
       const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
       if (!id) continue
       map.set(id, g)
     }
-
     return Array.from(map.values())
   },
   { server: false }
 )
 
-watch([pending], () => {
-  page.value = 1
-  pageInput.value = '1'
-})
-
 const errorMsg = computed(() => (error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''))
 
-/** VM + contadores */
+/** VM */
 const vmAll = shallowRef<VMGame[]>(markRaw([]))
-const roundCounts = shallowRef<Record<string, number>>(markRaw({}))
-const genderCounts = shallowRef<Record<string, number>>(markRaw({}))
-const ramaCountsByGender = shallowRef<Record<string, Record<string, number>>>(markRaw({}))
 
 watch(
   [data, seasonsMap, seasonNameToId],
   ([raw]) => {
     const list = raw ?? []
     const out: VMGame[] = []
-    const rc: Record<string, number> = {}
-    const gc: Record<string, number> = {}
-    const rbg: Record<string, Record<string, number>> = {}
-
     const dayLabelCache = new Map<string, string>()
 
     for (const g of list) {
@@ -682,18 +720,14 @@ watch(
       if (!id) continue
 
       let seasonId = Number(g?.season_id ?? g?.seasonId ?? g?.season?.id ?? 0) || 0
-
       let seasonName =
         String(g?.seasonName ?? g?.season?.name ?? '').trim() ||
         (seasonId ? (seasonsMap.value[seasonId] || `Temporada #${seasonId}`) : '')
 
-      // ✅ si NO viene seasonId pero SÍ viene seasonName, inferimos el ID desde el catálogo
       if (!seasonId && seasonName) {
         const guess = seasonNameToId.value[seasonKey(seasonName)] || 0
         if (guess) seasonId = guess
       }
-
-      // ✅ si ya tenemos ID pero el nombre venía vacío, lo resolvemos
       if (!seasonName && seasonId) {
         seasonName = seasonsMap.value[seasonId] || `Temporada #${seasonId}`
       }
@@ -714,20 +748,11 @@ watch(
       const gen = g.category?.gender ? upper(g.category.gender) : null
       const code = g.category?.code ? String(g.category.code) : null
 
-      if (round) rc[round] = (rc[round] ?? 0) + 1
-      if (gen) gc[gen] = (gc[gen] ?? 0) + 1
-      if (gen && code) {
-        const bucket = (rbg[gen] ??= {})
-        bucket[code] = (bucket[code] ?? 0) + 1
-      }
-
       const homeName = String(g.home_team ?? g.homeTeam?.name ?? 'Local').trim()
       const awayName = String(g.away_team ?? g.awayTeam?.name ?? 'Visitante').trim()
 
-      // ✅ status confiable: si trae marcador asumimos FINAL
       const rawStatus = String(g?.status ?? '').trim()
       const hasScore = g?.homeScore != null || g?.awayScore != null || g?.home_score != null || g?.away_score != null
-
       const status = upper(rawStatus) || (hasScore ? 'FINAL' : 'SCHEDULED')
       const isFinal = status === 'FINAL'
 
@@ -759,19 +784,16 @@ watch(
       })
     }
 
-    // 🔥 ORDEN: SCHEDULED arriba, FINAL abajo
+    // orden: scheduled arriba, final abajo
     out.sort((a, b) => {
       const ra = statusRank(a.status)
       const rb = statusRank(b.status)
       if (ra !== rb) return ra - rb
-      if (ra <= 1) return (a.ms || 0) - (b.ms || 0) // próximos primero
-      return (b.ms || 0) - (a.ms || 0) // finales recientes primero
+      if (ra <= 1) return (a.ms || 0) - (b.ms || 0)
+      return (b.ms || 0) - (a.ms || 0)
     })
 
     vmAll.value = markRaw(out)
-    roundCounts.value = markRaw(rc)
-    genderCounts.value = markRaw(gc)
-    ramaCountsByGender.value = markRaw(rbg)
 
     page.value = 1
     pageInput.value = '1'
@@ -779,9 +801,8 @@ watch(
   { immediate: true }
 )
 
-/** opciones */
+/** temporada options (sin ALL) + asegura default season 2 */
 const seasonOptions = computed<Season[]>(() => {
-  // 1) si seasons endpoint responde, úsalo
   const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
   const fromApi: Season[] = list
     .map((s: any) => {
@@ -791,51 +812,112 @@ const seasonOptions = computed<Season[]>(() => {
     })
     .filter((s) => s.id > 0 && !!s.name)
 
-  if (fromApi.length) {
-    return [...fromApi].sort((a, b) => a.name.localeCompare(b.name, 'es'))
-  }
-
-  // 2) fallback: deriva de games
-  const m = new Map<number, string>()
+  const derived = new Map<number, string>()
   for (const g of vmAll.value) {
     if (!g.seasonId) continue
-    m.set(g.seasonId, g.seasonName || `Temporada #${g.seasonId}`)
+    derived.set(g.seasonId, g.seasonName || `Temporada #${g.seasonId}`)
   }
-  return Array.from(m.entries())
-    .map(([id, name]) => ({ id, name }))
-    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+
+  const merged = new Map<number, string>()
+  for (const s of fromApi) merged.set(s.id, s.name)
+  for (const [id, name] of derived.entries()) if (!merged.has(id)) merged.set(id, name)
+
+  // ✅ asegura default season 2
+  if (!merged.has(DEFAULT_SEASON_ID)) {
+    merged.set(DEFAULT_SEASON_ID, seasonsMap.value[DEFAULT_SEASON_ID] || `Temporada #${DEFAULT_SEASON_ID}`)
+  }
+
+  const arr = Array.from(merged.entries()).map(([id, name]) => ({ id, name }))
+
+  // default primero
+  arr.sort((a, b) => {
+    if (a.id === DEFAULT_SEASON_ID) return -1
+    if (b.id === DEFAULT_SEASON_ID) return 1
+    return a.name.localeCompare(b.name, 'es')
+  })
+
+  return arr
 })
 
-const roundOptions = computed(() => {
-  return Object.entries(roundCounts.value)
-    .map(([round, count]) => ({ round, count }))
-    .sort((a, b) => Number(a.round) - Number(b.round))
+// si por alguna razón la temporada seleccionada no existe, vuelve a default
+watch(
+  seasonOptions,
+  (opts) => {
+    const ok = opts.some((x) => String(x.id) === String(seasonPick.value))
+    if (!ok) seasonPick.value = String(DEFAULT_SEASON_ID)
+  },
+  { immediate: true }
+)
+
+const currentSeasonLabel = computed(() => {
+  const sp = safeSeasonId()
+  return seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`
+})
+
+/** counts scoped por season (mejor UX) */
+const seasonScopedGames = computed(() => {
+  const sp = safeSeasonId()
+  const selectedSeasonName = seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`
+  const selectedSeasonKey = seasonKey(selectedSeasonName)
+
+  return vmAll.value.filter((g) => {
+    const gid = Number(g.seasonId || 0)
+    if (gid) return gid === sp
+    return seasonKey(g.seasonName || '') === selectedSeasonKey
+  })
 })
 
 const categoriaOptions = computed(() => {
   const base: Gender[] = ['VARONIL', 'FEMENIL', 'MIXTO']
-  const gc = genderCounts.value
+  const gc: Record<string, number> = {}
+  for (const g of seasonScopedGames.value) {
+    const gen = upper(g.gender ?? '')
+    if (!gen) continue
+    gc[gen] = (gc[gen] ?? 0) + 1
+  }
   return base.map((v) => ({ value: v, count: gc[upper(v)] ?? 0 }))
 })
 
 const ramaOptions = computed(() => {
   if (categoria.value === 'ALL') return []
   const gen = upper(categoria.value)
-  const map = ramaCountsByGender.value[gen] || {}
+  const map: Record<string, number> = {}
+  for (const g of seasonScopedGames.value) {
+    if (upper(g.gender ?? '') !== gen) continue
+    const code = upper(g.code ?? '')
+    if (!code) continue
+    map[code] = (map[code] ?? 0) + 1
+  }
   return Object.entries(map)
     .map(([value, count]) => ({ value, count }))
     .sort((a, b) => a.value.localeCompare(b.value))
 })
 
-/** filtros -> lista plana (para paginar) */
-const filteredAll = computed(() => {
-  const sp = seasonPick.value === 'ALL' ? 0 : Number(seasonPick.value || 0)
+/** ✅ round options SOLO cuando ya hay categoría + rama (paso final) */
+const roundOptions = computed(() => {
+  if (!canPickRound.value) return []
+  const gen = upper(categoria.value)
+  const code = upper(rama.value)
 
-  // ✅ nombre seleccionado para fallback por nombre (si el juego no trae seasonId)
-  const selectedSeasonName = sp
-    ? (seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`)
-    : ''
-  const selectedSeasonKey = sp ? seasonKey(selectedSeasonName) : ''
+  const rc: Record<string, number> = {}
+  for (const g of seasonScopedGames.value) {
+    if (upper(g.gender ?? '') !== gen) continue
+    if (upper(g.code ?? '') !== code) continue
+    const r = g.round ? normalizeRound(g.round) : ''
+    if (!r) continue
+    rc[r] = (rc[r] ?? 0) + 1
+  }
+
+  return Object.entries(rc)
+    .map(([round, count]) => ({ round, count }))
+    .sort((a, b) => Number(a.round) - Number(b.round))
+})
+
+/** filtros -> lista plana */
+const filteredAll = computed(() => {
+  const sp = safeSeasonId()
+  const selectedSeasonName = seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`
+  const selectedSeasonKey = seasonKey(selectedSeasonName)
 
   const rp = roundPick.value === 'ALL' ? null : normalizeRound(roundPick.value)
   const cg = categoria.value === 'ALL' ? null : upper(categoria.value)
@@ -845,19 +927,22 @@ const filteredAll = computed(() => {
 
   const out: VMGame[] = []
   for (const g of vmAll.value) {
-    // ✅ season robusto: por id si existe, si no por nombre normalizado
-    if (sp) {
-      const gid = Number(g.seasonId || 0)
-      if (gid) {
-        if (gid !== sp) continue
-      } else {
-        if (seasonKey(g.seasonName || '') !== selectedSeasonKey) continue
-      }
+    // season (siempre aplica)
+    const gid = Number(g.seasonId || 0)
+    if (gid) {
+      if (gid !== sp) continue
+    } else {
+      if (seasonKey(g.seasonName || '') !== selectedSeasonKey) continue
     }
 
-    if (rp && normalizeRound(g.round ?? '') !== rp) continue
     if (cg && upper(g.gender ?? '') !== cg) continue
     if (cg && rc && upper(g.code ?? '') !== rc) continue
+
+    // ✅ jornada solo si ya eligieron categoría+rama
+    if (rp && canPickRound.value) {
+      if (normalizeRound(g.round ?? '') !== rp) continue
+    }
+
     out.push(g)
   }
   return out
@@ -907,7 +992,7 @@ const pageRangeLabel = computed(() => {
 
 /** acciones */
 function resetFilters() {
-  seasonPick.value = 'ALL'
+  seasonPick.value = String(DEFAULT_SEASON_ID) // ✅ siempre vuelve a season 2
   roundPick.value = 'ALL'
   roundInput.value = ''
   categoria.value = 'ALL'
@@ -917,6 +1002,7 @@ function resetFilters() {
 }
 
 function applyRoundInput() {
+  if (!canPickRound.value) return
   const v = normalize(roundInput.value)
   if (!v) {
     roundPick.value = 'ALL'
@@ -946,7 +1032,7 @@ function applyPageInput() {
 
 /* ---------- helpers UI ---------- */
 function segBtn(active: boolean, tone: 'base' | 'blue' | 'emerald' | 'amber' = 'base', disabled = false) {
-  const base = 'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-[11px] font-semibold transition select-none'
+  const base = 'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-[11px] font-semibold transition select-none touch-manipulation'
   const off = 'border-transparent text-slate-300 hover:bg-slate-900/60 hover:text-slate-100'
   const dis = 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-slate-300'
   if (disabled) return `${base} ${off} ${dis}`
@@ -958,6 +1044,13 @@ function segBtn(active: boolean, tone: 'base' | 'blue' | 'emerald' | 'amber' = '
     amber: 'border-amber-400/50 bg-amber-500/15 text-amber-100',
   }
   return `${base} ${tones[tone]}`
+}
+
+function stepPillClass(active: boolean) {
+  const base = 'rounded-2xl border px-3 py-2 text-[11px] font-semibold'
+  return active
+    ? `${base} border-slate-600/70 bg-slate-900/70 text-slate-100`
+    : `${base} border-slate-800/70 bg-slate-950/40 text-slate-400`
 }
 
 function badgeClass(st: string) {
@@ -1036,7 +1129,7 @@ function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }
 
-/** ✅ rank para ordenar: scheduled arriba, final abajo */
+/** rank para ordenar */
 function statusRank(st: string) {
   const s = upper(st)
   if (s === 'SCHEDULED') return 0
@@ -1044,19 +1137,35 @@ function statusRank(st: string) {
   if (s === 'FINAL') return 3
   return 2
 }
+
+function safeSeasonId() {
+  const n = Number(seasonPick.value || DEFAULT_SEASON_ID)
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_SEASON_ID
+}
 </script>
 
 <style scoped>
+/* ✅ mobile-first: chips scroll horizontal, desktop wrap */
 .seg-wrap {
   display: inline-flex;
   width: 100%;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
   border-radius: 1rem;
   border: 1px solid rgba(51, 65, 85, 0.7);
   background: rgba(2, 6, 23, 0.55);
   padding: 0.35rem;
+
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex-wrap: nowrap;
+}
+
+@media (min-width: 768px) {
+  .seg-wrap {
+    overflow-x: visible;
+    flex-wrap: wrap;
+  }
 }
 
 .count-pill {

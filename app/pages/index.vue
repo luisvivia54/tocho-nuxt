@@ -5,9 +5,7 @@
     <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="max-w-6xl mx-auto container-pad px-6">
         <!-- Carrusel con IMG real -->
-        <div
-          class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900"
-        >
+        <div class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900">
           <div class="relative w-full" style="aspect-ratio: 16/5">
             <img :src="currentSlideSrc" alt="tochero5liga" class="w-full h-full object-cover" />
           </div>
@@ -61,255 +59,248 @@
                 </div>
               </div>
 
-              <!-- ========== PRÓXIMOS JUEGOS (SLIDER LIMPIO 1/2) ========== -->
               <!-- ========== PRÓXIMOS JUEGOS (1 A LA VEZ · UX/UI) ========== -->
-<div class="md:col-span-2">
-  <div
-    class="rounded-2xl border border-blue-100 bg-white/70 p-4 md:p-5
-           shadow-[0_12px_28px_rgba(15,23,42,0.10)] backdrop-blur"
-  >
-    <!-- Header -->
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <div class="flex items-center gap-2">
-          <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500">
-            Próximo juego
-          </p>
+              <div class="md:col-span-2">
+                <div
+                  class="rounded-2xl border border-blue-100 bg-white/70 p-4 md:p-5
+                         shadow-[0_12px_28px_rgba(15,23,42,0.10)] backdrop-blur"
+                >
+                  <!-- Header -->
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500">
+                          Próximo juego
+                        </p>
 
-          <span
-            v-if="upcomingTotal > 0"
-            class="inline-flex items-center rounded-full border border-blue-200 bg-white px-2 py-0.5 text-[11px] font-extrabold text-blue-700"
-          >
-            {{ upcomingIndex + 1 }} / {{ upcomingTotal }}
-          </span>
-        </div>
+                        <span
+                          v-if="upcomingTotal > 0"
+                          class="inline-flex items-center rounded-full border border-blue-200 bg-white px-2 py-0.5 text-[11px] font-extrabold text-blue-700"
+                        >
+                          {{ upcomingIndex + 1 }} / {{ upcomingTotal }}
+                        </span>
+                      </div>
 
-        <p class="mt-1 text-[12px] text-slate-600">
-          Un partido a la vez, con todos los detalles.
-        </p>
-      </div>
+                      <p class="mt-1 text-[12px] text-slate-600">
+                        Un partido a la vez, con todos los detalles.
+                      </p>
+                    </div>
 
-      <!-- Flechas -->
-      <div class="flex items-center gap-1.5 shrink-0">
-        <button
-          type="button"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-blue-200
-                 text-blue-700 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
-          @click="prevUpcoming()"
-          :disabled="upcomingTotal <= 1"
-          title="Anterior"
-        >
-          ←
-        </button>
-        <button
-          type="button"
-          class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-blue-200
-                 text-blue-700 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
-          @click="nextUpcoming()"
-          :disabled="upcomingTotal <= 1"
-          title="Siguiente"
-        >
-          →
-        </button>
-      </div>
-    </div>
+                    <!-- Flechas -->
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-blue-200
+                               text-blue-700 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        @click="prevUpcoming()"
+                        :disabled="upcomingTotal <= 1"
+                        title="Anterior"
+                      >
+                        ←
+                      </button>
+                      <button
+                        type="button"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-blue-200
+                               text-blue-700 hover:bg-blue-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        @click="nextUpcoming()"
+                        :disabled="upcomingTotal <= 1"
+                        title="Siguiente"
+                      >
+                        →
+                      </button>
+                    </div>
+                  </div>
 
-    <!-- Estados -->
-    <div
-      v-if="gamesPending"
-      class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
-    >
-      Cargando próximos juegos…
-    </div>
+                  <!-- Estados -->
+                  <div
+                    v-if="gamesPending"
+                    class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
+                  >
+                    Cargando próximos juegos…
+                  </div>
 
-    <div
-      v-else-if="!activeUpcoming"
-      class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
-    >
-      Aún no hay juegos programados.
-    </div>
+                  <div
+                    v-else-if="!activeUpcoming"
+                    class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
+                  >
+                    Aún no hay juegos programados para <b>{{ selectedSeasonLabel }}</b>.
+                  </div>
 
-    <!-- Card PRO -->
-    <article
-      v-else
-      class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white
-             shadow-[0_14px_35px_rgba(15,23,42,0.10)]"
-    >
-      <!-- Top bar -->
-      <div class="p-4 md:p-5 border-b border-slate-200 bg-gradient-to-r from-white to-blue-50/40">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <!-- Left: chips -->
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <span
-                class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold leading-none"
-                :class="String(activeUpcoming.status).toUpperCase() === 'LIVE'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                  : 'border-blue-200 bg-blue-50 text-blue-800'"
-              >
-                {{ String(activeUpcoming.status).toUpperCase() === 'LIVE' ? 'EN JUEGO' : 'PROGRAMADO' }}
-              </span>
+                  <!-- Card PRO -->
+                  <article
+                    v-else
+                    class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white
+                           shadow-[0_14px_35px_rgba(15,23,42,0.10)]"
+                  >
+                    <!-- Top bar -->
+                    <div class="p-4 md:p-5 border-b border-slate-200 bg-gradient-to-r from-white to-blue-50/40">
+                      <div class="flex flex-wrap items-start justify-between gap-3">
+                        <!-- Left: chips -->
+                        <div class="min-w-0">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <span
+                              class="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-extrabold leading-none"
+                              :class="String(activeUpcoming.status).toUpperCase() === 'LIVE'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                : 'border-blue-200 bg-blue-50 text-blue-800'"
+                            >
+                              {{ String(activeUpcoming.status).toUpperCase() === 'LIVE' ? 'EN JUEGO' : 'PROGRAMADO' }}
+                            </span>
 
-              <span
-                class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700"
-              >
-                {{ activeUpcoming.categoryName }}
-              </span>
+                            <span
+                              class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+                            >
+                              {{ activeUpcoming.categoryName }}
+                            </span>
 
-              <span
-                v-if="activeUpcoming.genderLabel"
-                class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
-              >
-                {{ activeUpcoming.genderLabel }}
-              </span>
+                            <span
+                              v-if="activeUpcoming.genderLabel"
+                              class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+                            >
+                              {{ activeUpcoming.genderLabel }}
+                            </span>
 
-              <span
-                v-if="activeUpcoming.code"
-                class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
-              >
-                {{ activeUpcoming.code }}
-              </span>
+                            <span
+                              v-if="activeUpcoming.code"
+                              class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+                            >
+                              {{ activeUpcoming.code }}
+                            </span>
 
-              <span
-                v-if="activeUpcoming.round"
-                class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
-              >
-                Jornada {{ activeUpcoming.round }}
-              </span>
-            </div>
+                            <span
+                              v-if="activeUpcoming.round"
+                              class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700"
+                            >
+                              Jornada {{ activeUpcoming.round }}
+                            </span>
+                          </div>
 
-            <p class="mt-2 text-sm font-extrabold text-slate-900 leading-tight">
-              {{ activeUpcoming.dateLabel }}
-            </p>
-          </div>
+                          <p class="mt-2 text-sm font-extrabold text-slate-900 leading-tight">
+                            {{ activeUpcoming.dateLabel }}
+                          </p>
+                        </div>
 
-          <!-- Right: time + countdown -->
-          <div class="text-right shrink-0">
-            <p class="text-2xl md:text-[28px] font-extrabold text-slate-900 tabular-nums leading-none whitespace-nowrap">
-              {{ activeUpcoming.timeLabel }}
-            </p>
+                        <!-- Right: time -->
+                        <div class="text-right shrink-0">
+                          <p class="text-2xl md:text-[28px] font-extrabold text-slate-900 tabular-nums leading-none whitespace-nowrap">
+                            {{ activeUpcoming.timeLabel }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
+                    <!-- Matchup -->
+                    <div class="p-4 md:p-5">
+                      <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 md:gap-4">
+                        <!-- HOME -->
+                        <div class="flex items-center gap-3 min-w-0">
+                          <div class="relative shrink-0">
+                            <div class="absolute -inset-2 rounded-3xl bg-blue-500/10 blur-xl"></div>
+                            <div
+                              class="relative h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center"
+                            >
+                              <img
+                                v-if="activeUpcoming.homeLogo"
+                                :src="activeUpcoming.homeLogo"
+                                :alt="activeUpcoming.homeName"
+                                class="h-full w-full object-contain p-1.5"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              <span v-else class="text-sm font-extrabold text-blue-700">
+                                {{ initials(activeUpcoming.homeName) }}
+                              </span>
+                            </div>
+                          </div>
 
-          </div>
-        </div>
-      </div>
+                          <div class="min-w-0">
+                            <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Local</p>
+                            <p class="text-base font-extrabold text-slate-900 truncate">
+                              {{ activeUpcoming.homeName }}
+                            </p>
+                          </div>
+                        </div>
 
-      <!-- Matchup -->
-      <div class="p-4 md:p-5">
-        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 md:gap-4">
-          <!-- HOME -->
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="relative shrink-0">
-              <div class="absolute -inset-2 rounded-3xl bg-blue-500/10 blur-xl"></div>
-              <div
-                class="relative h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center"
-              >
-                <img
-                  v-if="activeUpcoming.homeLogo"
-                  :src="activeUpcoming.homeLogo"
-                  :alt="activeUpcoming.homeName"
-                  class="h-full w-full object-contain p-1.5"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <span v-else class="text-sm font-extrabold text-blue-700">
-                  {{ initials(activeUpcoming.homeName) }}
-                </span>
+                        <!-- VS -->
+                        <div class="flex flex-col items-center justify-center px-1">
+                          <span class="text-[11px] font-extrabold text-slate-400">VS</span>
+                          <span class="mt-1 h-1 w-10 rounded-full bg-slate-200"></span>
+                        </div>
+
+                        <!-- AWAY -->
+                        <div class="flex items-center justify-end gap-3 min-w-0">
+                          <div class="min-w-0 text-right">
+                            <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Visitante</p>
+                            <p class="text-base font-extrabold text-slate-900 truncate">
+                              {{ activeUpcoming.awayName }}
+                            </p>
+                          </div>
+
+                          <div class="relative shrink-0">
+                            <div class="absolute -inset-2 rounded-3xl bg-emerald-500/10 blur-xl"></div>
+                            <div
+                              class="relative h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center"
+                            >
+                              <img
+                                v-if="activeUpcoming.awayLogo"
+                                :src="activeUpcoming.awayLogo"
+                                :alt="activeUpcoming.awayName"
+                                class="h-full w-full object-contain p-1.5"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              <span v-else class="text-sm font-extrabold text-emerald-700">
+                                {{ initials(activeUpcoming.awayName) }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Meta -->
+                      <div class="mt-4 grid grid-cols-2 gap-3">
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <p class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">ID Partido</p>
+                          <p class="mt-0.5 text-sm font-extrabold text-slate-900 tabular-nums">{{ activeUpcoming.id }}</p>
+                        </div>
+
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <p class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Temporada</p>
+                          <p class="mt-0.5 text-sm font-extrabold text-slate-900">
+                            {{ activeUpcoming.seasonName || selectedSeasonLabel }}
+                          </p>
+                        </div>
+                      </div>
+
+                      <!-- CTA -->
+                      <div class="mt-4 flex flex-wrap gap-2">
+                        <NuxtLink
+                          to="/partidos"
+                          class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-extrabold
+                                 bg-blue-600 text-white hover:bg-blue-500
+                                 shadow-[0_10px_25px_rgba(37,99,235,0.35)]"
+                        >
+                          Ver todos los partidos
+                        </NuxtLink>
+                      </div>
+
+                      <!-- Dots -->
+                      <div v-if="upcomingTotal > 1" class="mt-4 flex items-center justify-center gap-1.5">
+                        <button
+                          v-for="(_, i) in upcomingTotal"
+                          :key="i"
+                          type="button"
+                          class="h-2.5 w-2.5 rounded-full border border-blue-200"
+                          :class="i === upcomingIndex ? 'bg-blue-600 border-blue-600' : 'bg-white hover:bg-blue-50'"
+                          @click="goToUpcoming(i)"
+                          :title="`Ir al juego ${i + 1}`"
+                        />
+                      </div>
+                    </div>
+                  </article>
+                </div>
               </div>
-            </div>
-
-            <div class="min-w-0">
-              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Local</p>
-              <p class="text-base font-extrabold text-slate-900 truncate">
-                {{ activeUpcoming.homeName }}
-              </p>
-            </div>
-          </div>
-
-          <!-- VS -->
-          <div class="flex flex-col items-center justify-center px-1">
-            <span class="text-[11px] font-extrabold text-slate-400">VS</span>
-            <span class="mt-1 h-1 w-10 rounded-full bg-slate-200"></span>
-          </div>
-
-          <!-- AWAY -->
-          <div class="flex items-center justify-end gap-3 min-w-0">
-            <div class="min-w-0 text-right">
-              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Visitante</p>
-              <p class="text-base font-extrabold text-slate-900 truncate">
-                {{ activeUpcoming.awayName }}
-              </p>
-            </div>
-
-            <div class="relative shrink-0">
-              <div class="absolute -inset-2 rounded-3xl bg-emerald-500/10 blur-xl"></div>
-              <div
-                class="relative h-14 w-14 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center"
-              >
-                <img
-                  v-if="activeUpcoming.awayLogo"
-                  :src="activeUpcoming.awayLogo"
-                  :alt="activeUpcoming.awayName"
-                  class="h-full w-full object-contain p-1.5"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <span v-else class="text-sm font-extrabold text-emerald-700">
-                  {{ initials(activeUpcoming.awayName) }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Meta -->
-        <div class="mt-4 grid grid-cols-2 gap-3">
-          <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <p class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">ID Partido</p>
-            <p class="mt-0.5 text-sm font-extrabold text-slate-900 tabular-nums">{{ activeUpcoming.id }}</p>
-          </div>
-
-          <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <p class="text-[10px] font-extrabold uppercase tracking-wide text-slate-500">Temporada</p>
-            <p class="mt-0.5 text-sm font-extrabold text-slate-900">
-              {{ activeUpcoming.seasonId ? `Temporada ${activeUpcoming.seasonId}` : '—' }}
-            </p>
-          </div>
-        </div>
-
-        <!-- CTA -->
-        <div class="mt-4 flex flex-wrap gap-2">
-          <NuxtLink
-            to="/partidos"
-            class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-extrabold
-                   bg-blue-600 text-white hover:bg-blue-500
-                   shadow-[0_10px_25px_rgba(37,99,235,0.35)]"
-          >
-            Ver todos los partidos
-          </NuxtLink>
-
-
-        </div>
-
-        <!-- Dots -->
-        <div v-if="upcomingTotal > 1" class="mt-4 flex items-center justify-center gap-1.5">
-          <button
-            v-for="(_, i) in upcomingTotal"
-            :key="i"
-            type="button"
-            class="h-2.5 w-2.5 rounded-full border border-blue-200"
-            :class="i === upcomingIndex ? 'bg-blue-600 border-blue-600' : 'bg-white hover:bg-blue-50'"
-            @click="goToUpcoming(i)"
-            :title="`Ir al juego ${i + 1}`"
-          />
-        </div>
-      </div>
-    </article>
-  </div>
-</div>
-<!-- /PRÓXIMOS JUEGOS -->
-
-              <!-- /Próximos juegos -->
+              <!-- /PRÓXIMOS JUEGOS -->
             </div>
           </div>
         </div>
@@ -321,12 +312,20 @@
         </div>
 
         <!-- ========== TOP 5 POSICIONES (desde backend) ========== -->
-        <div
-          class="mt-8 rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
-        >
+        <div class="mt-8 rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
+          <!-- Header -->
           <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
-            <div class="flex items-center gap-3">
-              <h3 class="font-display font-extrabold text-white">Top 5 · Posiciones</h3>
+            <div class="flex items-center gap-3 min-w-0">
+              <h3 class="font-display font-extrabold text-white truncate">Top 5 · Posiciones</h3>
+
+              <!-- chip temporada -->
+              <span
+                class="inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-[11px] font-extrabold text-white"
+                title="Temporada seleccionada"
+              >
+                {{ selectedSeasonLabel }}
+              </span>
+
               <span class="hidden sm:inline text-xs text-white/80 font-medium">ACTUALIZADO</span>
             </div>
 
@@ -341,7 +340,23 @@
 
           <!-- Filtros -->
           <div class="px-5 py-4 bg-white border-b border-slate-200/70">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <!-- Season -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                  Temporada (season)
+                </label>
+                <select
+                  v-model.number="selectedSeasonId"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option v-for="s in seasonOptions" :key="s.value" :value="s.value">
+                    {{ s.label }}
+                  </option>
+                </select>
+              </div>
+
               <!-- Categoría -->
               <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
@@ -405,50 +420,149 @@
             </div>
           </div>
 
-          <div class="bg-white overflow-x-auto">
-            <div v-if="pending" class="px-4 py-3 text-sm text-slate-500">Cargando posiciones...</div>
-            <div v-else-if="error" class="px-4 py-3 text-sm text-red-600">Error al cargar las posiciones.</div>
+          <!-- Body -->
+          <div class="bg-white">
+            <div v-if="pending" class="px-5 py-4 text-sm text-slate-500">Cargando posiciones...</div>
+            <div v-else-if="error" class="px-5 py-4 text-sm text-red-600">Error al cargar las posiciones.</div>
 
             <template v-else>
-              <table class="min-w-[880px] w-full text-sm">
-                <thead>
-                  <tr class="text-left text-slate-500 border-b border-slate-200/80">
-                    <th class="px-3 py-2">Rk</th>
-                    <th class="px-3 py-2">Equipo</th>
-                    <th class="px-3 py-2">J</th>
-                    <th class="px-3 py-2">G</th>
-                    <th class="px-3 py-2">PF</th>
-                    <th class="px-3 py-2">Pts</th>
-                    <th class="px-3 py-2">Índice</th>
-                  </tr>
-                </thead>
+              <!-- MOBILE: cards (sin scroll horizontal) -->
+              <ul v-if="topPositions.length" class="sm:hidden divide-y divide-slate-100">
+                <li v-for="row in topPositions" :key="row.rank" class="p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="relative shrink-0">
+                        <div class="absolute -inset-2 rounded-3xl bg-blue-500/10 blur-xl"></div>
+                        <div class="relative h-11 w-11 rounded-2xl border border-slate-200 bg-slate-50 grid place-items-center">
+                          <span class="text-[12px] font-extrabold text-blue-700">
+                            {{ initials(row.teamName) }}
+                          </span>
+                        </div>
+                      </div>
 
-                <tbody>
-                  <tr
-                    v-for="row in topPositions"
-                    :key="row.rank"
-                    class="border-b border-slate-100 last:border-0 hover:bg-slate-50/80"
-                  >
-                    <td class="px-3 py-2 font-semibold text-slate-800">{{ row.rank }}</td>
-                    <td class="px-3 py-2">{{ row.teamName }}</td>
-                    <td class="px-3 py-2">{{ row.gamesPlayed }}</td>
-                    <td class="px-3 py-2">{{ row.wins }}</td>
-                    <td class="px-3 py-2">{{ row.goalsFor }}</td>
-                    <td class="px-3 py-2">{{ row.points }}</td>
-                    <td class="px-3 py-2">
-                      <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-extrabold text-slate-700">
+                            #{{ row.rank }}
+                          </span>
+                          <span class="text-[11px] text-slate-500 font-semibold">Top 5</span>
+                        </div>
+
+                        <p class="mt-1 text-base font-extrabold text-slate-900 truncate">
+                          {{ row.teamName }}
+                        </p>
+
+                        <p class="mt-0.5 text-[11px] text-slate-500">
+                          W-L: <span class="font-semibold text-slate-700 tabular-nums">{{ row.wins }}-{{ row.losses }}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="shrink-0 text-right">
+                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">Pts</p>
+                      <p class="text-2xl font-extrabold text-slate-900 tabular-nums leading-none">
+                        {{ row.points }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 grid grid-cols-3 gap-2">
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">J</p>
+                      <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.gamesPlayed }}</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">G</p>
+                      <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.wins }}</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PF</p>
+                      <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.goalsFor }}</p>
+                    </div>
+                  </div>
+
+                  <div class="mt-3">
+                    <div class="flex items-center justify-between text-[11px] text-slate-500">
+                      <span class="font-semibold">Índice</span>
+                      <span class="font-extrabold text-slate-900 tabular-nums">
                         {{ formatEfficiency(row.wins, row.gamesPlayed) }}
                       </span>
-                    </td>
-                  </tr>
+                    </div>
 
-                  <tr v-if="topPositions.length === 0">
-                    <td colspan="7" class="px-3 py-3 text-sm text-slate-500">
-                      Aún no hay posiciones registradas (o no hay datos para esos filtros).
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                    <div class="mt-1 h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                      <div class="h-full bg-blue-600" :style="{ width: calcEfficiencyValue(row.wins, row.gamesPlayed) + '%' }" />
+                    </div>
+                  </div>
+                </li>
+              </ul>
+
+              <!-- DESKTOP/TABLET: tabla compacta -->
+              <div class="hidden sm:block overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-left text-slate-500 border-b border-slate-200/80">
+                      <th class="px-4 py-3">Rk</th>
+                      <th class="px-4 py-3">Equipo</th>
+                      <th class="px-4 py-3">J</th>
+                      <th class="px-4 py-3">G</th>
+                      <th class="px-4 py-3">L</th>
+                      <th class="px-4 py-3">PF</th>
+                      <th class="px-4 py-3">Pts</th>
+                      <th class="px-4 py-3">Índice</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    <tr
+                      v-for="row in topPositions"
+                      :key="row.rank"
+                      class="border-b border-slate-100 last:border-0 hover:bg-slate-50/80"
+                    >
+                      <td class="px-4 py-3 font-extrabold text-slate-900 tabular-nums">#{{ row.rank }}</td>
+
+                      <td class="px-4 py-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                          <div class="h-9 w-9 rounded-xl border border-slate-200 bg-slate-50 grid place-items-center shrink-0">
+                            <span class="text-[11px] font-extrabold text-blue-700">{{ initials(row.teamName) }}</span>
+                          </div>
+                          <span class="font-semibold text-slate-900 truncate">{{ row.teamName }}</span>
+                        </div>
+                      </td>
+
+                      <td class="px-4 py-3 tabular-nums">{{ row.gamesPlayed }}</td>
+                      <td class="px-4 py-3 tabular-nums">{{ row.wins }}</td>
+                      <td class="px-4 py-3 tabular-nums">{{ row.losses }}</td>
+                      <td class="px-4 py-3 tabular-nums">{{ row.goalsFor }}</td>
+                      <td class="px-4 py-3 font-extrabold tabular-nums">{{ row.points }}</td>
+
+                      <td class="px-4 py-3">
+                        <div class="min-w-[160px]">
+                          <div class="flex items-center justify-between text-[11px] text-slate-600">
+                            <span class="font-semibold">%</span>
+                            <span class="font-extrabold text-slate-900 tabular-nums">
+                              {{ formatEfficiency(row.wins, row.gamesPlayed) }}
+                            </span>
+                          </div>
+                          <div class="mt-1 h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                            <div class="h-full bg-blue-600" :style="{ width: calcEfficiencyValue(row.wins, row.gamesPlayed) + '%' }" />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr v-if="topPositions.length === 0">
+                      <td colspan="8" class="px-4 py-4 text-sm text-slate-500">
+                        Aún no hay posiciones registradas (o no hay datos para esos filtros).
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- empty state mobile -->
+              <div v-if="topPositions.length === 0" class="sm:hidden px-5 py-5 text-sm text-slate-500">
+                Aún no hay posiciones registradas (o no hay datos para esos filtros).
+              </div>
             </template>
           </div>
         </div>
@@ -543,26 +657,24 @@
                     </details>
 
                     <div class="mt-4 flex items-center gap-2">
-                      <NuxtLink
-                        :to="doc.href"
-                        external
+                      <a
+                        :href="doc.href"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold
-                              bg-blue-600 hover:bg-blue-500 text-white
-                              shadow-[0_10px_25px_rgba(37,99,235,0.35)]
-                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                               bg-blue-600 hover:bg-blue-500 text-white
+                               shadow-[0_10px_25px_rgba(37,99,235,0.35)]
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       >
                         Ver reglamento <span class="ml-1 text-xs">↗</span>
-                      </NuxtLink>
+                      </a>
 
-                      <NuxtLink
-                        :to="doc.href"
-                        external
+                      <a
+                        :href="doc.href"
                         :download="doc.downloadName"
                         class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold
-                              bg-white border border-slate-200 text-slate-800 hover:bg-slate-50
-                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                               bg-white border border-slate-200 text-slate-800 hover:bg-slate-50
+                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         title="Descargar"
                       >
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
@@ -570,7 +682,7 @@
                           <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                           <path d="M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                         </svg>
-                      </NuxtLink>
+                      </a>
                     </div>
                   </div>
                 </article>
@@ -592,9 +704,7 @@
 
         <!-- ========== PATROCINADORES (NUEVO DISEÑO: destacado + lista) ========== -->
         <section id="patrocinadores" class="mt-12">
-          <div
-            class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden"
-          >
+          <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
             <!-- Header -->
             <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
               <div>
@@ -623,9 +733,7 @@
 
             <div class="px-6 py-8 bg-white">
               <!-- Destacado -->
-              <div
-                class="rounded-3xl border border-slate-200 bg-slate-50 shadow-[0_14px_35px_rgba(15,23,42,0.08)] overflow-hidden"
-              >
+              <div class="rounded-3xl border border-slate-200 bg-slate-50 shadow-[0_14px_35px_rgba(15,23,42,0.08)] overflow-hidden">
                 <div class="p-5 sm:p-6 md:p-7">
                   <p class="text-[11px] uppercase tracking-[0.22em] font-semibold text-slate-500">
                     patrocinador destacado
@@ -688,9 +796,7 @@
                     <!-- Logo -->
                     <div class="md:col-span-5 flex md:justify-end justify-center">
                       <div class="relative">
-                        <div
-                          class="h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-full bg-blue-500/10 blur-2xl absolute -inset-6"
-                        ></div>
+                        <div class="h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-full bg-blue-500/10 blur-2xl absolute -inset-6"></div>
 
                         <div
                           class="h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-full bg-white border border-slate-200
@@ -859,15 +965,90 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRuntimeConfig, useAsyncData } from '#imports'
 import { useApi } from '@/composables/useApi'
 
 /* ===================== MAPA (apunta al shortlink) ===================== */
 const mapsShortUrl = 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9'
 const mapsLat = 19.4820973
 const mapsLng = -99.2446694
-
 const mapsEmbedSrc = computed(() => `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`)
 const mapsOpenUrl = mapsShortUrl
+
+/* ===================== API_BASE (para seasons dinámicas) ===================== */
+const config = useRuntimeConfig()
+const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
+
+/* ===================== SEASONS DINÁMICAS (para filtros) ===================== */
+type SeasonOpt = { value: number; label: string }
+const DEFAULT_SEASON_ID = 2
+const selectedSeasonId = ref<number>(DEFAULT_SEASON_ID)
+
+const { data: seasonsRaw } = useAsyncData<any[]>(
+  'seasons-home-lite',
+  async () => {
+    const try1 = await $fetch<any>(`${API_BASE}/seasons/list`).catch(() => null)
+    if (Array.isArray(try1)) return try1
+    const try2 = await $fetch<any>(`${API_BASE}/seasons`).catch(() => [])
+    return Array.isArray(try2) ? try2 : []
+  },
+  { server: false, default: () => [] }
+)
+
+const seasonOptions = computed<SeasonOpt[]>(() => {
+  const raw = seasonsRaw.value
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [
+      { label: 'Temporada 2 (Actual)', value: 2 },
+      { label: 'Temporada 1', value: 1 }
+    ]
+  }
+
+  const tmp: SeasonOpt[] = []
+  for (const s of raw) {
+    const id = Number((s as any)?.season_id ?? (s as any)?.seasonId ?? (s as any)?.id ?? 0) || 0
+    if (!id) continue
+    const baseLabel = String((s as any)?.name ?? (s as any)?.label ?? (s as any)?.season_name ?? `Temporada ${id}`).trim()
+    tmp.push({ value: id, label: baseLabel || `Temporada ${id}` })
+  }
+
+  // orden desc + dedupe por value
+  tmp.sort((a, b) => b.value - a.value)
+  const seen = new Set<number>()
+  const out: SeasonOpt[] = []
+  for (const o of tmp) {
+    if (seen.has(o.value)) continue
+    seen.add(o.value)
+    out.push({
+      value: o.value,
+      label: o.value === DEFAULT_SEASON_ID ? `${o.label} (Actual)` : o.label
+    })
+  }
+
+  // si por alguna razón no vino la 2 y quieres forzarla visible, descomenta:
+  // if (!out.some(x => x.value === DEFAULT_SEASON_ID)) out.unshift({ value: DEFAULT_SEASON_ID, label: `Temporada ${DEFAULT_SEASON_ID} (Actual)` })
+
+  return out
+})
+
+watch(
+  seasonOptions,
+  (opts) => {
+    if (opts.length === 0) return
+    const has = opts.some((o) => o.value === selectedSeasonId.value)
+    if (has) return
+    selectedSeasonId.value = opts[0]?.value ?? DEFAULT_SEASON_ID
+  },
+  { immediate: true }
+)
+
+const seasonsMap = computed<Record<number, string>>(() => {
+  const m: Record<number, string> = {}
+  for (const s of seasonOptions.value) m[s.value] = s.label
+  return m
+})
+
+const selectedSeasonLabel = computed(() => seasonsMap.value[selectedSeasonId.value] || `Temporada ${selectedSeasonId.value}`)
 
 /* ===================== FILTROS (rama y categoría) ===================== */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
@@ -887,6 +1068,7 @@ const selectedGender = ref<'all' | Gender>('all')
 
 const pointsUrl = computed(() => {
   const params = new URLSearchParams()
+  params.set('seasonId', String(selectedSeasonId.value)) // SIEMPRE mandamos temporada
   if (selectedCategoryCode.value !== 'all') params.set('categoryCode', selectedCategoryCode.value)
   if (selectedGender.value !== 'all') params.set('gender', selectedGender.value)
   const qs = params.toString()
@@ -894,6 +1076,8 @@ const pointsUrl = computed(() => {
 })
 
 const clearFilters = () => {
+  const ids = seasonOptions.value.map((x) => x.value)
+  selectedSeasonId.value = ids.includes(DEFAULT_SEASON_ID) ? DEFAULT_SEASON_ID : (ids[0] ?? DEFAULT_SEASON_ID)
   selectedCategoryCode.value = 'all'
   selectedGender.value = 'all'
 }
@@ -929,11 +1113,15 @@ type ApiStandingAny = Partial<{
 
 const { data: standings, pending, error, refresh } = useApi<ApiStandingAny[]>(pointsUrl)
 
+// Si tu useApi no re-fetch al cambiar URL, esto lo fuerza:
+watch(pointsUrl, () => refresh())
+
 interface StandingRow {
   rank: number
   teamName: string
   gamesPlayed: number
   wins: number
+  losses: number
   goalsFor: number
   points: number
 }
@@ -961,6 +1149,7 @@ const topPositions = computed<StandingRow[]>(() => {
       teamName: String(row.team_name ?? row.teamName ?? '—'),
       gamesPlayed: toNum(row.gp),
       wins: toNum(row.wins),
+      losses: toNum(row.losses),
       goalsFor: toNum(row.points_for ?? row.pointsFor),
       points: toNum(row.table_points ?? row.tablePoints)
     }))
@@ -1017,7 +1206,7 @@ onBeforeUnmount(() => {
   if (intervalId) clearInterval(intervalId)
 })
 
-/* ===================== PRÓXIMOS JUEGOS (SLIDER 1/2) ===================== */
+/* ===================== PRÓXIMOS JUEGOS (FILTRADO POR SEASON) ===================== */
 type ApiTeamLite = Partial<{ name: string; shortName: string; logoUrl: string }>
 type ApiCategoryLite = Partial<{ id: number; name: string; code: string; gender: string }>
 
@@ -1049,6 +1238,7 @@ type ApiGameLite = Partial<{
 type UpcomingVM = {
   id: number
   seasonId: number
+  seasonName: string | null
   status: 'SCHEDULED' | 'LIVE' | string
   ms: number
   dateLabel: string
@@ -1127,26 +1317,13 @@ function initials(text: string) {
   return parts.map((p) => p[0]?.toUpperCase()).join('')
 }
 
-function kickoffHint(ms: number, status: string) {
-  const st = upper(status)
-  if (st === 'LIVE') return 'Jugándose ahora'
-  const diff = ms - (nowMs.value || Date.now())
-  if (!Number.isFinite(diff)) return '—'
-  if (diff <= 0) return 'En breve'
-  const mins = Math.round(diff / 60000)
-  const hrs = Math.round(diff / 3600000)
-  const days = Math.round(diff / 86400000)
-  if (mins <= 59) return `En ${mins} min`
-  if (hrs <= 48) return `En ${hrs} h`
-  return `En ${days} día(s)`
-}
-
 const upcomingGames = computed<UpcomingVM[]>(() => {
   const raw = gamesRaw.value as unknown
   if (!Array.isArray(raw)) return []
 
   const list = raw as ApiGameLite[]
   const cutoff = (nowMs.value || Date.now()) - 20 * 60_000
+  const seasonFilter = Number(selectedSeasonId.value || 0) || 0
 
   const out: UpcomingVM[] = []
 
@@ -1162,6 +1339,11 @@ const upcomingGames = computed<UpcomingVM[]>(() => {
     if (!(st === 'SCHEDULED' || st === 'LIVE')) continue
     if (ms < cutoff) continue
 
+    const sid = Number(g?.season_id ?? g?.seasonId ?? 0) || 0
+
+    // ✅ FILTRAR POR TEMPORADA SELECCIONADA
+    if (seasonFilter && sid !== seasonFilter) continue
+
     const d = new Date(ms)
     const dateLabelRaw = gameDateFmt.format(d)
     const dateLabel = dateLabelRaw.replace('.', '').replace(/^\w/, (c) => c.toUpperCase())
@@ -1175,7 +1357,8 @@ const upcomingGames = computed<UpcomingVM[]>(() => {
 
     out.push({
       id,
-      seasonId: Number(g?.season_id ?? g?.seasonId ?? 0) || 0,
+      seasonId: sid,
+      seasonName: sid ? (seasonsMap.value[sid] || `Temporada ${sid}`) : null,
       status: (st as any) || 'SCHEDULED',
       ms,
       dateLabel,
@@ -1197,9 +1380,9 @@ const upcomingGames = computed<UpcomingVM[]>(() => {
   out.sort((a, b) => a.ms - b.ms)
   return out
 })
+
 /* ===================== PRÓXIMOS JUEGOS (1 A LA VEZ) ===================== */
 const upcomingIndex = ref(0)
-
 const upcomingTotal = computed(() => upcomingGames.value.length)
 
 const activeUpcoming = computed(() => {
@@ -1217,6 +1400,10 @@ watch(
   },
   { immediate: true }
 )
+
+watch(selectedSeasonId, () => {
+  upcomingIndex.value = 0
+})
 
 const goToUpcoming = (i: number) => {
   const n = upcomingTotal.value

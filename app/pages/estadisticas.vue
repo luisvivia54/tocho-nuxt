@@ -671,7 +671,7 @@ const defaultSeasonLabel = computed(() => seasonsMap.value[DEFAULT_SEASON_ID] ||
 
 const categoryOptions = [
   { label: 'Libre', value: 'Libre' },
-  { label: '+35', value: '+35' },
+  { label: '35+', value: '35+' },
   { label: 'U-8', value: 'U8' },
   { label: 'U-10', value: 'U10' },
   { label: 'U-12', value: 'U12' },
