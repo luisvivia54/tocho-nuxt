@@ -5,7 +5,9 @@
     <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="max-w-6xl mx-auto container-pad px-6">
         <!-- Carrusel con IMG real -->
-        <div class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900">
+        <div
+          class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900"
+        >
           <div class="relative w-full" style="aspect-ratio: 16/5">
             <img :src="currentSlideSrc" alt="tochero5liga" class="w-full h-full object-cover" />
           </div>
@@ -311,28 +313,26 @@
           <p class="text-slate-600">ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.</p>
         </div>
 
-        <!-- ========== TOP 5 POSICIONES (desde backend) ========== -->
+        <!-- ========== TOP 5 POSICIONES (LIMPIO) ========== -->
         <div class="mt-8 rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
             <div class="flex items-center gap-3 min-w-0">
               <h3 class="font-display font-extrabold text-white truncate">Top 5 · Posiciones</h3>
 
-              <!-- chip temporada -->
+              <!-- chip temporada (se queda) -->
               <span
                 class="inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-[11px] font-extrabold text-white"
                 title="Temporada seleccionada"
               >
                 {{ selectedSeasonLabel }}
               </span>
-
-              <span class="hidden sm:inline text-xs text-white/80 font-medium">ACTUALIZADO</span>
             </div>
 
             <button
               type="button"
               class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15"
-              @click="refresh()"
+              @click="refreshStandings()"
             >
               Refrescar
             </button>
@@ -396,7 +396,7 @@
                 <button
                   type="button"
                   class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  @click="clearFilters"
+                  @click="clearFilters()"
                 >
                   Limpiar
                 </button>
@@ -404,26 +404,23 @@
                 <button
                   type="button"
                   class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-                  @click="refresh()"
+                  @click="refreshStandings()"
                 >
                   Refrescar
                 </button>
               </div>
             </div>
-
-            <!-- Ruta actual -->
-            <div class="mt-3 flex flex-wrap gap-2 items-center">
-              <span class="text-[11px] text-slate-500">Consultando:</span>
-              <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                {{ pointsUrl }}
-              </span>
-            </div>
           </div>
 
           <!-- Body -->
           <div class="bg-white">
-            <div v-if="pending" class="px-5 py-4 text-sm text-slate-500">Cargando posiciones...</div>
-            <div v-else-if="error" class="px-5 py-4 text-sm text-red-600">Error al cargar las posiciones.</div>
+            <div v-if="standingsPending" class="px-5 py-4 text-sm text-slate-500">
+              Cargando posiciones...
+            </div>
+
+            <div v-else-if="standingsError" class="px-5 py-4 text-sm text-red-600">
+              Error al cargar las posiciones: {{ standingsError }}
+            </div>
 
             <template v-else>
               <!-- MOBILE: cards (sin scroll horizontal) -->
@@ -453,7 +450,11 @@
                         </p>
 
                         <p class="mt-0.5 text-[11px] text-slate-500">
-                          W-L: <span class="font-semibold text-slate-700 tabular-nums">{{ row.wins }}-{{ row.losses }}</span>
+                          W-L:
+                          <span class="font-semibold text-slate-700 tabular-nums">{{ row.wins }}-{{ row.losses }}</span>
+                          <span class="mx-1">·</span>
+                          DIF:
+                          <span class="font-semibold text-slate-700 tabular-nums">{{ row.diff }}</span>
                         </p>
                       </div>
                     </div>
@@ -466,7 +467,7 @@
                     </div>
                   </div>
 
-                  <div class="mt-3 grid grid-cols-3 gap-2">
+                  <div class="mt-3 grid grid-cols-4 gap-2">
                     <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
                       <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">J</p>
                       <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.gamesPlayed }}</p>
@@ -479,11 +480,15 @@
                       <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PF</p>
                       <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.goalsFor }}</p>
                     </div>
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PA</p>
+                      <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.goalsAgainst }}</p>
+                    </div>
                   </div>
 
                   <div class="mt-3">
                     <div class="flex items-center justify-between text-[11px] text-slate-500">
-                      <span class="font-semibold">Índice</span>
+                      <span class="font-semibold">Eficiencia</span>
                       <span class="font-extrabold text-slate-900 tabular-nums">
                         {{ formatEfficiency(row.wins, row.gamesPlayed) }}
                       </span>
@@ -507,8 +512,10 @@
                       <th class="px-4 py-3">G</th>
                       <th class="px-4 py-3">L</th>
                       <th class="px-4 py-3">PF</th>
+                      <th class="px-4 py-3">PA</th>
+                      <th class="px-4 py-3">DIF</th>
                       <th class="px-4 py-3">Pts</th>
-                      <th class="px-4 py-3">Índice</th>
+                      <th class="px-4 py-3">Efic.</th>
                     </tr>
                   </thead>
 
@@ -533,6 +540,8 @@
                       <td class="px-4 py-3 tabular-nums">{{ row.wins }}</td>
                       <td class="px-4 py-3 tabular-nums">{{ row.losses }}</td>
                       <td class="px-4 py-3 tabular-nums">{{ row.goalsFor }}</td>
+                      <td class="px-4 py-3 tabular-nums">{{ row.goalsAgainst }}</td>
+                      <td class="px-4 py-3 tabular-nums font-semibold">{{ row.diff }}</td>
                       <td class="px-4 py-3 font-extrabold tabular-nums">{{ row.points }}</td>
 
                       <td class="px-4 py-3">
@@ -551,7 +560,7 @@
                     </tr>
 
                     <tr v-if="topPositions.length === 0">
-                      <td colspan="8" class="px-4 py-4 text-sm text-slate-500">
+                      <td colspan="10" class="px-4 py-4 text-sm text-slate-500">
                         Aún no hay posiciones registradas (o no hay datos para esos filtros).
                       </td>
                     </tr>
@@ -1012,7 +1021,6 @@ const seasonOptions = computed<SeasonOpt[]>(() => {
     tmp.push({ value: id, label: baseLabel || `Temporada ${id}` })
   }
 
-  // orden desc + dedupe por value
   tmp.sort((a, b) => b.value - a.value)
   const seen = new Set<number>()
   const out: SeasonOpt[] = []
@@ -1024,10 +1032,6 @@ const seasonOptions = computed<SeasonOpt[]>(() => {
       label: o.value === DEFAULT_SEASON_ID ? `${o.label} (Actual)` : o.label
     })
   }
-
-  // si por alguna razón no vino la 2 y quieres forzarla visible, descomenta:
-  // if (!out.some(x => x.value === DEFAULT_SEASON_ID)) out.unshift({ value: DEFAULT_SEASON_ID, label: `Temporada ${DEFAULT_SEASON_ID} (Actual)` })
-
   return out
 })
 
@@ -1050,12 +1054,12 @@ const seasonsMap = computed<Record<number, string>>(() => {
 
 const selectedSeasonLabel = computed(() => seasonsMap.value[selectedSeasonId.value] || `Temporada ${selectedSeasonId.value}`)
 
-/* ===================== FILTROS (rama y categoría) ===================== */
+/* ===================== FILTROS + TOP 5 POSICIONES (ROBUSTO, SIN EXTRAS VISUALES) ===================== */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
 
 const categoryOptions = [
   { label: 'Libre', value: 'Libre' },
-  { label: '+35', value: '+35' },
+  { label: '35+', value: '35+' }, // ✅ FIX
   { label: 'U-8', value: 'U8' },
   { label: 'U-10', value: 'U10' },
   { label: 'U-12', value: 'U12' },
@@ -1066,23 +1070,20 @@ const categoryOptions = [
 const selectedCategoryCode = ref<'all' | string>('all')
 const selectedGender = ref<'all' | Gender>('all')
 
-const pointsUrl = computed(() => {
-  const params = new URLSearchParams()
-  params.set('seasonId', String(selectedSeasonId.value)) // SIEMPRE mandamos temporada
-  if (selectedCategoryCode.value !== 'all') params.set('categoryCode', selectedCategoryCode.value)
-  if (selectedGender.value !== 'all') params.set('gender', selectedGender.value)
-  const qs = params.toString()
-  return qs ? `/points?${qs}` : '/points'
+const normalizedCategoryCode = computed(() => {
+  const v = String(selectedCategoryCode.value || 'all').trim()
+  if (v === 'all') return 'all'
+  if (v === '+35') return '35+'
+  return v
 })
 
-const clearFilters = () => {
-  const ids = seasonOptions.value.map((x) => x.value)
-  selectedSeasonId.value = ids.includes(DEFAULT_SEASON_ID) ? DEFAULT_SEASON_ID : (ids[0] ?? DEFAULT_SEASON_ID)
-  selectedCategoryCode.value = 'all'
-  selectedGender.value = 'all'
-}
+const pointsParams = computed<Record<string, string>>(() => {
+  const p: Record<string, string> = { seasonId: String(selectedSeasonId.value) }
+  if (normalizedCategoryCode.value !== 'all') p.categoryCode = normalizedCategoryCode.value
+  if (selectedGender.value !== 'all') p.gender = selectedGender.value
+  return p
+})
 
-/* ===================== RAW DEL BACKEND (/points) ===================== */
 type ApiStandingAny = Partial<{
   standing_id: number
   season_id: number
@@ -1111,11 +1112,6 @@ type ApiStandingAny = Partial<{
   draws: number
 }>
 
-const { data: standings, pending, error, refresh } = useApi<ApiStandingAny[]>(pointsUrl)
-
-// Si tu useApi no re-fetch al cambiar URL, esto lo fuerza:
-watch(pointsUrl, () => refresh())
-
 interface StandingRow {
   rank: number
   teamName: string
@@ -1123,7 +1119,73 @@ interface StandingRow {
   wins: number
   losses: number
   goalsFor: number
+  goalsAgainst: number
+  diff: number
   points: number
+}
+
+const standings = ref<ApiStandingAny[]>([])
+const standingsPending = ref(false)
+const standingsError = ref<string | null>(null)
+
+async function tryFetchPoints(params: Record<string, string>) {
+  const qs = new URLSearchParams(params).toString()
+  const url = `${API_BASE}/points?${qs}`
+  const res = await $fetch<any>(url).catch(() => null)
+  return Array.isArray(res) ? (res as ApiStandingAny[]) : null
+}
+
+async function fetchStandingsWithFallback(): Promise<ApiStandingAny[]> {
+  // 1) Primario
+  const baseParams = { ...pointsParams.value }
+  let data = await tryFetchPoints(baseParams)
+
+  // 2) Fallback para 35+ (por si backend usa "+35")
+  const cat = baseParams.categoryCode
+  if (data && data.length === 0 && cat === '35+') {
+    const alt = { ...baseParams, categoryCode: '+35' }
+    const altData = await tryFetchPoints(alt)
+    if (altData && altData.length > 0) data = altData
+  }
+
+  // 3) Fallback inverso
+  if (data && data.length === 0 && cat === '+35') {
+    const alt = { ...baseParams, categoryCode: '35+' }
+    const altData = await tryFetchPoints(alt)
+    if (altData && altData.length > 0) data = altData
+  }
+
+  return data ?? []
+}
+
+const refreshStandings = async () => {
+  standingsPending.value = true
+  standingsError.value = null
+  try {
+    standings.value = await fetchStandingsWithFallback()
+  } catch (e: any) {
+    standings.value = []
+    standingsError.value = e?.message ?? 'Error desconocido'
+  } finally {
+    standingsPending.value = false
+  }
+}
+
+// Auto-refetch con debounce
+let standingsTO: ReturnType<typeof setTimeout> | null = null
+const scheduleStandingsReload = () => {
+  if (standingsTO) clearTimeout(standingsTO)
+  standingsTO = setTimeout(() => refreshStandings(), 180)
+}
+
+watch([selectedSeasonId, normalizedCategoryCode, selectedGender], () => scheduleStandingsReload(), { immediate: true })
+
+const clearFilters = () => {
+  const ids = seasonOptions.value.map((x) => x.value)
+  selectedSeasonId.value = ids.includes(DEFAULT_SEASON_ID) ? DEFAULT_SEASON_ID : (ids[0] ?? DEFAULT_SEASON_ID)
+  selectedCategoryCode.value = 'all'
+  selectedGender.value = 'all'
+  scheduleStandingsReload()
 }
 
 const topPositions = computed<StandingRow[]>(() => {
@@ -1139,20 +1201,31 @@ const topPositions = computed<StandingRow[]>(() => {
       const aPts = toNum(a.table_points ?? a.tablePoints)
       const bPts = toNum(b.table_points ?? b.tablePoints)
       if (bPts !== aPts) return bPts - aPts
+
+      const aDiff = toNum(a.points_for ?? a.pointsFor) - toNum(a.points_against ?? a.pointsAgainst)
+      const bDiff = toNum(b.points_for ?? b.pointsFor) - toNum(b.points_against ?? b.pointsAgainst)
+      if (bDiff !== aDiff) return bDiff - aDiff
+
       const aFor = toNum(a.points_for ?? a.pointsFor)
       const bFor = toNum(b.points_for ?? b.pointsFor)
       return bFor - aFor
     })
     .slice(0, 5)
-    .map((row, idx) => ({
-      rank: idx + 1,
-      teamName: String(row.team_name ?? row.teamName ?? '—'),
-      gamesPlayed: toNum(row.gp),
-      wins: toNum(row.wins),
-      losses: toNum(row.losses),
-      goalsFor: toNum(row.points_for ?? row.pointsFor),
-      points: toNum(row.table_points ?? row.tablePoints)
-    }))
+    .map((row, idx) => {
+      const gf = toNum(row.points_for ?? row.pointsFor)
+      const ga = toNum(row.points_against ?? row.pointsAgainst)
+      return {
+        rank: idx + 1,
+        teamName: String(row.team_name ?? row.teamName ?? '—'),
+        gamesPlayed: toNum(row.gp),
+        wins: toNum(row.wins),
+        losses: toNum(row.losses),
+        goalsFor: gf,
+        goalsAgainst: ga,
+        diff: gf - ga,
+        points: toNum(row.table_points ?? row.tablePoints)
+      }
+    })
 })
 
 const calcEfficiencyValue = (wins: number, gamesPlayed: number): number => {
@@ -1204,6 +1277,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (intervalId) clearInterval(intervalId)
+  if (standingsTO) clearTimeout(standingsTO)
 })
 
 /* ===================== PRÓXIMOS JUEGOS (FILTRADO POR SEASON) ===================== */
