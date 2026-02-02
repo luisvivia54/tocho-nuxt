@@ -313,7 +313,7 @@
           <p class="text-slate-600">ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.</p>
         </div>
 
-        <!-- ========== TOP 5 POSICIONES (LIMPIO) ========== -->
+        <!-- ========== TOP 5 POSICIONES (AHORA ESTILO ESTADÍSTICAS) ========== -->
         <div class="mt-8 rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
@@ -423,99 +423,83 @@
             </div>
 
             <template v-else>
-              <!-- MOBILE: cards (sin scroll horizontal) -->
+              <!-- MOBILE: cards estilo Estadísticas -->
               <ul v-if="topPositions.length" class="sm:hidden divide-y divide-slate-100">
                 <li v-for="row in topPositions" :key="row.rank" class="p-4">
                   <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-center gap-3 min-w-0">
-                      <div class="relative shrink-0">
-                        <div class="absolute -inset-2 rounded-3xl bg-blue-500/10 blur-xl"></div>
-                        <div class="relative h-11 w-11 rounded-2xl border border-slate-200 bg-slate-50 grid place-items-center">
-                          <span class="text-[12px] font-extrabold text-blue-700">
-                            {{ initials(row.teamName) }}
-                          </span>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-extrabold text-slate-700">
+                          #{{ row.rank }}
+                        </span>
+                        <p class="font-extrabold text-slate-900 truncate">{{ row.teamName }}</p>
+                      </div>
+
+                      <div class="mt-2 grid grid-cols-4 gap-2">
+                        <div class="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+                          <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PJ</p>
+                          <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.gamesPlayed }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+                          <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PG</p>
+                          <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.wins }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+                          <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PP</p>
+                          <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.losses }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+                          <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PTS</p>
+                          <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.points }}</p>
                         </div>
                       </div>
 
-                      <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                          <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-extrabold text-slate-700">
-                            #{{ row.rank }}
-                          </span>
-                          <span class="text-[11px] text-slate-500 font-semibold">Top 5</span>
+                      <div class="mt-2 grid grid-cols-3 gap-2">
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
+                          <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PF</p>
+                          <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.pointsFor }}</p>
                         </div>
-
-                        <p class="mt-1 text-base font-extrabold text-slate-900 truncate">
-                          {{ row.teamName }}
-                        </p>
-
-                        <p class="mt-0.5 text-[11px] text-slate-500">
-                          W-L:
-                          <span class="font-semibold text-slate-700 tabular-nums">{{ row.wins }}-{{ row.losses }}</span>
-                          <span class="mx-1">·</span>
-                          DIF:
-                          <span class="font-semibold text-slate-700 tabular-nums">{{ row.diff }}</span>
-                        </p>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
+                          <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PC</p>
+                          <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.pointsAgainst }}</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
+                          <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">DIF</p>
+                          <p
+                            class="text-sm font-extrabold tabular-nums"
+                            :class="row.diff > 0 ? 'text-emerald-700' : row.diff < 0 ? 'text-rose-700' : 'text-slate-800'"
+                          >
+                            {{ formatDiff(row.diff) }}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
                     <div class="shrink-0 text-right">
-                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">Pts</p>
-                      <p class="text-2xl font-extrabold text-slate-900 tabular-nums leading-none">
-                        {{ row.points }}
+                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PCT</p>
+                      <p class="text-lg font-extrabold text-slate-900 tabular-nums leading-none">
+                        {{ formatPct(row.pct) }}
                       </p>
-                    </div>
-                  </div>
-
-                  <div class="mt-3 grid grid-cols-4 gap-2">
-                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">J</p>
-                      <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.gamesPlayed }}</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">G</p>
-                      <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.wins }}</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PF</p>
-                      <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.goalsFor }}</p>
-                    </div>
-                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                      <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PA</p>
-                      <p class="text-sm font-extrabold text-slate-900 tabular-nums">{{ row.goalsAgainst }}</p>
-                    </div>
-                  </div>
-
-                  <div class="mt-3">
-                    <div class="flex items-center justify-between text-[11px] text-slate-500">
-                      <span class="font-semibold">Eficiencia</span>
-                      <span class="font-extrabold text-slate-900 tabular-nums">
-                        {{ formatEfficiency(row.wins, row.gamesPlayed) }}
-                      </span>
-                    </div>
-
-                    <div class="mt-1 h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                      <div class="h-full bg-blue-600" :style="{ width: calcEfficiencyValue(row.wins, row.gamesPlayed) + '%' }" />
                     </div>
                   </div>
                 </li>
               </ul>
 
-              <!-- DESKTOP/TABLET: tabla compacta -->
+              <!-- DESKTOP/TABLET: tabla estilo Estadísticas -->
               <div class="hidden sm:block overflow-x-auto">
                 <table class="w-full text-sm">
                   <thead>
                     <tr class="text-left text-slate-500 border-b border-slate-200/80">
                       <th class="px-4 py-3">Rk</th>
                       <th class="px-4 py-3">Equipo</th>
-                      <th class="px-4 py-3">J</th>
-                      <th class="px-4 py-3">G</th>
-                      <th class="px-4 py-3">L</th>
+                      <th class="px-4 py-3">PJ</th>
+                      <th class="px-4 py-3">PG</th>
+                      <th class="px-4 py-3">PP</th>
                       <th class="px-4 py-3">PF</th>
-                      <th class="px-4 py-3">PA</th>
+                      <th class="px-4 py-3">PC</th>
                       <th class="px-4 py-3">DIF</th>
-                      <th class="px-4 py-3">Pts</th>
-                      <th class="px-4 py-3">Efic.</th>
+                      <th class="px-4 py-3">PTS</th>
+                      <th class="px-4 py-3">PCT</th>
                     </tr>
                   </thead>
 
@@ -539,24 +523,18 @@
                       <td class="px-4 py-3 tabular-nums">{{ row.gamesPlayed }}</td>
                       <td class="px-4 py-3 tabular-nums">{{ row.wins }}</td>
                       <td class="px-4 py-3 tabular-nums">{{ row.losses }}</td>
-                      <td class="px-4 py-3 tabular-nums">{{ row.goalsFor }}</td>
-                      <td class="px-4 py-3 tabular-nums">{{ row.goalsAgainst }}</td>
-                      <td class="px-4 py-3 tabular-nums font-semibold">{{ row.diff }}</td>
-                      <td class="px-4 py-3 font-extrabold tabular-nums">{{ row.points }}</td>
+                      <td class="px-4 py-3 tabular-nums">{{ row.pointsFor }}</td>
+                      <td class="px-4 py-3 tabular-nums">{{ row.pointsAgainst }}</td>
 
-                      <td class="px-4 py-3">
-                        <div class="min-w-[160px]">
-                          <div class="flex items-center justify-between text-[11px] text-slate-600">
-                            <span class="font-semibold">%</span>
-                            <span class="font-extrabold text-slate-900 tabular-nums">
-                              {{ formatEfficiency(row.wins, row.gamesPlayed) }}
-                            </span>
-                          </div>
-                          <div class="mt-1 h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                            <div class="h-full bg-blue-600" :style="{ width: calcEfficiencyValue(row.wins, row.gamesPlayed) + '%' }" />
-                          </div>
-                        </div>
+                      <td
+                        class="px-4 py-3 tabular-nums font-semibold"
+                        :class="row.diff > 0 ? 'text-emerald-700' : row.diff < 0 ? 'text-rose-700' : 'text-slate-700'"
+                      >
+                        {{ formatDiff(row.diff) }}
                       </td>
+
+                      <td class="px-4 py-3 font-extrabold tabular-nums">{{ row.points }}</td>
+                      <td class="px-4 py-3 tabular-nums font-semibold">{{ formatPct(row.pct) }}</td>
                     </tr>
 
                     <tr v-if="topPositions.length === 0">
@@ -984,7 +962,7 @@ const mapsLng = -99.2446694
 const mapsEmbedSrc = computed(() => `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`)
 const mapsOpenUrl = mapsShortUrl
 
-/* ===================== API_BASE (para seasons dinámicas) ===================== */
+/* ===================== API_BASE (para seasons dinámicas y standings) ===================== */
 const config = useRuntimeConfig()
 const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
 
@@ -1054,12 +1032,12 @@ const seasonsMap = computed<Record<number, string>>(() => {
 
 const selectedSeasonLabel = computed(() => seasonsMap.value[selectedSeasonId.value] || `Temporada ${selectedSeasonId.value}`)
 
-/* ===================== FILTROS + TOP 5 POSICIONES (ROBUSTO, SIN EXTRAS VISUALES) ===================== */
+/* ===================== FILTROS + TOP 5 POSICIONES (ESTILO ESTADÍSTICAS) ===================== */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
 
 const categoryOptions = [
   { label: 'Libre', value: 'Libre' },
-  { label: '35+', value: '35+' }, // ✅ FIX
+  { label: '35+', value: '35+' },
   { label: 'U-8', value: 'U8' },
   { label: 'U-10', value: 'U10' },
   { label: 'U-12', value: 'U12' },
@@ -1070,6 +1048,10 @@ const categoryOptions = [
 const selectedCategoryCode = ref<'all' | string>('all')
 const selectedGender = ref<'all' | Gender>('all')
 
+/**
+ * Normaliza lo que venga por si en algún lado aún usan "+35".
+ * (Tu UI ofrece "35+" pero el backend a veces lo trae invertido, entonces soportamos ambos)
+ */
 const normalizedCategoryCode = computed(() => {
   const v = String(selectedCategoryCode.value || 'all').trim()
   if (v === 'all') return 'all'
@@ -1118,19 +1100,39 @@ interface StandingRow {
   gamesPlayed: number
   wins: number
   losses: number
-  goalsFor: number
-  goalsAgainst: number
+  pointsFor: number
+  pointsAgainst: number
   diff: number
   points: number
+  pct: number // 0..1
 }
 
 const standings = ref<ApiStandingAny[]>([])
 const standingsPending = ref(false)
 const standingsError = ref<string | null>(null)
 
+function toNum(v: any) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0
+}
+
+function safeGp(row: ApiStandingAny) {
+  const gp = toNum((row as any).gp)
+  if (gp > 0) return gp
+  // fallback si gp no viene (algunos endpoints no lo regresan)
+  return toNum((row as any).wins) + toNum((row as any).losses) + toNum((row as any).draws)
+}
+
+/** Fetch estándar con URLSearchParams */
 async function tryFetchPoints(params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString()
   const url = `${API_BASE}/points?${qs}`
+  const res = await $fetch<any>(url).catch(() => null)
+  return Array.isArray(res) ? (res as ApiStandingAny[]) : null
+}
+
+/** Fetch con query string ya armada (por si el backend trae parsing raro en '+') */
+async function tryFetchPointsRaw(paramsQS: string) {
+  const url = `${API_BASE}/points?${paramsQS}`
   const res = await $fetch<any>(url).catch(() => null)
   return Array.isArray(res) ? (res as ApiStandingAny[]) : null
 }
@@ -1140,19 +1142,48 @@ async function fetchStandingsWithFallback(): Promise<ApiStandingAny[]> {
   const baseParams = { ...pointsParams.value }
   let data = await tryFetchPoints(baseParams)
 
-  // 2) Fallback para 35+ (por si backend usa "+35")
+  // Si no hay data, hacemos fallback por "35+" (compatibilidad)
   const cat = baseParams.categoryCode
+
+  // 2) Si pedimos 35+ y no regresa, intentar "+35" (codificación normal => %2B35)
   if (data && data.length === 0 && cat === '35+') {
     const alt = { ...baseParams, categoryCode: '+35' }
     const altData = await tryFetchPoints(alt)
     if (altData && altData.length > 0) data = altData
   }
 
-  // 3) Fallback inverso
+  // 3) Si pedimos +35 y no regresa, intentar "35+"
   if (data && data.length === 0 && cat === '+35') {
     const alt = { ...baseParams, categoryCode: '35+' }
     const altData = await tryFetchPoints(alt)
     if (altData && altData.length > 0) data = altData
+  }
+
+  /**
+   * 4) Fallback “bruto” por si el backend/parsing trae tema con '+'
+   * - 35+ => categoryCode=35%2B (mismo que haría URLSearchParams, pero aquí lo controlamos)
+   * - +35 => categoryCode=%2B35 o categoryCode=+35 (sin encode)
+   */
+  if (data && data.length === 0 && (cat === '35+' || cat === '+35')) {
+    const seasonId = encodeURIComponent(String(baseParams.seasonId || ''))
+    const genderQS = baseParams.gender ? `&gender=${encodeURIComponent(baseParams.gender)}` : ''
+
+    const tries: string[] = []
+    if (cat === '35+') {
+      tries.push(`seasonId=${seasonId}&categoryCode=35%2B${genderQS}`) // 35+
+      tries.push(`seasonId=${seasonId}&categoryCode=35+${genderQS}`)   // literal +
+    } else {
+      tries.push(`seasonId=${seasonId}&categoryCode=%2B35${genderQS}`) // +35 encoded
+      tries.push(`seasonId=${seasonId}&categoryCode=+35${genderQS}`)   // +35 literal
+    }
+
+    for (const qs of tries) {
+      const altData = await tryFetchPointsRaw(qs)
+      if (altData && altData.length > 0) {
+        data = altData
+        break
+      }
+    }
   }
 
   return data ?? []
@@ -1193,53 +1224,51 @@ const topPositions = computed<StandingRow[]>(() => {
   if (!Array.isArray(raw)) return []
   const rows = raw as ApiStandingAny[]
 
-  const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
+  const mapped: StandingRow[] = rows.map((row) => {
+    const wins = toNum((row as any).wins)
+    const losses = toNum((row as any).losses)
+    const gp = safeGp(row)
 
-  return rows
-    .slice()
-    .sort((a, b) => {
-      const aPts = toNum(a.table_points ?? a.tablePoints)
-      const bPts = toNum(b.table_points ?? b.tablePoints)
-      if (bPts !== aPts) return bPts - aPts
+    const pf = toNum((row as any).points_for ?? (row as any).pointsFor)
+    const pa = toNum((row as any).points_against ?? (row as any).pointsAgainst)
+    const pts = toNum((row as any).table_points ?? (row as any).tablePoints)
 
-      const aDiff = toNum(a.points_for ?? a.pointsFor) - toNum(a.points_against ?? a.pointsAgainst)
-      const bDiff = toNum(b.points_for ?? b.pointsFor) - toNum(b.points_against ?? b.pointsAgainst)
-      if (bDiff !== aDiff) return bDiff - aDiff
+    const diff = pf - pa
+    const pct = gp > 0 ? wins / gp : 0
 
-      const aFor = toNum(a.points_for ?? a.pointsFor)
-      const bFor = toNum(b.points_for ?? b.pointsFor)
-      return bFor - aFor
-    })
-    .slice(0, 5)
-    .map((row, idx) => {
-      const gf = toNum(row.points_for ?? row.pointsFor)
-      const ga = toNum(row.points_against ?? row.pointsAgainst)
-      return {
-        rank: idx + 1,
-        teamName: String(row.team_name ?? row.teamName ?? '—'),
-        gamesPlayed: toNum(row.gp),
-        wins: toNum(row.wins),
-        losses: toNum(row.losses),
-        goalsFor: gf,
-        goalsAgainst: ga,
-        diff: gf - ga,
-        points: toNum(row.table_points ?? row.tablePoints)
-      }
-    })
+    return {
+      rank: 0,
+      teamName: String((row as any).team_name ?? (row as any).teamName ?? '—'),
+      gamesPlayed: gp,
+      wins,
+      losses,
+      pointsFor: pf,
+      pointsAgainst: pa,
+      diff,
+      points: pts,
+      pct
+    }
+  })
+
+  // Orden típico standings: PTS desc, DIF desc, PF desc
+  mapped.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points
+    if (b.diff !== a.diff) return b.diff - a.diff
+    return b.pointsFor - a.pointsFor
+  })
+
+  return mapped.slice(0, 5).map((r, idx) => ({ ...r, rank: idx + 1 }))
 })
 
-const calcEfficiencyValue = (wins: number, gamesPlayed: number): number => {
-  if (!gamesPlayed || gamesPlayed <= 0) return 0
-  const eff = (wins / gamesPlayed) * 100
-  if (!Number.isFinite(eff) || eff < 0) return 0
-  if (eff > 100) return 100
-  return eff
+const formatDiff = (n: number) => {
+  const x = Number(n) || 0
+  return x > 0 ? `+${x}` : `${x}`
 }
 
-const formatEfficiency = (wins: number, gamesPlayed: number): string => {
-  const eff = calcEfficiencyValue(wins, gamesPlayed)
-  const txt = eff.toFixed(1)
-  return (txt.endsWith('.0') ? txt.slice(0, -2) : txt) + '%'
+const formatPct = (pct: number) => {
+  const x = Number(pct)
+  if (!Number.isFinite(x) || x <= 0) return '0.000'
+  return x.toFixed(3)
 }
 
 /* ===================== HERO CARRUSEL ===================== */
