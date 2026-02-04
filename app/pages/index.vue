@@ -313,14 +313,13 @@
           <p class="text-slate-600">ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.</p>
         </div>
 
-        <!-- ========== TOP 5 POSICIONES (AHORA ESTILO ESTADÍSTICAS) ========== -->
+        <!-- ========== TOP 5 POSICIONES (FILTRADO: TEMPORADA + CATEGORÍA + RAMA) ========== -->
         <div class="mt-8 rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
             <div class="flex items-center gap-3 min-w-0">
               <h3 class="font-display font-extrabold text-white truncate">Top 5 · Posiciones</h3>
 
-              <!-- chip temporada (se queda) -->
               <span
                 class="inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-[11px] font-extrabold text-white"
                 title="Temporada seleccionada"
@@ -475,11 +474,28 @@
                       </div>
                     </div>
 
+                    <!-- ✅ PCT mejorado (chip + barra + %) -->
                     <div class="shrink-0 text-right">
                       <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PCT</p>
-                      <p class="text-lg font-extrabold text-slate-900 tabular-nums leading-none">
-                        {{ formatPct(row.pct) }}
-                      </p>
+
+                      <div class="mt-1 inline-flex items-center justify-end">
+                        <span
+                          class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-1
+                                 text-[12px] font-extrabold text-slate-900 tabular-nums shadow-sm"
+                          title="Win percentage (decimal)"
+                        >
+                          {{ formatPct(row.pct) }}
+                        </span>
+                      </div>
+
+                      <div class="mt-2 w-24 ml-auto">
+                        <div class="h-2 rounded-full bg-slate-200 overflow-hidden">
+                          <div class="h-full rounded-full bg-blue-600" :style="{ width: pctWidth(row.pct) }"></div>
+                        </div>
+                        <p class="mt-1 text-[10px] font-semibold text-slate-500 tabular-nums text-right">
+                          {{ pctToLabel(row.pct) }}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </li>
@@ -534,7 +550,28 @@
                       </td>
 
                       <td class="px-4 py-3 font-extrabold tabular-nums">{{ row.points }}</td>
-                      <td class="px-4 py-3 tabular-nums font-semibold">{{ formatPct(row.pct) }}</td>
+
+                      <!-- ✅ PCT mejorado (chip + barra + %) -->
+                      <td class="px-4 py-3">
+                        <div class="flex items-center gap-3">
+                          <span
+                            class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1
+                                   text-[11px] font-extrabold text-slate-900 tabular-nums"
+                            title="Win percentage (decimal)"
+                          >
+                            {{ formatPct(row.pct) }}
+                          </span>
+
+                          <div class="min-w-[92px]">
+                            <div class="h-2 rounded-full bg-slate-200 overflow-hidden">
+                              <div class="h-full rounded-full bg-blue-600" :style="{ width: pctWidth(row.pct) }"></div>
+                            </div>
+                            <p class="mt-1 text-[10px] font-semibold text-slate-500 tabular-nums text-right">
+                              {{ pctToLabel(row.pct) }}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
                     </tr>
 
                     <tr v-if="topPositions.length === 0">
@@ -955,18 +992,46 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRuntimeConfig, useAsyncData } from '#imports'
 import { useApi } from '@/composables/useApi'
 
-/* ===================== MAPA (apunta al shortlink) ===================== */
+/* ===================== MAPA ===================== */
 const mapsShortUrl = 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9'
 const mapsLat = 19.4820973
 const mapsLng = -99.2446694
 const mapsEmbedSrc = computed(() => `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`)
 const mapsOpenUrl = mapsShortUrl
 
-/* ===================== API_BASE (para seasons dinámicas y standings) ===================== */
+/* ===================== API_BASE ===================== */
 const config = useRuntimeConfig()
 const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
 
-/* ===================== SEASONS DINÁMICAS (para filtros) ===================== */
+/* ===================== HELPERS ===================== */
+function toNum(v: any) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0
+}
+function upper(v: any) {
+  return String(v ?? '').toUpperCase()
+}
+function initials(text: string) {
+  const s = String(text || '').trim()
+  if (!s) return 'T5'
+  const parts = s.split(/\s+/).slice(0, 2)
+  return parts.map((p) => p[0]?.toUpperCase()).join('')
+}
+const formatDiff = (n: number) => {
+  const x = Number(n) || 0
+  return x > 0 ? `+${x}` : `${x}`
+}
+const formatPct = (pct: number) => {
+  const x = Number(pct)
+  if (!Number.isFinite(x) || x <= 0) return '0.000'
+  return x.toFixed(3)
+}
+
+/* ✅ PCT UI helpers (barra + %) */
+const clamp01 = (n: number) => Math.min(1, Math.max(0, Number(n) || 0))
+const pctToLabel = (pct: number) => `${(clamp01(pct) * 100).toFixed(1)}%`
+const pctWidth = (pct: number) => `${Math.round(clamp01(pct) * 100)}%`
+
+/* ===================== SEASONS DINÁMICAS ===================== */
 type SeasonOpt = { value: number; label: string }
 const DEFAULT_SEASON_ID = 2
 const selectedSeasonId = ref<number>(DEFAULT_SEASON_ID)
@@ -1032,7 +1097,7 @@ const seasonsMap = computed<Record<number, string>>(() => {
 
 const selectedSeasonLabel = computed(() => seasonsMap.value[selectedSeasonId.value] || `Temporada ${selectedSeasonId.value}`)
 
-/* ===================== FILTROS + TOP 5 POSICIONES (ESTILO ESTADÍSTICAS) ===================== */
+/* ===================== TOP 5 POSICIONES (TEMPORADA + CATEGORÍA + RAMA) ===================== */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
 
 const categoryOptions = [
@@ -1045,13 +1110,10 @@ const categoryOptions = [
   { label: 'U-16', value: 'U16' }
 ]
 
-const selectedCategoryCode = ref<'all' | string>('all')
-const selectedGender = ref<'all' | Gender>('all')
+const selectedCategoryCode = ref<'Libre' | string>('Libre')
+const selectedGender = ref<'MIXTO' | Gender>('MIXTO')
 
-/**
- * Normaliza lo que venga por si en algún lado aún usan "+35".
- * (Tu UI ofrece "35+" pero el backend a veces lo trae invertido, entonces soportamos ambos)
- */
+/** Normaliza por si en algún lado aún usan "+35" */
 const normalizedCategoryCode = computed(() => {
   const v = String(selectedCategoryCode.value || 'all').trim()
   if (v === 'all') return 'all'
@@ -1062,36 +1124,30 @@ const normalizedCategoryCode = computed(() => {
 const pointsParams = computed<Record<string, string>>(() => {
   const p: Record<string, string> = { seasonId: String(selectedSeasonId.value) }
   if (normalizedCategoryCode.value !== 'all') p.categoryCode = normalizedCategoryCode.value
-  if (selectedGender.value !== 'all') p.gender = selectedGender.value
+  if (selectedGender.value !== 'MIXTO') p.gender = selectedGender.value
   return p
 })
 
 type ApiStandingAny = Partial<{
   standing_id: number
   season_id: number
-  category_id: number
   team_id: number
-  points_for: number
-  points_against: number
-  table_points: number
-  team_name: string
-
-  standingId: number
-  seasonId: number
-  categoryId: number
   teamId: number
-  pointsFor: number
-  pointsAgainst: number
-  tablePoints: number
+  team_name: string
   teamName: string
-
-  gender: string
-  categoryCode: string
-
+  points_for: number
+  pointsFor: number
+  points_against: number
+  pointsAgainst: number
+  table_points: number
+  tablePoints: number
   gp: number
   wins: number
   losses: number
   draws: number
+  seasonId: number
+  categoryCode: string
+  gender: string
 }>
 
 interface StandingRow {
@@ -1104,22 +1160,27 @@ interface StandingRow {
   pointsAgainst: number
   diff: number
   points: number
-  pct: number // 0..1
+  pct: number
 }
 
 const standings = ref<ApiStandingAny[]>([])
 const standingsPending = ref(false)
 const standingsError = ref<string | null>(null)
 
-function toNum(v: any) {
-  return typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0
-}
-
 function safeGp(row: ApiStandingAny) {
   const gp = toNum((row as any).gp)
   if (gp > 0) return gp
-  // fallback si gp no viene (algunos endpoints no lo regresan)
   return toNum((row as any).wins) + toNum((row as any).losses) + toNum((row as any).draws)
+}
+
+function rowSeasonId(r: ApiStandingAny) {
+  return toNum((r as any).season_id ?? (r as any).seasonId)
+}
+function rowTeamKey(r: ApiStandingAny) {
+  const id = toNum((r as any).team_id ?? (r as any).teamId)
+  if (id > 0) return `id:${id}`
+  const name = String((r as any).team_name ?? (r as any).teamName ?? '').trim().toUpperCase()
+  return name ? `name:${name}` : `name:—`
 }
 
 /** Fetch estándar con URLSearchParams */
@@ -1138,43 +1199,37 @@ async function tryFetchPointsRaw(paramsQS: string) {
 }
 
 async function fetchStandingsWithFallback(): Promise<ApiStandingAny[]> {
-  // 1) Primario
   const baseParams = { ...pointsParams.value }
   let data = await tryFetchPoints(baseParams)
 
-  // Si no hay data, hacemos fallback por "35+" (compatibilidad)
   const cat = baseParams.categoryCode
 
-  // 2) Si pedimos 35+ y no regresa, intentar "+35" (codificación normal => %2B35)
+  // Si pedimos 35+ y no regresa, intentar +35
   if (data && data.length === 0 && cat === '35+') {
     const alt = { ...baseParams, categoryCode: '+35' }
     const altData = await tryFetchPoints(alt)
     if (altData && altData.length > 0) data = altData
   }
 
-  // 3) Si pedimos +35 y no regresa, intentar "35+"
+  // Si pedimos +35 y no regresa, intentar 35+
   if (data && data.length === 0 && cat === '+35') {
     const alt = { ...baseParams, categoryCode: '35+' }
     const altData = await tryFetchPoints(alt)
     if (altData && altData.length > 0) data = altData
   }
 
-  /**
-   * 4) Fallback “bruto” por si el backend/parsing trae tema con '+'
-   * - 35+ => categoryCode=35%2B (mismo que haría URLSearchParams, pero aquí lo controlamos)
-   * - +35 => categoryCode=%2B35 o categoryCode=+35 (sin encode)
-   */
+  // Fallback bruto (encoding controlado)
   if (data && data.length === 0 && (cat === '35+' || cat === '+35')) {
     const seasonId = encodeURIComponent(String(baseParams.seasonId || ''))
     const genderQS = baseParams.gender ? `&gender=${encodeURIComponent(baseParams.gender)}` : ''
 
     const tries: string[] = []
     if (cat === '35+') {
-      tries.push(`seasonId=${seasonId}&categoryCode=35%2B${genderQS}`) // 35+
-      tries.push(`seasonId=${seasonId}&categoryCode=35+${genderQS}`)   // literal +
+      tries.push(`seasonId=${seasonId}&categoryCode=35%2B${genderQS}`)
+      tries.push(`seasonId=${seasonId}&categoryCode=35+${genderQS}`)
     } else {
-      tries.push(`seasonId=${seasonId}&categoryCode=%2B35${genderQS}`) // +35 encoded
-      tries.push(`seasonId=${seasonId}&categoryCode=+35${genderQS}`)   // +35 literal
+      tries.push(`seasonId=${seasonId}&categoryCode=%2B35${genderQS}`)
+      tries.push(`seasonId=${seasonId}&categoryCode=+35${genderQS}`)
     }
 
     for (const qs of tries) {
@@ -1186,7 +1241,15 @@ async function fetchStandingsWithFallback(): Promise<ApiStandingAny[]> {
     }
   }
 
-  return data ?? []
+  // ✅ Seguro anti-mezcla seasons (si el backend manda seasonId)
+  const sidWanted = Number(baseParams.seasonId || 0) || 0
+  const filtered = (data ?? []).filter((r) => {
+    const sid = rowSeasonId(r)
+    if (!sid) return true
+    return sid === sidWanted
+  })
+
+  return filtered
 }
 
 const refreshStandings = async () => {
@@ -1215,16 +1278,18 @@ const clearFilters = () => {
   const ids = seasonOptions.value.map((x) => x.value)
   selectedSeasonId.value = ids.includes(DEFAULT_SEASON_ID) ? DEFAULT_SEASON_ID : (ids[0] ?? DEFAULT_SEASON_ID)
   selectedCategoryCode.value = 'all'
-  selectedGender.value = 'all'
+  selectedGender.value = 'MIXTO'
   scheduleStandingsReload()
 }
 
 const topPositions = computed<StandingRow[]>(() => {
-  const raw = standings.value as unknown
-  if (!Array.isArray(raw)) return []
-  const rows = raw as ApiStandingAny[]
+  const raw = Array.isArray(standings.value) ? standings.value : []
+  if (raw.length === 0) return []
 
-  const mapped: StandingRow[] = rows.map((row) => {
+  // map + dedupe por equipo (para que no se repita “Hades” dos veces)
+  const ded = new Map<string, StandingRow>()
+
+  for (const row of raw) {
     const wins = toNum((row as any).wins)
     const losses = toNum((row as any).losses)
     const gp = safeGp(row)
@@ -1236,7 +1301,7 @@ const topPositions = computed<StandingRow[]>(() => {
     const diff = pf - pa
     const pct = gp > 0 ? wins / gp : 0
 
-    return {
+    const item: StandingRow = {
       rank: 0,
       teamName: String((row as any).team_name ?? (row as any).teamName ?? '—'),
       gamesPlayed: gp,
@@ -1248,7 +1313,19 @@ const topPositions = computed<StandingRow[]>(() => {
       points: pts,
       pct
     }
-  })
+
+    const key = rowTeamKey(row)
+    const prev = ded.get(key)
+    if (!prev) ded.set(key, item)
+    else {
+      // nos quedamos con el “mejor” registro por PTS/DIF/PF
+      const prevScore = prev.points * 100000 + prev.diff * 100 + prev.pointsFor
+      const nextScore = item.points * 100000 + item.diff * 100 + item.pointsFor
+      if (nextScore > prevScore) ded.set(key, item)
+    }
+  }
+
+  const mapped = Array.from(ded.values())
 
   // Orden típico standings: PTS desc, DIF desc, PF desc
   mapped.sort((a, b) => {
@@ -1259,17 +1336,6 @@ const topPositions = computed<StandingRow[]>(() => {
 
   return mapped.slice(0, 5).map((r, idx) => ({ ...r, rank: idx + 1 }))
 })
-
-const formatDiff = (n: number) => {
-  const x = Number(n) || 0
-  return x > 0 ? `+${x}` : `${x}`
-}
-
-const formatPct = (pct: number) => {
-  const x = Number(pct)
-  if (!Number.isFinite(x) || x <= 0) return '0.000'
-  return x.toFixed(3)
-}
 
 /* ===================== HERO CARRUSEL ===================== */
 interface HeroSlide {
@@ -1290,12 +1356,10 @@ const nextSlide = () => {
   if (heroSlides.value.length === 0) return
   currentSlide.value = (currentSlide.value + 1) % heroSlides.value.length
 }
-
 const prevSlide = () => {
   if (heroSlides.value.length === 0) return
   currentSlide.value = (currentSlide.value - 1 + heroSlides.value.length) % heroSlides.value.length
 }
-
 const goToSlide = (index: number) => {
   if (index >= 0 && index < heroSlides.value.length) currentSlide.value = index
 }
@@ -1317,22 +1381,16 @@ type ApiGameLite = Partial<{
   game_id: number
   gameId: number
   id: number
-
   season_id: number
   seasonId: number
-
   status: string
-
   match_date_utc: string
   matchDateUtc: string
   match_date: string
-
   round_la: string | null
   roundLabel: string | null
-
   home_team: string | null
   away_team: string | null
-
   homeTeam: ApiTeamLite | null
   awayTeam: ApiTeamLite | null
   category: ApiCategoryLite | null
@@ -1347,12 +1405,10 @@ type UpcomingVM = {
   dateLabel: string
   timeLabel: string
   round: string | null
-
   gender: string | null
   genderLabel: string | null
   code: string | null
   categoryName: string
-
   homeName: string
   awayName: string
   homeLogo: string | null
@@ -1386,10 +1442,6 @@ onBeforeUnmount(() => {
   if (nowTimer) clearInterval(nowTimer)
 })
 
-function upper(v: any) {
-  return String(v ?? '').toUpperCase()
-}
-
 function toUtcMs(matchUtc: string) {
   const s = String(matchUtc || '').trim()
   if (!s) return 0
@@ -1411,13 +1463,6 @@ function niceGenderLabel(g: string | null) {
   if (x === 'FEMENIL') return 'Femenil'
   if (x === 'MIXTO') return 'Mixto'
   return g ? String(g) : null
-}
-
-function initials(text: string) {
-  const s = String(text || '').trim()
-  if (!s) return 'T5'
-  const parts = s.split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase()).join('')
 }
 
 const upcomingGames = computed<UpcomingVM[]>(() => {
@@ -1443,8 +1488,6 @@ const upcomingGames = computed<UpcomingVM[]>(() => {
     if (ms < cutoff) continue
 
     const sid = Number(g?.season_id ?? g?.seasonId ?? 0) || 0
-
-    // ✅ FILTRAR POR TEMPORADA SELECCIONADA
     if (seasonFilter && sid !== seasonFilter) continue
 
     const d = new Date(ms)
@@ -1467,12 +1510,10 @@ const upcomingGames = computed<UpcomingVM[]>(() => {
       dateLabel,
       timeLabel: gameTimeFmt.format(d),
       round: roundNumber(g),
-
       gender,
       genderLabel: niceGenderLabel(gender),
       code,
       categoryName,
-
       homeName,
       awayName,
       homeLogo: (g?.homeTeam as any)?.logoUrl ?? null,
@@ -1513,20 +1554,18 @@ const goToUpcoming = (i: number) => {
   if (n <= 0) return
   upcomingIndex.value = Math.min(Math.max(0, i), n - 1)
 }
-
 const nextUpcoming = () => {
   const n = upcomingTotal.value
   if (n <= 1) return
   upcomingIndex.value = (upcomingIndex.value + 1) % n
 }
-
 const prevUpcoming = () => {
   const n = upcomingTotal.value
   if (n <= 1) return
   upcomingIndex.value = (upcomingIndex.value - 1 + n) % n
 }
 
-/* ===================== PATROCINADORES (NUEVO DISEÑO) ===================== */
+/* ===================== PATROCINADORES ===================== */
 interface Sponsor {
   id: string
   name: string
@@ -1613,13 +1652,11 @@ const setActiveSponsorById = (id: string) => {
   const idx = sponsors.value.findIndex((x) => x.id === id)
   if (idx >= 0) activeSponsorIndex.value = idx
 }
-
 const nextSponsor = () => {
   const len = sponsors.value.length
   if (len <= 0) return
   activeSponsorIndex.value = (activeSponsorIndex.value + 1) % len
 }
-
 const prevSponsor = () => {
   const len = sponsors.value.length
   if (len <= 0) return
@@ -1627,18 +1664,15 @@ const prevSponsor = () => {
 }
 
 let sponsorsIntervalId: ReturnType<typeof setInterval> | null = null
-
 onMounted(() => {
   if (sponsors.value.length > 1) sponsorsIntervalId = setInterval(() => nextSponsor(), 9000)
 })
-
 onBeforeUnmount(() => {
   if (sponsorsIntervalId) clearInterval(sponsorsIntervalId)
 })
 
-/* ===================== REGLAMENTOS (3 documentos) ===================== */
+/* ===================== REGLAMENTOS ===================== */
 type ReglamentoType = 'PDF' | 'DOCX'
-
 interface ReglamentoDoc {
   id: string
   title: string
@@ -1693,7 +1727,6 @@ const reglamentos = ref<ReglamentoDoc[]>([
 </script>
 
 <style scoped>
-/* Pequeñito (sin @apply para que no te marque errores) */
 .carousel-arrow {
   width: 38px;
   height: 38px;
