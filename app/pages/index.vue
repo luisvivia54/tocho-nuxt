@@ -1110,8 +1110,8 @@ const categoryOptions = [
   { label: 'U-16', value: 'U16' }
 ]
 
-const selectedCategoryCode = ref<'Libre' | string>('Libre')
-const selectedGender = ref<'MIXTO' | Gender>('MIXTO')
+const selectedCategoryCode = ref<'all' | string>('all')
+const selectedGender = ref<'all' | Gender>('all')
 
 /** Normaliza por si en algún lado aún usan "+35" */
 const normalizedCategoryCode = computed(() => {
@@ -1124,7 +1124,7 @@ const normalizedCategoryCode = computed(() => {
 const pointsParams = computed<Record<string, string>>(() => {
   const p: Record<string, string> = { seasonId: String(selectedSeasonId.value) }
   if (normalizedCategoryCode.value !== 'all') p.categoryCode = normalizedCategoryCode.value
-  if (selectedGender.value !== 'MIXTO') p.gender = selectedGender.value
+  if (selectedGender.value !== 'all') p.gender = selectedGender.value
   return p
 })
 
