@@ -67,7 +67,13 @@
               </svg>
               Admin
               <svg class="w-4 h-4 opacity-80" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path
+                  d="M7 10l5 5 5-5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
 
@@ -101,7 +107,12 @@
                       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M8 3h8v3H8V3z" stroke="currentColor" stroke-width="1.6" />
                         <path d="M6 6h12v15H6V6z" stroke="currentColor" stroke-width="1.6" />
-                        <path d="M9 10h6M9 14h6M9 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                        <path
+                          d="M9 10h6M9 14h6M9 18h6"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                        />
                       </svg>
                     </span>
                     <div class="min-w-0">
@@ -118,10 +129,25 @@
                   >
                     <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
                       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                        <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="1.6"/>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        <path
+                          d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                        />
+                        <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="1.6" />
+                        <path
+                          d="M22 21v-2a4 4 0 0 0-3-3.87"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                        />
+                        <path
+                          d="M16 3.13a4 4 0 0 1 0 7.75"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                        />
                       </svg>
                     </span>
                     <div class="min-w-0">
@@ -138,13 +164,42 @@
                   >
                     <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
                       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5z" stroke="currentColor" stroke-width="1.6"/>
-                        <path d="M3 21a9 9 0 0 1 18 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5z" stroke="currentColor" stroke-width="1.6" />
+                        <path
+                          d="M3 21a9 9 0 0 1 18 0"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                        />
                       </svg>
                     </span>
                     <div class="min-w-0">
                       <p class="font-semibold truncate">Jugadores</p>
                       <p class="text-[11px] text-slate-300/80">Gestión</p>
+                    </div>
+                  </NuxtLink>
+
+                  <!-- ✅ NUEVO: Equipos (borrar equipos) -->
+                  <NuxtLink
+                    to="/admin/equipos"
+                    class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
+                    :class="isActive('/admin/equipos') ? 'bg-white/10' : ''"
+                    @click="adminOpen = false"
+                  >
+                    <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M4 7h16M10 11v7M14 11v7M6 7l1 14h10l1-14M9 7V4h6v3"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    <div class="min-w-0">
+                      <p class="font-semibold truncate">Equipos</p>
+                      <p class="text-[11px] text-slate-300/80">Borrar / limpiar</p>
                     </div>
                   </NuxtLink>
                 </div>
@@ -289,17 +344,14 @@
     <slot />
 
     <!-- ✅ NUEVO: Dock admin móvil (solo admins) -->
-    <div
-      v-if="isAdmin"
-      class="sm:hidden fixed bottom-0 inset-x-0 z-30"
-      aria-label="Admin dock"
-    >
+    <div v-if="isAdmin" class="sm:hidden fixed bottom-0 inset-x-0 z-30" aria-label="Admin dock">
       <div class="mx-auto max-w-6xl px-4 pb-3">
         <div
           class="rounded-2xl border border-white/10 bg-gradient-to-r from-[#0B1220]/95 to-[#0F1A33]/95
                  backdrop-blur shadow-[0_18px_50px_rgba(0,0,0,0.35)] px-2 py-2"
         >
-          <div class="grid grid-cols-3 gap-2">
+          <!-- ✅ CAMBIO: 3 -> 4 columnas -->
+          <div class="grid grid-cols-4 gap-2">
             <NuxtLink
               to="/admin/partidos"
               class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
@@ -319,10 +371,25 @@
               :class="isActive('/admin/usuarios') ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/10'"
             >
               <svg class="w-5 h-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="1.6"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <path
+                  d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+                <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="1.6" />
+                <path
+                  d="M22 21v-2a4 4 0 0 0-3-3.87"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M16 3.13a4 4 0 0 1 0 7.75"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
               </svg>
               Usuarios
             </NuxtLink>
@@ -337,6 +404,24 @@
                 <path d="M3 21a9 9 0 0 1 18 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
               </svg>
               Jugadores
+            </NuxtLink>
+
+            <!-- ✅ NUEVO: Equipos -->
+            <NuxtLink
+              to="/admin/equipos"
+              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
+              :class="isActive('/admin/equipos') ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/10'"
+            >
+              <svg class="w-5 h-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M4 7h16M10 11v7M14 11v7M6 7l1 14h10l1-14M9 7V4h6v3"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Equipos
             </NuxtLink>
           </div>
         </div>
