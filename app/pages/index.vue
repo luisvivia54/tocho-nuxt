@@ -8,7 +8,16 @@
         <div
           class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900"
         >
-          <div class="relative w-full" style="aspect-ratio: 16/5">
+          <!-- ✅ SWIPE AREA -->
+          <div
+            class="relative w-full hero-swipe"
+            style="aspect-ratio: 16/5"
+            @pointerdown="onHeroPointerDown"
+            @pointermove="onHeroPointerMove"
+            @pointerup="onHeroPointerUp"
+            @pointercancel="onHeroPointerCancel"
+            @pointerleave="onHeroPointerLeave"
+          >
             <img :src="currentSlideSrc" alt="tochero5liga" class="w-full h-full object-cover" />
           </div>
         </div>
@@ -1286,7 +1295,7 @@ const topPositions = computed<StandingRow[]>(() => {
   const raw = Array.isArray(standings.value) ? standings.value : []
   if (raw.length === 0) return []
 
-  // map + dedupe por equipo (para que no se repita “Hades” dos veces)
+  // map + dedupe por equipo
   const ded = new Map<string, StandingRow>()
 
   for (const row of raw) {
@@ -1318,7 +1327,6 @@ const topPositions = computed<StandingRow[]>(() => {
     const prev = ded.get(key)
     if (!prev) ded.set(key, item)
     else {
-      // nos quedamos con el “mejor” registro por PTS/DIF/PF
       const prevScore = prev.points * 100000 + prev.diff * 100 + prev.pointsFor
       const nextScore = item.points * 100000 + item.diff * 100 + item.pointsFor
       if (nextScore > prevScore) ded.set(key, item)
@@ -1326,8 +1334,6 @@ const topPositions = computed<StandingRow[]>(() => {
   }
 
   const mapped = Array.from(ded.values())
-
-  // Orden típico standings: PTS desc, DIF desc, PF desc
   mapped.sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points
     if (b.diff !== a.diff) return b.diff - a.diff
@@ -1343,14 +1349,23 @@ interface HeroSlide {
   src: string
 }
 
+/**
+ * Asegúrate de tener:
+ *  - /public/img/carrusel1.jpg
+ *  - /public/img/carrusel2.jpg
+ *  - /public/img/carrusel3.jpg
+ */
 const heroSlides = ref<HeroSlide[]>([
-  { id: 'slide-1', src: '/img/sponsors/foto_1.jpg' }
+  { id: 'carrusel-1', src: '/img/carrusel1.jpg' },
+  { id: 'carrusel-2', src: '/img/carrusel2.jpg' },
+  { id: 'carrusel-3', src: '/img/carrusel3.jpg' }
 ])
 
 const currentSlide = ref(0)
 const currentSlideSrc = computed(() => heroSlides.value[currentSlide.value]?.src ?? '')
 
 let intervalId: ReturnType<typeof setInterval> | null = null
+const HERO_AUTOPLAY_MS = 7000
 
 const nextSlide = () => {
   if (heroSlides.value.length === 0) return
@@ -1364,12 +1379,107 @@ const goToSlide = (index: number) => {
   if (index >= 0 && index < heroSlides.value.length) currentSlide.value = index
 }
 
+const stopHeroAuto = () => {
+  if (intervalId) clearInterval(intervalId)
+  intervalId = null
+}
+const startHeroAuto = () => {
+  stopHeroAuto()
+  if (heroSlides.value.length > 1) intervalId = setInterval(nextSlide, HERO_AUTOPLAY_MS)
+}
+
 onMounted(() => {
-  if (heroSlides.value.length > 1) intervalId = setInterval(nextSlide, 7000)
+  startHeroAuto()
 })
 
+/* ✅ SWIPE (deslizar) */
+let heroPointerId: number | null = null
+let heroStartX = 0
+let heroStartY = 0
+let heroDx = 0
+let heroDy = 0
+let heroIsDown = false
+let heroIsSwipe = false
+
+const HERO_SWIPE_ACTIVATE_PX = 10   // cuándo empieza a considerarse swipe horizontal
+const HERO_SWIPE_TRIGGER_PX = 55    // cuánto debe deslizar para cambiar
+
+function resetHeroSwipe() {
+  heroPointerId = null
+  heroStartX = 0
+  heroStartY = 0
+  heroDx = 0
+  heroDy = 0
+  heroIsDown = false
+  heroIsSwipe = false
+}
+
+const onHeroPointerDown = (e: PointerEvent) => {
+  if (heroSlides.value.length <= 1) return
+  heroIsDown = true
+  heroIsSwipe = false
+  heroPointerId = e.pointerId
+  heroStartX = e.clientX
+  heroStartY = e.clientY
+  heroDx = 0
+  heroDy = 0
+
+  // pausa autoplay mientras arrastra
+  stopHeroAuto()
+
+  const el = e.currentTarget as HTMLElement | null
+  if (el?.setPointerCapture) {
+    try { el.setPointerCapture(e.pointerId) } catch {}
+  }
+}
+
+const onHeroPointerMove = (e: PointerEvent) => {
+  if (!heroIsDown || heroPointerId === null || e.pointerId !== heroPointerId) return
+  heroDx = e.clientX - heroStartX
+  heroDy = e.clientY - heroStartY
+
+  // activar swipe solo si es horizontal (para no romper scroll vertical)
+  if (!heroIsSwipe) {
+    const ax = Math.abs(heroDx)
+    const ay = Math.abs(heroDy)
+    if (ax > HERO_SWIPE_ACTIVATE_PX && ax > ay * 1.2) {
+      heroIsSwipe = true
+    }
+  }
+}
+
+const onHeroPointerUp = (e: PointerEvent) => {
+  if (!heroIsDown || heroPointerId === null || e.pointerId !== heroPointerId) return
+
+  const dx = heroDx
+  const dy = heroDy
+  const ax = Math.abs(dx)
+  const ay = Math.abs(dy)
+
+  if (heroIsSwipe && ax > HERO_SWIPE_TRIGGER_PX && ax > ay) {
+    if (dx < 0) nextSlide()
+    else prevSlide()
+  }
+
+  resetHeroSwipe()
+  startHeroAuto()
+}
+
+const onHeroPointerCancel = () => {
+  if (!heroIsDown) return
+  resetHeroSwipe()
+  startHeroAuto()
+}
+
+const onHeroPointerLeave = () => {
+  // si se sale del área mientras está presionado, lo cerramos para evitar “pegado”
+  if (!heroIsDown) return
+  resetHeroSwipe()
+  startHeroAuto()
+}
+
 onBeforeUnmount(() => {
-  if (intervalId) clearInterval(intervalId)
+  stopHeroAuto()
   if (standingsTO) clearTimeout(standingsTO)
 })
 
@@ -1742,5 +1852,16 @@ const reglamentos = ref<ReglamentoDoc[]>([
 }
 .carousel-dot--active {
   transform: scale(1.05);
+}
+
+/* ✅ Swipe UX */
+.hero-swipe {
+  touch-action: pan-y; /* deja scroll vertical, capturamos swipe horizontal */
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.hero-swipe:active {
+  cursor: grabbing;
 }
 </style>

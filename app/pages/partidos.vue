@@ -44,23 +44,7 @@
           class="mb-6 rounded-3xl border border-slate-800/70 bg-slate-900/45 p-4 md:p-6 shadow-[0_18px_45px_rgba(0,0,0,0.30)] overflow-hidden"
         >
           <!-- mini-stepper mobile -->
-          <div class="md:hidden mb-4">
-            <div class="grid grid-cols-3 gap-2">
-              <div :class="stepPillClass(stepState >= 1)">
-                <span class="opacity-80">1</span> Categoría
-              </div>
-              <div :class="stepPillClass(stepState >= 2)">
-                <span class="opacity-80">2</span> Rama
-              </div>
-              <div :class="stepPillClass(stepState >= 3)">
-                <span class="opacity-80">3</span> Jornada
-              </div>
-            </div>
-            <p class="mt-2 text-[11px] text-slate-400">
-              Para filtrar por <b class="text-slate-200">jornada</b>, primero elige
-              <b class="text-slate-200">categoría</b> y <b class="text-slate-200">rama</b>.
-            </p>
-          </div>
+          
 
           <div class="grid gap-4 md:grid-cols-12 min-w-0">
             <!-- Temporada (SIN "Todas", default ID 2) -->
