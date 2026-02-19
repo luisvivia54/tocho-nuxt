@@ -13,34 +13,18 @@
                 Jugadores (Admin)
               </h1>
 
+              <!-- indicador de sesión: NO muestra endpoints -->
               <span
                 class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold"
                 :class="authOk ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'"
               >
-                {{ authOk ? `Auth OK (${authSource})` : `SIN TOKEN (${authSource || 'no detectado'})` }}
-              </span>
-
-              <span
-                v-if="playersEndpointUsed"
-                class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200"
-              >
-                Players: {{ playersEndpointUsed }}
+                {{ authOk ? 'Sesión activa' : 'Sin sesión' }}
               </span>
             </div>
 
             <p class="mt-2 text-slate-600 max-w-2xl">
               Información personal, asignación de equipo y edición rápida. (No estadísticas)
             </p>
-
-            <div class="mt-3 flex flex-wrap gap-2 items-center">
-              <span class="text-[11px] text-slate-500">Endpoints:</span>
-              <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                <code class="text-slate-700">{{ API_TEAMS }}</code>
-              </span>
-              <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                <code class="text-slate-700">{{ API_BASE }}</code>
-              </span>
-            </div>
           </div>
 
           <div class="flex items-center gap-2">
@@ -50,6 +34,20 @@
               @click="refreshAll"
             >
               ⟳ Refrescar
+            </button>
+
+            <!-- ✅ PDF CURP del filtro -->
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              :disabled="pendingAny || filteredCurps.length === 0"
+              @click="downloadCurpPdf"
+              title="Descarga las CURP y nombres que aparecen con los filtros actuales"
+            >
+              ⬇ CURP (PDF)
+              <span class="ml-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+                {{ filteredCurps.length }}
+              </span>
             </button>
           </div>
         </header>
@@ -62,51 +60,125 @@
         <!-- Filtros -->
         <section class="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <!-- Equipo -->
+            <!-- Equipo (específico) -->
             <div class="md:col-span-4">
               <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                 Equipo
               </label>
-              <select
-                v-model="teamPick"
-                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="ALL">Todos</option>
-                <option v-for="t in teamsVm" :key="t.teamId" :value="String(t.teamId)">
-                  {{ t.name }}
-                </option>
-              </select>
+
+              <div class="relative">
+                <select
+                  v-model="teamPick"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  :disabled="teamsPending"
+                >
+                  <option value="ALL">Todos</option>
+                  <option v-for="t in teamsVm" :key="t.teamId" :value="String(t.teamId)">
+                    {{ t.name }}
+                  </option>
+                </select>
+
+                <button
+                  v-if="teamPick !== 'ALL'"
+                  type="button"
+                  class="absolute inset-y-0 right-2 my-auto h-8 px-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs hover:bg-slate-50"
+                  @click="clearTeam"
+                  aria-label="Quitar filtro de equipo"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <!-- Rama -->
-            <div class="md:col-span-3">
+            <!-- Rama (code) -->
+            <div class="md:col-span-2">
               <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                Rama
+                Rama (code)
               </label>
-              <select
-                v-model="genderPick"
-                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="ALL">Todas</option>
-                <option value="VARONIL">Varonil</option>
-                <option value="FEMENIL">Femenil</option>
-                <option value="MIXTO">Mixto</option>
-              </select>
+
+              <div class="relative">
+                <select
+                  v-model="selectedRama"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  :disabled="categoriesPending"
+                >
+                  <option value="all">Todas</option>
+                  <option v-for="code in ramaOptions" :key="code" :value="code">
+                    {{ code }}
+                  </option>
+                </select>
+
+                <button
+                  v-if="selectedRama !== 'all'"
+                  type="button"
+                  class="absolute inset-y-0 right-2 my-auto h-8 px-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs hover:bg-slate-50"
+                  @click="clearRama"
+                  aria-label="Quitar filtro de rama"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <!-- Categoría (gender) -->
+            <div class="md:col-span-2">
+              <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
+                Categoría (gender)
+              </label>
+
+              <div class="relative">
+                <select
+                  v-model="selectedCategoria"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  :disabled="categoriesPending"
+                >
+                  <option value="all">Todas</option>
+                  <option v-for="g in categoriaOptions" :key="g" :value="g">
+                    {{ niceGender(g) }}
+                  </option>
+                </select>
+
+                <button
+                  v-if="selectedCategoria !== 'all'"
+                  type="button"
+                  class="absolute inset-y-0 right-2 my-auto h-8 px-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs hover:bg-slate-50"
+                  @click="clearCategoria"
+                  aria-label="Quitar filtro de categoría"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <!-- Buscar -->
-            <div class="md:col-span-5">
+            <div class="md:col-span-4">
               <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                Buscar (nombre / curp / correo / tel)
+                Buscar (nombre / curp / correo / tel / equipo)
               </label>
-              <input
-                v-model.trim="q"
-                placeholder="Ej. Kaori, GARC..., @gmail, 55..."
-                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+
+              <div class="relative">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400 text-xs">
+                  🔍
+                </span>
+                <input
+                  v-model.trim="q"
+                  placeholder="Ej. Paolo, CAAJ..., @gmail, 55..., Halcones..."
+                  class="w-full rounded-xl border border-slate-300 bg-white pl-8 pr-3 py-2 text-sm text-slate-800
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <button
+                  v-if="q.trim()"
+                  type="button"
+                  class="absolute inset-y-0 right-2 my-auto h-8 px-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs hover:bg-slate-50"
+                  @click="clearSearch"
+                  aria-label="Limpiar búsqueda"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div class="md:col-span-12 flex items-center justify-between gap-2 pt-1">
@@ -124,6 +196,48 @@
                 </button>
               </div>
             </div>
+
+            <!-- Chips de estado -->
+            <div class="md:col-span-12 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 pt-1">
+              <span class="text-slate-400">Estado:</span>
+
+              <span
+                v-if="teamPick !== 'ALL'"
+                class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
+              >
+                Equipo: <strong class="text-slate-900">{{ teamPickLabel }}</strong>
+                <button type="button" class="text-slate-500 hover:text-slate-900" @click="clearTeam">✕</button>
+              </span>
+
+              <span
+                v-if="selectedRama !== 'all'"
+                class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
+              >
+                Rama: <strong class="text-slate-900">{{ selectedRama }}</strong>
+                <button type="button" class="text-slate-500 hover:text-slate-900" @click="clearRama">✕</button>
+              </span>
+
+              <span
+                v-if="selectedCategoria !== 'all'"
+                class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
+              >
+                Categoría:
+                <strong class="text-slate-900">{{ niceGender(selectedCategoria) }}</strong>
+                <button type="button" class="text-slate-500 hover:text-slate-900" @click="clearCategoria">✕</button>
+              </span>
+
+              <span
+                v-if="q.trim()"
+                class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1"
+              >
+                Búsqueda: <strong class="text-slate-900">“{{ q.trim() }}”</strong>
+                <button type="button" class="text-slate-500 hover:text-slate-900" @click="clearSearch">✕</button>
+              </span>
+
+              <span v-if="categoriesErr" class="text-amber-700">
+                No se pudo cargar el catálogo de categorías (opciones de filtro). El listado de jugadores sigue funcionando.
+              </span>
+            </div>
           </div>
         </section>
 
@@ -137,20 +251,9 @@
           class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           <p class="font-semibold">Error cargando jugadores/equipos.</p>
-
-          <details class="mt-2">
-            <summary class="cursor-pointer text-xs font-semibold text-red-700/90">Ver detalle</summary>
-            <div class="mt-2 space-y-2 text-xs text-red-800">
-              <div v-if="teamsErrMsg">
-                <p class="font-semibold">Teams:</p>
-                <pre class="whitespace-pre-wrap break-words">{{ teamsErrMsg }}</pre>
-              </div>
-              <div v-if="playersErrMsg">
-                <p class="font-semibold">Players:</p>
-                <pre class="whitespace-pre-wrap break-words">{{ playersErrMsg }}</pre>
-              </div>
-            </div>
-          </details>
+          <p class="mt-1 text-xs text-red-800 whitespace-pre-wrap break-words">
+            {{ safeErrSummary }}
+          </p>
         </div>
 
         <!-- Contenido -->
@@ -175,7 +278,17 @@
                       {{ p.teamName || '—' }}
                       <span v-if="p.number != null" class="text-slate-400"> · #{{ p.number }}</span>
                     </p>
-                    <p class="mt-1 text-[11px] text-slate-500 truncate">
+
+                    <div class="mt-1 flex flex-wrap gap-2 text-[11px]">
+                      <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
+                        {{ p.code || '—' }}
+                      </span>
+                      <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
+                        {{ niceGender(p.gender || '—') }}
+                      </span>
+                    </div>
+
+                    <p class="mt-2 text-[11px] text-slate-500 truncate">
                       CURP: <span class="font-semibold text-slate-700">{{ p.curp || '—' }}</span>
                     </p>
                     <p class="text-[11px] text-slate-500 truncate">
@@ -196,9 +309,6 @@
 
               <div class="mt-3 flex flex-wrap gap-2 text-[11px]">
                 <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
-                  {{ prettyDivision(p.gender) }}
-                </span>
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-700">
                   Nac: {{ p.birthDate || '—' }}
                 </span>
               </div>
@@ -207,13 +317,14 @@
 
           <!-- DESKTOP table -->
           <div class="hidden md:block rounded-2xl bg-white border border-slate-200 shadow-[0_12px_30px_rgba(15,23,42,0.08)] overflow-x-auto">
-            <table class="min-w-[1200px] w-full text-sm">
+            <table class="min-w-[1280px] w-full text-sm">
               <thead>
                 <tr class="text-left text-slate-500 border-b border-slate-200/80">
                   <th class="px-3 py-2">Jugador</th>
                   <th class="px-3 py-2">Equipo</th>
                   <th class="px-3 py-2">#</th>
-                  <th class="px-3 py-2">Rama</th>
+                  <th class="px-3 py-2">Rama (code)</th>
+                  <th class="px-3 py-2">Categoría (gender)</th>
                   <th class="px-3 py-2">CURP</th>
                   <th class="px-3 py-2">Teléfono</th>
                   <th class="px-3 py-2">Email</th>
@@ -250,7 +361,13 @@
 
                   <td class="px-3 py-2">
                     <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                      {{ prettyDivision(p.gender) }}
+                      {{ p.code || '—' }}
+                    </span>
+                  </td>
+
+                  <td class="px-3 py-2">
+                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                      {{ niceGender(p.gender || '—') }}
                     </span>
                   </td>
 
@@ -270,7 +387,7 @@
                 </tr>
 
                 <tr v-if="pagedPlayers.length === 0">
-                  <td colspan="9" class="px-3 py-3 text-sm text-slate-500">
+                  <td colspan="10" class="px-3 py-3 text-sm text-slate-500">
                     No hay jugadores que coincidan con los filtros.
                   </td>
                 </tr>
@@ -413,7 +530,7 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Rama</label>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Categoría (gender)</label>
                     <select
                       v-model="draft.gender"
                       class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
@@ -454,7 +571,7 @@
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
                   <p class="font-semibold text-slate-700">Qué se guarda:</p>
                   <p class="mt-1">
-                    Nombre, número, CURP, fecha nac., tel, email, rama, teamId y fotoUrl.
+                    Nombre, número, CURP, fecha nac., tel, email, categoría (gender), teamId y fotoUrl.
                   </p>
                 </div>
               </div>
@@ -489,7 +606,7 @@ import { computed, ref, watch, onMounted } from 'vue'
 import { useRuntimeConfig, useAsyncData, useNuxtApp } from '#imports'
 
 /* =========================
-   API
+   API (interno)
 ========================= */
 const config = useRuntimeConfig()
 const nuxtApp = useNuxtApp()
@@ -501,13 +618,14 @@ function normalizeApiBase(v: string) {
 }
 
 const API_BASE = normalizeApiBase(((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx')
-const API_TEAMS = `${API_BASE}/teams`
+const API_TEAMS = `${API_BASE}/teams`            // ✅ para /teams/{id}/players
+const API_TEAMS_LIST = `${API_BASE}/teams/list`  // ✅ trae code/gender en projection
+const API_CATEGORIES = `${API_BASE}/categories`
 
 /* =========================
    AUTH (Keycloak)
 ========================= */
 const authOk = ref(false)
-const authSource = ref('')
 
 function getKeycloakClient(): { source: string; client: any } | null {
   const app: any = nuxtApp as any
@@ -520,7 +638,7 @@ function getKeycloakClient(): { source: string; client: any } | null {
   return null
 }
 
-async function getAccessToken(): Promise<{ token: string | null; source: string }> {
+async function getAccessToken(): Promise<string | null> {
   const app: any = nuxtApp as any
 
   const kcWrap = getKeycloakClient()
@@ -530,31 +648,30 @@ async function getAccessToken(): Promise<{ token: string | null; source: string 
       if (kc.updateToken) await kc.updateToken(30)
     } catch {}
     const t = kc.token
-    if (typeof t === 'string' && t.length > 20) return { token: t, source: kcWrap.source }
+    if (typeof t === 'string' && t.length > 20) return t
   }
 
   if (typeof app.$kcGetToken === 'function') {
     try {
       const t = await app.$kcGetToken()
-      if (typeof t === 'string' && t.length > 20) return { token: t, source: '$kcGetToken()' }
+      if (typeof t === 'string' && t.length > 20) return t
     } catch {}
   }
 
   if (typeof app.$getToken === 'function') {
     try {
       const t = await app.$getToken()
-      if (typeof t === 'string' && t.length > 20) return { token: t, source: '$getToken()' }
+      if (typeof t === 'string' && t.length > 20) return t
     } catch {}
   }
 
-  return { token: null, source: kcWrap?.source || '' }
+  return null
 }
 
 async function waitForToken(maxMs = 2500) {
   const start = Date.now()
   while (Date.now() - start < maxMs) {
-    const { token, source } = await getAccessToken()
-    authSource.value = source
+    const token = await getAccessToken()
     authOk.value = !!token
     if (token) return token
     await new Promise((r) => setTimeout(r, 120))
@@ -580,6 +697,7 @@ function unwrapList<T>(x: any): T[] {
   if (x && Array.isArray(x.items)) return x.items
   return []
 }
+
 const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
 
 function initials(text: string) {
@@ -588,29 +706,63 @@ function initials(text: string) {
   const parts = s.split(/\s+/).slice(0, 2)
   return parts.map((p) => p[0]?.toUpperCase()).join('')
 }
-function prettyDivision(division: string | null | undefined): string {
-  if (!division) return '—'
-  const up = String(division).toUpperCase()
-  if (up === 'VARONIL') return 'Varonil'
-  if (up === 'FEMENIL') return 'Femenil'
-  if (up === 'MIXTO') return 'Mixto'
-  return String(division)
+
+function niceGender(g: string) {
+  const x = String(g || '').toUpperCase()
+  if (x === 'VARONIL') return 'Varonil'
+  if (x === 'FEMENIL') return 'Femenil'
+  if (x === 'MIXTO') return 'Mixto'
+  return g
 }
-function formatErr(e: any) {
+
+function safeErr(e: any) {
   if (!e) return ''
   const status = e?.status || e?.statusCode
-  const url = e?.request || e?.url
   const msg = e?.message || String(e)
-  const data = e?.data ? JSON.stringify(e.data).slice(0, 900) : ''
-  return [status ? `status: ${status}` : '', url ? `url: ${url}` : '', msg ? `message: ${msg}` : '', data ? `data: ${data}` : '']
-    .filter(Boolean)
-    .join('\n')
+  return [status ? `status: ${status}` : '', msg ? `message: ${msg}` : ''].filter(Boolean).join('\n')
+}
+
+/** pool simple para limitar concurrencia */
+async function asyncPool<T, R>(
+  poolLimit: number,
+  array: T[],
+  iteratorFn: (item: T, idx: number) => Promise<R>
+): Promise<R[]> {
+  const ret: Promise<R>[] = []
+  const executing: Promise<any>[] = []
+
+  for (let i = 0; i < array.length; i++) {
+    const item = array[i]
+    const p = Promise.resolve().then(() => iteratorFn(item, i))
+    ret.push(p)
+
+    if (poolLimit <= array.length) {
+      const e = p.then(() => executing.splice(executing.indexOf(e), 1))
+      executing.push(e)
+      if (executing.length >= poolLimit) await Promise.race(executing)
+    }
+  }
+  return Promise.all(ret)
+}
+
+function pad2(n: number) {
+  return String(n).padStart(2, '0')
+}
+function ymdLocal(d = new Date()) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+function sanitizeFileName(s: string) {
+  return String(s || '')
+    .trim()
+    .replace(/[^\w\-]+/g, '_')
+    .replace(/_+/g, '_')
+    .slice(0, 80)
 }
 
 /* =========================
    Types
 ========================= */
-type TeamVM = { teamId: number; name: string }
+type TeamVM = { teamId: number; name: string; code: string | null; gender: string | null }
 
 type PlayerVM = {
   id: number
@@ -619,6 +771,7 @@ type PlayerVM = {
   photoUrl: string | null
   teamId: number | null
   teamName: string | null
+  code: string | null
   gender: string | null
   curp: string | null
   phone: string | null
@@ -626,19 +779,70 @@ type PlayerVM = {
   birthDate: string | null
 }
 
+type CategoryDto = {
+  id: number
+  name: string
+  code: string
+  gender: string
+}
+
 /* =========================
-   Fetch Teams
+   Fetch Categories (para options)
+========================= */
+const {
+  data: categoriesData,
+  pending: categoriesPending,
+  error: categoriesErr
+} = useAsyncData(
+  'admin-players-categories',
+  async () => {
+    const h = await authHeaders(false)
+    try {
+      const raw = await $fetch<any>(API_CATEGORIES, { headers: Object.keys(h).length ? h : undefined })
+      return unwrapList<CategoryDto>(raw)
+    } catch {
+      const raw = await $fetch<any>(API_CATEGORIES)
+      return unwrapList<CategoryDto>(raw)
+    }
+  },
+  { default: () => [], server: false }
+)
+
+const ramaOptions = computed(() => {
+  const arr = unwrapList<CategoryDto>(categoriesData.value)
+  const set = new Set<string>()
+  for (const c of arr) if (c?.code) set.add(String(c.code).toUpperCase())
+  return Array.from(set).sort()
+})
+
+const categoriaOptions = computed(() => {
+  const arr = unwrapList<CategoryDto>(categoriesData.value)
+  const set = new Set<string>()
+  for (const c of arr) if (c?.gender) set.add(String(c.gender).toUpperCase())
+  return Array.from(set).sort()
+})
+
+/* =========================
+   Fetch Teams (✅ usa /teams/list para traer code/gender)
 ========================= */
 const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
   'admin-players-teams',
   async () => {
     const h = await authHeaders(false)
+
+    // 1) intenta /teams/list (ideal)
     try {
-      const raw = await $fetch<any>(API_TEAMS, { headers: Object.keys(h).length ? h : undefined })
+      const raw = await $fetch<any>(API_TEAMS_LIST, { headers: Object.keys(h).length ? h : undefined })
       return unwrapList<any>(raw)
     } catch {
-      const raw = await $fetch<any>(API_TEAMS)
-      return unwrapList<any>(raw)
+      // 2) fallback
+      try {
+        const raw2 = await $fetch<any>(API_TEAMS_LIST)
+        return unwrapList<any>(raw2)
+      } catch {
+        const raw3 = await $fetch<any>(API_TEAMS, { headers: Object.keys(h).length ? h : undefined })
+        return unwrapList<any>(raw3)
+      }
     }
   },
   { default: () => [], server: false }
@@ -647,10 +851,31 @@ const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refres
 const teamsVm = computed<TeamVM[]>(() => {
   const list = unwrapList<any>(teamsData.value)
   return list
-    .map((x) => ({
-      teamId: Number(x.teamId ?? x.team_id ?? x.id),
-      name: String(x.name ?? x.teamName ?? 'Equipo')
-    }))
+    .map((x) => {
+      const teamId = Number(x.teamId ?? x.team_id ?? x.id)
+      const name = String(x.name ?? x.teamName ?? 'Equipo')
+
+      const codeVal =
+        x.category?.code ??
+        x.categoryCode ??
+        x.code ??
+        x.category_code ??
+        null
+
+      const genderVal =
+        x.category?.gender ??
+        x.gender ??
+        x.categoryGender ??
+        x.category_gender ??
+        null
+
+      return {
+        teamId,
+        name,
+        code: codeVal ? String(codeVal).toUpperCase() : null,
+        gender: genderVal ? String(genderVal).toUpperCase() : null
+      } satisfies TeamVM
+    })
     .filter((t) => Number.isFinite(t.teamId))
     .sort((a, b) => a.name.localeCompare(b.name))
 })
@@ -662,73 +887,31 @@ const teamById = computed(() => {
 })
 
 /* =========================
-   Fetch Players (AUTO-DETECT endpoint)
+   Fetch Players (✅ SIEMPRE por /teams/{id}/players)
 ========================= */
-const playersEndpointUsed = ref<string>('')
-
-async function tryPlayersEndpoint(url: string, headers: HeadersMap): Promise<any[] | null> {
-  try {
-    const raw = await $fetch<any>(url, { headers })
-    const list = unwrapList<any>(raw)
-    return list
-  } catch (e: any) {
-    const status = e?.status || e?.statusCode
-    // si es 404, probamos el siguiente endpoint
-    if (status === 404) return null
-    // cualquier otro error (401/403/500) lo dejamos “subir”
-    throw e
-  }
-}
-
-async function fetchPlayersAuto(): Promise<any[]> {
+async function fetchPlayersByTeams(): Promise<any[]> {
   const h = await authHeaders(false)
-  if (!h.Authorization) throw new Error('No se pudo obtener token de Keycloak para llamar Players')
+  if (!h.Authorization) throw new Error('No se pudo obtener sesión')
 
-  const candidates = [
-    `${API_BASE}/players`,
-    `${API_BASE}/player`,
-    `${API_BASE}/players/all`,
-    `${API_BASE}/player/all`
-  ]
+  const teamIds = teamsVm.value.map((t) => t.teamId).filter((n) => Number.isFinite(n))
+  if (!teamIds.length) return []
 
-  for (const url of candidates) {
-    const list = await tryPlayersEndpoint(url, h)
-    if (list && list.length >= 0) {
-      playersEndpointUsed.value = url
-      return list
+  const chunks = await asyncPool(6, teamIds, async (tid) => {
+    try {
+      const raw = await $fetch<any>(`${API_TEAMS}/${tid}/players`, { headers: h })
+      const list = unwrapList<any>(raw)
+      return list.map((p: any) => ({ ...p, __teamId: tid }))
+    } catch {
+      return []
     }
-  }
+  })
 
-  // fallback: por equipos (/teams/{id}/players)
-  const teamsList = unwrapList<any>(teamsData.value)
-  const teamIds = teamsList
-    .map((t: any) => Number(t.teamId ?? t.team_id ?? t.id))
-    .filter((n: number) => Number.isFinite(n))
-
-  if (!teamIds.length) throw new Error('No hay equipos para fallback /teams/{id}/players')
-
-  const chunks = await Promise.all(
-    teamIds.map(async (tid) => {
-      try {
-        const raw = await $fetch<any>(`${API_TEAMS}/${tid}/players`, { headers: h })
-        const list = unwrapList<any>(raw)
-        return list.map((p: any) => ({ ...p, __teamId: tid }))
-      } catch {
-        return []
-      }
-    })
-  )
-
-  playersEndpointUsed.value = `${API_TEAMS}/{id}/players`
   return chunks.flat()
 }
 
 const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
   'admin-players-all',
-  async () => {
-    playersEndpointUsed.value = ''
-    return await fetchPlayersAuto()
-  },
+  async () => await fetchPlayersByTeams(),
   { default: () => [], server: false, watch: [teamsData] }
 )
 
@@ -750,22 +933,39 @@ const playersVm = computed<PlayerVM[]>(() => {
       const numberRaw = x.number ?? x.jerseyNumber ?? x.jersey_number ?? x.num ?? null
       const number = numberRaw == null ? null : toNum(numberRaw)
 
-      const teamIdRaw =
-        x.teamId ?? x.team_id ?? x.team?.teamId ?? x.team?.id ?? x.__teamId ?? null
+      const teamIdRaw = x.teamId ?? x.team_id ?? x.team?.teamId ?? x.team?.id ?? x.__teamId ?? null
       const teamId = teamIdRaw == null ? null : Number(teamIdRaw) || null
 
-      const teamNameFromApi = String(x.teamName ?? x.team_name ?? x.team?.name ?? '').trim()
       const t = teamId ? teamById.value.get(teamId) : undefined
+      const teamNameFromApi = String(x.teamName ?? x.team_name ?? x.team?.name ?? '').trim()
       const teamName = teamNameFromApi || t?.name || null
 
-      const genderVal = x.gender ?? x.team?.gender ?? null
-      const gender = genderVal ? String(genderVal).toUpperCase() : null
+      // code/gender desde TeamVM (porque /teams/{id}/players no los manda)
+      const codeVal =
+        x.category?.code ??
+        x.categoryCode ??
+        x.code ??
+        x.team?.category?.code ??
+        x.team?.categoryCode ??
+        x.team?.code ??
+        null
+      const code = (codeVal ? String(codeVal).toUpperCase() : (t?.code || null)) ?? null
+
+      const genderVal =
+        x.category?.gender ??
+        x.gender ??
+        x.categoryGender ??
+        x.team?.category?.gender ??
+        x.team?.gender ??
+        x.team?.categoryGender ??
+        null
+      const gender = (genderVal ? String(genderVal).toUpperCase() : (t?.gender || null)) ?? null
 
       const curp = x.curp ?? x.CURP ?? null
       const phone = x.phone ?? x.telefono ?? x.tel ?? null
       const email = x.email ?? x.correo ?? null
 
-      const bd = x.birthDate ?? x.birth_date ?? x.fechaNacimiento ?? x.fecha_nacimiento ?? null
+      const bd = x.birthDate ?? x.birth_date ?? x.birthdate ?? x.fechaNacimiento ?? x.fecha_nacimiento ?? null
       const birthDate = bd ? String(bd).slice(0, 10) : null
 
       const photoUrl = x.photoUrl ?? x.photo_url ?? x.photo ?? x.avatarUrl ?? null
@@ -777,6 +977,7 @@ const playersVm = computed<PlayerVM[]>(() => {
         photoUrl: photoUrl ? String(photoUrl) : null,
         teamId,
         teamName,
+        code,
         gender,
         curp: curp ? String(curp) : null,
         phone: phone ? String(phone) : null,
@@ -788,25 +989,40 @@ const playersVm = computed<PlayerVM[]>(() => {
 })
 
 /* =========================
-   Filters + Pagination
+   Filters + Pagination (equipo + code + gender + search)
 ========================= */
 const q = ref('')
 const teamPick = ref<'ALL' | string>('ALL')
-const genderPick = ref<'ALL' | string>('ALL')
+const selectedRama = ref<string>('all')
+const selectedCategoria = ref<string>('all')
+
+const teamPickLabel = computed(() => {
+  if (teamPick.value === 'ALL') return 'Todos'
+  const tid = Number(teamPick.value)
+  const t = Number.isFinite(tid) ? teamById.value.get(tid) : undefined
+  return t?.name || `Equipo ${teamPick.value}`
+})
 
 const filteredPlayers = computed(() => {
   const qq = q.value.trim().toLowerCase()
+  const rama = selectedRama.value
+  const cat = selectedCategoria.value
   const tPick = teamPick.value
-  const gPick = genderPick.value
 
   return playersVm.value.filter((p) => {
     if (tPick !== 'ALL') {
       const tid = Number(tPick)
       if (Number.isFinite(tid) && p.teamId !== tid) return false
     }
-    if (gPick !== 'ALL') {
-      if ((p.gender || '').toUpperCase() !== gPick) return false
+
+    if (rama !== 'all') {
+      if ((p.code || '').toUpperCase() !== rama.toUpperCase()) return false
     }
+
+    if (cat !== 'all') {
+      if ((p.gender || '').toUpperCase() !== cat.toUpperCase()) return false
+    }
+
     if (qq) {
       const blob = [
         p.fullName,
@@ -814,6 +1030,7 @@ const filteredPlayers = computed(() => {
         p.phone,
         p.email,
         p.teamName,
+        p.code,
         p.gender,
         p.birthDate,
         String(p.number ?? '')
@@ -824,6 +1041,7 @@ const filteredPlayers = computed(() => {
 
       if (!blob.includes(qq)) return false
     }
+
     return true
   })
 })
@@ -832,7 +1050,7 @@ const pageSize = 12
 const page = ref(1)
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredPlayers.value.length / pageSize)))
 
-watch([q, teamPick, genderPick], () => {
+watch([q, selectedRama, selectedCategoria, teamPick], () => {
   page.value = 1
 })
 watch(totalPages, (tp) => {
@@ -849,15 +1067,133 @@ const rangeLabel = computed(() => {
   return `${pageStart.value + 1} - ${pageEnd.value}`
 })
 
+function clearSearch() {
+  q.value = ''
+  page.value = 1
+}
+function clearTeam() {
+  teamPick.value = 'ALL'
+  page.value = 1
+}
+function clearRama() {
+  selectedRama.value = 'all'
+  page.value = 1
+}
+function clearCategoria() {
+  selectedCategoria.value = 'all'
+  page.value = 1
+}
 function clearFilters() {
   q.value = ''
   teamPick.value = 'ALL'
-  genderPick.value = 'ALL'
+  selectedRama.value = 'all'
+  selectedCategoria.value = 'all'
+  page.value = 1
+}
+
+/* =========================
+   ✅ PDF: CURP del filtro (sin tocar back)
+========================= */
+const filteredCurps = computed(() => {
+  // toma SOLO lo que sale en el filtro actual (no solo paged)
+  const base = filteredPlayers.value || []
+
+  // normaliza y quita sin CURP
+  const normalized = base
+    .map((p) => ({
+      fullName: String(p.fullName || '').trim(),
+      curp: String(p.curp || '').trim(),
+      teamName: String(p.teamName || '').trim()
+    }))
+    .filter((x) => x.curp.length > 0)
+
+  // dedupe por CURP
+  const seen = new Set<string>()
+  const unique = normalized.filter((x) => {
+    const k = x.curp.toUpperCase()
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+
+  // orden: equipo -> nombre
+  unique.sort((a, b) => (a.teamName || '').localeCompare(b.teamName || '') || a.fullName.localeCompare(b.fullName))
+  return unique
+})
+
+async function downloadCurpPdf() {
+  try {
+    if (typeof window === 'undefined') return
+
+    const rows = filteredCurps.value
+    if (!rows.length) {
+      setNotice('err', 'No hay CURP en los resultados actuales.')
+      return
+    }
+
+    // imports lazy para no romper SSR
+    const { jsPDF } = await import('jspdf')
+    const autoTableMod: any = await import('jspdf-autotable')
+    const autoTable = autoTableMod.default || autoTableMod
+
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+
+    const dateStr = ymdLocal(new Date())
+
+    // Header
+    doc.setFontSize(16)
+    doc.text('Listado de CURP (Jugadores)', 40, 48)
+
+    doc.setFontSize(10)
+    const filtros = [
+      teamPick.value !== 'ALL' ? `Equipo: ${teamPickLabel.value}` : 'Equipo: Todos',
+      selectedRama.value !== 'all' ? `Rama: ${selectedRama.value}` : 'Rama: Todas',
+      selectedCategoria.value !== 'all' ? `Categoría: ${niceGender(selectedCategoria.value)}` : 'Categoría: Todas',
+      q.value.trim() ? `Búsqueda: "${q.value.trim()}"` : null,
+      `Total CURP: ${rows.length}`
+    ].filter(Boolean) as string[]
+
+    doc.text(`Fecha: ${dateStr}`, 40, 66)
+    doc.text(filtros.join(' · '), 40, 82)
+
+    const body = rows.map((r, idx) => [String(idx + 1), r.fullName || '—', r.curp, r.teamName || '—'])
+
+    autoTable(doc, {
+      startY: 100,
+      head: [['#', 'Nombre', 'CURP', 'Equipo']],
+      body,
+      styles: { fontSize: 10, cellPadding: 6 },
+      headStyles: { fontSize: 10 },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 220 },
+        2: { cellWidth: 170 },
+        3: { cellWidth: 140 }
+      },
+      didDrawPage: () => {
+        const pageCount = doc.getNumberOfPages()
+        const pageInfo = (doc as any).getCurrentPageInfo?.()
+        const pageNum = pageInfo?.pageNumber || 1
+        doc.setFontSize(9)
+        doc.text(
+          `Página ${pageNum} / ${pageCount}`,
+          doc.internal.pageSize.getWidth() - 110,
+          doc.internal.pageSize.getHeight() - 18
+        )
+      }
+    })
+
+    const namePart = sanitizeFileName(teamPick.value !== 'ALL' ? teamPickLabel.value : 'Todos')
+    doc.save(`CURP_${namePart}_${dateStr}.pdf`)
+    setNotice('ok', `PDF generado: ${rows.length} CURP`)
+  } catch (e) {
+    console.error(e)
+    setNotice('err', 'No se pudo generar el PDF. Revisa consola.')
+  }
 }
 
 /* =========================
    Drawer + Save
-   (intenta PUT/PATCH en /players/{id} y /player/{id})
 ========================= */
 const drawerOpen = ref(false)
 const saving = ref(false)
@@ -869,6 +1205,7 @@ const draft = ref<PlayerVM>({
   photoUrl: null,
   teamId: null,
   teamName: null,
+  code: null,
   gender: null,
   curp: null,
   phone: null,
@@ -905,17 +1242,19 @@ async function savePlayer() {
   try {
     const h = await authHeaders(true)
     if (!h.Authorization) {
-      setNotice('err', 'No hay token de Keycloak. Vuelve a iniciar sesión.')
+      setNotice('err', 'No hay sesión activa. Vuelve a iniciar sesión.')
       return
     }
 
     const payload: any = {
       fullName: draft.value.fullName,
       number: draft.value.number,
+      jerseyNumber: draft.value.number,
       curp: draft.value.curp,
       phone: draft.value.phone,
       email: draft.value.email,
       birthDate: draft.value.birthDate,
+      birthdate: draft.value.birthDate,
       gender: draft.value.gender,
       teamId: draft.value.teamId,
       photoUrl: draft.value.photoUrl
@@ -948,7 +1287,7 @@ async function savePlayer() {
     }
 
     if (!ok) {
-      setNotice('err', 'No encontré endpoint de update (probé /players/{id} y /player/{id}).')
+      setNotice('err', 'No se pudo actualizar el jugador (ruta de actualización no disponible).')
       return
     }
 
@@ -964,20 +1303,23 @@ async function savePlayer() {
     setNotice('ok', 'Jugador actualizado correctamente.')
     drawerOpen.value = false
   } catch {
-    setNotice('err', 'No se pudo guardar. Revisa endpoint/permiso del backend.')
+    setNotice('err', 'No se pudo guardar. Revisa permisos del backend.')
   } finally {
     saving.value = false
   }
 }
 
 /* =========================
-   Global refresh
+   Global refresh + status
 ========================= */
 const pendingAny = computed(() => !!teamsPending.value || !!playersPending.value)
 const errorAny = computed(() => !!teamsErr.value || !!playersErr.value)
 
-const teamsErrMsg = computed(() => formatErr((teamsErr as any).value))
-const playersErrMsg = computed(() => formatErr((playersErr as any).value))
+const safeErrSummary = computed(() => {
+  const a = safeErr((teamsErr as any).value)
+  const b = safeErr((playersErr as any).value)
+  return [a, b].filter(Boolean).join('\n\n')
+})
 
 async function refreshAll() {
   setNotice('info', 'Refrescando...')
@@ -987,8 +1329,7 @@ async function refreshAll() {
 }
 
 onMounted(async () => {
-  const { token, source } = await getAccessToken()
-  authSource.value = source
+  const token = await getAccessToken()
   authOk.value = !!token
 })
 </script>
