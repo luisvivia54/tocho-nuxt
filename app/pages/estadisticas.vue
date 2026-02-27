@@ -35,9 +35,19 @@
           <!-- HEADER -->
           <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div class="min-w-0">
-              <h1 class="font-display text-3xl font-extrabold text-slate-900">
-                Estadísticas de equipos
-              </h1>
+              <div class="flex flex-wrap items-center gap-2">
+                <h1 class="font-display text-3xl font-extrabold text-slate-900">
+                  Estadísticas de equipos
+                </h1>
+
+                <span
+                  class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-100"
+                  title="Se muestran únicamente equipos con isActive = true"
+                >
+                  Solo activos
+                </span>
+              </div>
+
               <p class="mt-2 text-slate-600 max-w-2xl">
                 Partidos jugados, ganados, perdidos, puntos a favor y en contra, diferencia e índice de victorias.
               </p>
@@ -125,7 +135,7 @@
                     <button
                       type="button"
                       class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-                      @click="refreshStandings()"
+                      @click="refreshAllEquipos()"
                     >
                       Refrescar
                     </button>
@@ -139,6 +149,11 @@
                 <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
                   {{ pointsUrl }}
                 </span>
+
+                <!-- mini debug útil -->
+                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
+                  Equipos: {{ totalTeams }} · Activos: {{ totalActiveTeams }}
+                </span>
               </div>
             </div>
 
@@ -151,12 +166,18 @@
           </header>
 
           <!-- ESTADOS -->
-          <div v-if="pendingStandings" class="mt-6 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            Cargando estadísticas...
+          <div
+            v-if="pendingEquiposUI"
+            class="mt-6 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"
+          >
+            Cargando estadísticas (y equipos activos)...
           </div>
 
-          <div v-else-if="errorStandings" class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            Error al cargar estadísticas.
+          <div
+            v-else-if="errorEquiposUI"
+            class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            Error al cargar estadísticas / equipos.
           </div>
 
           <!-- CONTENIDO -->
@@ -166,7 +187,7 @@
               v-if="filteredRows.length === 0"
               class="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600"
             >
-              No hay equipos que coincidan con los filtros / búsqueda actual.
+              No hay equipos activos que coincidan con los filtros / búsqueda actual.
               <div class="mt-2">
                 <button
                   type="button"
@@ -302,7 +323,7 @@
 
                   <tr v-if="filteredRows.length === 0">
                     <td colspan="11" class="px-3 py-3 text-sm text-slate-500">
-                      No hay equipos que coincidan con los filtros seleccionados.
+                      No hay equipos activos que coincidan con los filtros seleccionados.
                     </td>
                   </tr>
                 </tbody>
@@ -327,7 +348,16 @@
         <div v-else>
           <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div class="min-w-0">
-              <h1 class="font-display text-3xl font-extrabold text-slate-900">Jugadores</h1>
+              <div class="flex flex-wrap items-center gap-2">
+                <h1 class="font-display text-3xl font-extrabold text-slate-900">Jugadores</h1>
+                <span
+                  class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-100"
+                  title="El filtro de equipo muestra únicamente equipos con isActive = true"
+                >
+                  Equipos activos
+                </span>
+              </div>
+
               <p class="mt-2 text-slate-600 max-w-2xl">
                 Ranking por impacto (TD + INT + PA + SACK). Paginado de 10 en 10.
               </p>
@@ -352,8 +382,8 @@
                   class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="ALL">Todos</option>
-                  <option v-for="t in teamsVm" :key="t.teamId" :value="String(t.teamId)">
+                  <option value="ALL">Todos (activos)</option>
+                  <option v-for="t in teamsActiveVm" :key="t.teamId" :value="String(t.teamId)">
                     {{ t.name }}
                   </option>
                 </select>
@@ -592,7 +622,104 @@ const config = useRuntimeConfig()
 const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
 
 /* =========================
-   EQUIPOS
+   Helpers
+========================= */
+function unwrapList<T>(x: any): T[] {
+  if (Array.isArray(x)) return x
+  if (x && Array.isArray(x.content)) return x.content
+  if (x && Array.isArray(x.items)) return x.items
+  return []
+}
+
+function toBool(v: any): boolean {
+  if (typeof v === 'boolean') return v
+  if (typeof v === 'number') return v === 1
+  const s = String(v ?? '').trim().toLowerCase()
+  if (!s) return false
+  return ['true', '1', 'yes', 'y', 'si', 'sí', 's', 'active', 'activo', 'activa', 'enabled'].includes(s)
+}
+
+const upper = (v: any) => String(v ?? '').toUpperCase()
+const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
+
+/* =========================
+   TEAMS (FUENTE REAL para isActive)
+   - usando useApi para que viaje igual que /points
+========================= */
+type TeamVM = { teamId: number; name: string; shortName?: string; isActive: boolean }
+
+const { data: teamsRaw, pending: pendingTeams, error: errorTeams, refresh: refreshTeams } = useApi<any[]>('/teams')
+
+const teamsVm = computed<TeamVM[]>(() => {
+  const list = unwrapList<any>(teamsRaw.value)
+  return list
+    .map((x) => {
+      const teamId = Number(x.teamId ?? x.team_id ?? x.id)
+      const name = String(x.name ?? x.teamName ?? 'Equipo')
+      const shortName = String(x.shortName ?? x.short_name ?? '').trim()
+
+      // flags directos
+      const rawActive =
+        x.isActive ??
+        x.is_active ??
+        x.active ??
+        x.enabled ??
+        x.teamActive ??
+        x.team_active ??
+        x.team?.isActive ??
+        x.team?.is_active ??
+        x.team?.active ??
+        x.team?.enabled
+
+      // flags de "eliminado/archivado" (si existe, invertimos)
+      const rawDeleted =
+        x.deleted ??
+        x.isDeleted ??
+        x.is_deleted ??
+        x.archived ??
+        x.isArchived ??
+        x.is_archived ??
+        x.team?.deleted ??
+        x.team?.isDeleted ??
+        x.team?.is_deleted ??
+        x.team?.archived ??
+        x.team?.isArchived ??
+        x.team?.is_archived
+
+      const status = String(x.status ?? x.team?.status ?? '').trim().toUpperCase()
+
+      let isActive = toBool(rawActive)
+      if (!isActive && status === 'ACTIVE') isActive = true
+      if (toBool(rawDeleted)) isActive = false
+
+      return { teamId, name, shortName, isActive }
+    })
+    .filter((t) => Number.isFinite(t.teamId))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const teamsActiveVm = computed(() => teamsVm.value.filter((t) => t.isActive))
+
+const activeTeamIds = computed(() => {
+  const set = new Set<number>()
+  for (const t of teamsActiveVm.value) set.add(t.teamId)
+  return set
+})
+
+const activeTeamNamesLower = computed(() => {
+  const set = new Set<string>()
+  for (const t of teamsActiveVm.value) {
+    set.add(String(t.name).toLowerCase())
+    if (t.shortName) set.add(String(t.shortName).toLowerCase())
+  }
+  return set
+})
+
+const totalTeams = computed(() => teamsVm.value.length)
+const totalActiveTeams = computed(() => teamsActiveVm.value.length)
+
+/* =========================
+   EQUIPOS (STANDINGS)
 ========================= */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
 
@@ -612,6 +739,12 @@ interface ApiStanding {
   seasonId: number
   categoryCode: string
   seasonName?: string
+
+  // por si el endpoint ya lo manda:
+  isActive?: boolean | number | string
+  teamIsActive?: boolean | number | string
+  active?: boolean | number | string
+  team_active?: boolean | number | string
 }
 
 interface RowVM {
@@ -685,30 +818,67 @@ const searchQuery = ref('')
 
 const pointsUrl = computed(() => {
   const params = new URLSearchParams()
-
-  // ✅ seasonId
   if (seasonPick.value !== 'ALL') params.set('seasonId', seasonPick.value)
-
   if (selectedCategoryCode.value !== 'all') params.set('categoryCode', selectedCategoryCode.value)
   if (selectedGender.value !== 'all') params.set('gender', selectedGender.value)
-
   const qs = params.toString()
   return qs ? `/points?${qs}` : '/points'
 })
 
-const { data: standings, pending: pendingStandings, error: errorStandings, refresh: refreshStandings } =
-  useApi<ApiStanding[]>(pointsUrl)
+const {
+  data: standings,
+  pending: pendingStandings,
+  error: errorStandings,
+  refresh: refreshStandings
+} = useApi<ApiStanding[]>(pointsUrl)
 
-// ✅ por si tu backend aún no filtra: filtramos aquí también
+const standingsList = computed(() => (Array.isArray(standings.value) ? (standings.value as ApiStanding[]) : []))
+
+const standingsHaveActiveFlag = computed(() => {
+  // si el endpoint /points ya trae la bandera, no dependemos de /teams
+  return standingsList.value.some(
+    (s) => s.isActive != null || s.teamIsActive != null || s.active != null || (s as any).team_active != null
+  )
+})
+
+const activeIndexReady = computed(() => {
+  // listo cuando /teams terminó sin error y tenemos al menos 1 equipo
+  return !pendingTeams.value && !errorTeams.value && teamsVm.value.length > 0
+})
+
+function standingActiveFlag(s: ApiStanding): boolean | null {
+  const has = s.isActive != null || s.teamIsActive != null || s.active != null || (s as any).team_active != null
+  if (!has) return null
+  return toBool(s.isActive ?? s.teamIsActive ?? s.active ?? (s as any).team_active)
+}
+
+// ✅ Solo equipos activos
 const allRows = computed<RowVM[]>(() => {
-  const raw = standings.value as unknown
-  if (!Array.isArray(raw)) return []
-  const rows = raw as ApiStanding[]
-
+  const rows = standingsList.value
   const sp = seasonPick.value === 'ALL' ? 0 : Number(seasonPick.value || 0)
+  const activeIds = activeTeamIds.value
+  const activeNames = activeTeamNamesLower.value
 
   return rows
     .filter((s) => (sp ? Number(s.seasonId || 0) === sp : true))
+    .filter((s) => {
+      // 1) si /points trae bandera => úsala
+      const flag = standingActiveFlag(s)
+      if (flag !== null) return flag
+
+      // 2) si ya cargamos /teams => filtra por id o nombre
+      if (activeIndexReady.value) {
+        const tid = Number(s.teamId)
+        if (Number.isFinite(tid) && activeIds.has(tid)) return true
+        const tn = String(s.teamName ?? '').toLowerCase().trim()
+        if (tn && activeNames.has(tn)) return true
+        return false
+      }
+
+      // 3) si no está listo /teams y /points no trae bandera,
+      //    no mostramos nada todavía (evita que se cuelen inactivos)
+      return false
+    })
     .slice()
     .sort((a, b) => (b.tablePoints ?? 0) - (a.tablePoints ?? 0))
     .map((s) => {
@@ -768,20 +938,39 @@ watch(pointsUrl, () => refreshStandings())
 
 const prettyDivision = (division: string | null | undefined): string => {
   if (!division) return '—'
-  const up = division.toUpperCase()
+  const up = String(division).toUpperCase()
   if (up === 'VARONIL') return 'Varonil'
   if (up === 'FEMENIL') return 'Femenil'
   if (up === 'MIXTO') return 'Mixto'
   return division
 }
 
+/* UI states equipos:
+   - si /points ya trae isActive => no necesitamos esperar /teams
+   - si no trae => esperamos a que /teams esté listo para filtrar bien
+*/
+const pendingEquiposUI = computed(() => {
+  if (pendingStandings.value) return true
+  if (standingsHaveActiveFlag.value) return false
+  return !activeIndexReady.value || pendingTeams.value
+})
+
+const errorEquiposUI = computed(() => {
+  if (errorStandings.value) return true
+  if (standingsHaveActiveFlag.value) return false
+  return !!errorTeams.value
+})
+
+async function refreshAllEquipos() {
+  await refreshTeams()
+  await refreshStandings()
+}
+
 /* =========================
-   JUGADORES (API_BASE + $fetch)
+   JUGADORES
 ========================= */
-const API_TEAMS = `${API_BASE}/teams`
 const API_PLAYERS = `${API_BASE}/players`
 
-type TeamVM = { teamId: number; name: string; shortName?: string }
 type PlayerStats = { td: number; int: number; pa: number; sack: number; rec: number }
 
 type PlayerVM = {
@@ -797,15 +986,6 @@ type PlayerVM = {
   stats: PlayerStats
 }
 
-function unwrapList<T>(x: any): T[] {
-  if (Array.isArray(x)) return x
-  if (x && Array.isArray(x.content)) return x.content
-  if (x && Array.isArray(x.items)) return x.items
-  return []
-}
-const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
-const upper = (v: any) => String(v ?? '').toUpperCase()
-
 function initials(text: string) {
   const s = String(text || '').trim()
   if (!s) return 'T5'
@@ -813,27 +993,39 @@ function initials(text: string) {
   return parts.map((p) => p[0]?.toUpperCase()).join('')
 }
 
-const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
-  'stats-players-teams',
-  async () => {
-    if (view.value !== 'jugadores') return []
-    const raw = await $fetch<any>(API_TEAMS)
-    return unwrapList<any>(raw)
-  },
-  { default: () => [], watch: [view] }
-)
+async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
+  const teams = teamsActiveVm.value
+  if (!teams.length) return []
 
-const teamsVm = computed<TeamVM[]>(() => {
-  const list = unwrapList<any>(teamsData.value)
-  return list
-    .map((x) => ({
-      teamId: Number(x.teamId ?? x.team_id ?? x.id),
-      name: String(x.name ?? x.teamName ?? 'Equipo'),
-      shortName: x.shortName ?? x.short_name ?? ''
-    }))
-    .filter((t) => Number.isFinite(t.teamId))
-    .sort((a, b) => a.name.localeCompare(b.name))
-})
+  const chunks = await Promise.all(
+    teams.map(async (t) => {
+      try {
+        const raw = await $fetch<any>(`${API_BASE}/teams/${t.teamId}/players`)
+        const list = unwrapList<any>(raw)
+        return list.map((p) => ({ ...p, __teamId: t.teamId, __teamName: t.name }))
+      } catch {
+        return []
+      }
+    })
+  )
+
+  return chunks.flat()
+}
+
+const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
+  'stats-players-all',
+  async () => {
+    try {
+      const raw = await $fetch<any>(API_PLAYERS)
+      const list = unwrapList<any>(raw)
+      if (list.length) return list
+    } catch {
+      // ignore
+    }
+    return await fetchPlayersFallbackFromTeams()
+  },
+  { server: false, default: () => [], watch: [teamsRaw] }
+)
 
 const teamById = computed(() => {
   const m = new Map<number, TeamVM>()
@@ -849,43 +1041,6 @@ const teamByNameLower = computed(() => {
   }
   return m
 })
-
-async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
-  const teams = teamsVm.value
-  if (!teams.length) return []
-
-  const chunks = await Promise.all(
-    teams.map(async (t) => {
-      try {
-        const raw = await $fetch<any>(`${API_TEAMS}/${t.teamId}/players`)
-        const list = unwrapList<any>(raw)
-        return list.map((p) => ({ ...p, __teamId: t.teamId, __teamName: t.name }))
-      } catch {
-        return []
-      }
-    })
-  )
-
-  return chunks.flat()
-}
-
-const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
-  'stats-players-all',
-  async () => {
-    if (view.value !== 'jugadores') return []
-
-    try {
-      const raw = await $fetch<any>(API_PLAYERS)
-      const list = unwrapList<any>(raw)
-      if (list.length) return list
-    } catch {
-      // ignore
-    }
-
-    return await fetchPlayersFallbackFromTeams()
-  },
-  { default: () => [], watch: [view, teamsData] }
-)
 
 const playersVm = computed<PlayerVM[]>(() => {
   const list = unwrapList<any>(playersData.value)
@@ -947,8 +1102,12 @@ const filteredPlayers = computed(() => {
   const tPick = teamPick.value
   const qNum = numberPick.value.trim()
   const qName = namePick.value.toLowerCase().trim()
+  const activeIds = activeTeamIds.value
 
   return playersVm.value.filter((p) => {
+    // ✅ ocultar jugadores de equipos inactivos (si conocemos el catálogo)
+    if (activeIndexReady.value && p.teamId && !activeIds.has(p.teamId)) return false
+
     if (tPick !== 'ALL') {
       const id = Number(tPick)
       if (Number.isFinite(id) && p.teamId !== id) return false
@@ -997,8 +1156,8 @@ const rangeLabel = computed(() => {
   return `${pageStartIndex.value + 1} - ${pageEndIndex.value}`
 })
 
-const pendingPlayersAny = computed(() => view.value === 'jugadores' && (!!teamsPending.value || !!playersPending.value))
-const errorPlayersAny = computed(() => view.value === 'jugadores' && (!!teamsErr.value || !!playersErr.value))
+const pendingPlayersAny = computed(() => view.value === 'jugadores' && (!!pendingTeams.value || !!playersPending.value))
+const errorPlayersAny = computed(() => view.value === 'jugadores' && (!!errorTeams.value || !!playersErr.value))
 
 async function refreshPlayersAll() {
   await refreshTeams()

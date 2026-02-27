@@ -26,22 +26,12 @@
               />
             </Transition>
 
-            <!-- subtle gradient for mobile readability (even if you add text later) -->
+            <!-- subtle gradient for mobile readability -->
             <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0"></div>
 
             <!-- Tap zones (mobile) -->
-            <button
-              type="button"
-              class="tapzone left"
-              aria-label="Anterior"
-              @click="prevSlide"
-            />
-            <button
-              type="button"
-              class="tapzone right"
-              aria-label="Siguiente"
-              @click="nextSlide"
-            />
+            <button type="button" class="tapzone left" aria-label="Anterior" @click="prevSlide" />
+            <button type="button" class="tapzone right" aria-label="Siguiente" @click="nextSlide" />
           </div>
         </div>
 
@@ -73,9 +63,11 @@
             <div class="grid md:grid-cols-5 gap-6 items-start">
               <div class="md:col-span-3">
                 <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900">
-                  Temporada 2026
+                  {{ homeHeroTitle }}
                 </h1>
-                <p class="mt-2 text-slate-700">Resultados, posiciones y registros en un solo lugar.</p>
+                <p class="mt-2 text-slate-700">{{ homeHeroSubtitle }}</p>
+
+                <!-- ✅ CTAs fijos (ya que quitaste cta1/cta2 del admin) -->
                 <div class="mt-4 flex flex-wrap gap-3">
                   <NuxtLink
                     to="/estadisticas"
@@ -90,12 +82,16 @@
                     Registrar equipo
                   </NuxtLink>
                 </div>
+
+                <!-- Debug light (solo si falla el fetch) -->
+                <p v-if="homeCfgError" class="mt-3 text-[11px] text-rose-700">
+                  {{ homeCfgError }}
+                </p>
               </div>
 
-              <!-- ========== PRÓXIMOS JUEGOS (MINIMAL · FIX OVERFLOW + FIX LINK) ========== -->
+              <!-- ========== PRÓXIMOS JUEGOS ========== -->
               <div class="md:col-span-2">
                 <div class="rounded-2xl border border-blue-100 bg-white p-4 md:p-5 shadow-[0_10px_22px_rgba(15,23,42,0.08)] overflow-hidden max-w-full">
-                  <!-- Header -->
                   <div class="flex items-center justify-between gap-3">
                     <div class="min-w-0">
                       <div class="flex items-center gap-2 min-w-0">
@@ -136,7 +132,6 @@
                     </div>
                   </div>
 
-                  <!-- Estados -->
                   <div
                     v-if="gamesPending"
                     class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
@@ -154,7 +149,6 @@
                     </div>
                   </div>
 
-                  <!-- Card minimal (swipe OK, link NO se rompe) -->
                   <div
                     v-else
                     class="mt-4 upcoming-swipe"
@@ -169,7 +163,6 @@
                         :key="activeUpcoming?.id"
                         class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_26px_rgba(15,23,42,0.08)] max-w-full"
                       >
-                        <!-- Top bar -->
                         <div class="px-4 py-3 border-b border-slate-200">
                           <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
@@ -199,10 +192,8 @@
                           </div>
                         </div>
 
-                        <!-- Teams -->
                         <div class="px-4 py-3">
                           <div class="space-y-3">
-                            <!-- HOME -->
                             <div class="grid grid-cols-[44px_1fr] gap-3 items-start min-w-0">
                               <div class="h-11 w-11 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center">
                                 <img
@@ -231,7 +222,6 @@
 
                             <div class="h-px bg-slate-200"></div>
 
-                            <!-- AWAY -->
                             <div class="grid grid-cols-[44px_1fr] gap-3 items-start min-w-0">
                               <div class="h-11 w-11 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center">
                                 <img
@@ -259,13 +249,11 @@
                             </div>
                           </div>
 
-                          <!-- Bottom row -->
                           <div class="mt-3 flex items-center justify-between gap-2">
                             <p class="text-[11px] text-slate-500 min-w-0 truncate">
                               {{ activeUpcoming.seasonName || selectedSeasonLabel }} · ID {{ activeUpcoming.id }}
                             </p>
 
-                            <!-- ✅ CLICK SIEMPRE FUNCIONA -->
                             <NuxtLink
                               to="/partidos"
                               class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-[12px] font-extrabold bg-slate-900 text-white hover:bg-slate-800 shrink-0"
@@ -277,7 +265,6 @@
                             </NuxtLink>
                           </div>
 
-                          <!-- Dots -->
                           <div v-if="upcomingTotal > 1" class="mt-3 flex items-center justify-center gap-1.5">
                             <button
                               v-for="(_, i) in upcomingTotal"
@@ -303,17 +290,15 @@
 
         <!-- Texto introductorio -->
         <div class="mt-10">
-          <h2 class="font-display text-2xl font-extrabold mb-1 text-slate-900">TOCHERO5LIGA</h2>
-          <p class="text-slate-600">ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.</p>
+          <h2 class="font-display text-2xl font-extrabold mb-1 text-slate-900">{{ homeIntroTitle }}</h2>
+          <p class="text-slate-600">{{ homeIntroSubtitle }}</p>
         </div>
 
-        <!-- ========== TOP 5 POSICIONES (FILTRADO: TEMPORADA + CATEGORÍA + RAMA) ========== -->
+        <!-- ========== TOP 5 POSICIONES ========== -->
         <div class="mt-8 rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
-          <!-- Header -->
           <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
             <div class="flex items-center gap-3 min-w-0">
               <h3 class="font-display font-extrabold text-white truncate">Top 5 · Posiciones</h3>
-
               <span class="inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-[11px] font-extrabold text-white" title="Temporada seleccionada">
                 {{ selectedSeasonLabel }}
               </span>
@@ -328,10 +313,8 @@
             </button>
           </div>
 
-          <!-- Filtros -->
           <div class="px-5 py-4 bg-white border-b border-slate-200/70">
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-              <!-- Season -->
               <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                   Temporada (season)
@@ -346,7 +329,6 @@
                 </select>
               </div>
 
-              <!-- Categoría -->
               <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                   Categoría (code)
@@ -362,7 +344,6 @@
                 </select>
               </div>
 
-              <!-- Rama -->
               <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                   Rama (gender)
@@ -378,7 +359,6 @@
                 </select>
               </div>
 
-              <!-- Acciones -->
               <div class="flex gap-2 sm:justify-end">
                 <button
                   type="button"
@@ -399,7 +379,6 @@
             </div>
           </div>
 
-          <!-- Body -->
           <div class="bg-white">
             <div v-if="standingsPending" class="px-5 py-4 text-sm text-slate-500">
               Cargando posiciones...
@@ -410,7 +389,6 @@
             </div>
 
             <template v-else>
-              <!-- MOBILE: cards -->
               <ul v-if="topPositions.length" class="sm:hidden divide-y divide-slate-100">
                 <li v-for="row in topPositions" :key="row.rank" class="p-4">
                   <div class="flex items-start justify-between gap-3">
@@ -463,7 +441,7 @@
                       <p class="text-[10px] uppercase tracking-wide font-extrabold text-slate-500">PCT</p>
 
                       <div class="mt-1 inline-flex items-center justify-end">
-                        <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-[12px] font-extrabold text-slate-900 tabular-nums shadow-sm" title="Win percentage (decimal)">
+                        <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-[12px] font-extrabold text-slate-900 tabular-nums shadow-sm">
                           {{ formatPct(row.pct) }}
                         </span>
                       </div>
@@ -481,7 +459,6 @@
                 </li>
               </ul>
 
-              <!-- DESKTOP/TABLET -->
               <div class="hidden sm:block overflow-x-auto">
                 <table class="w-full text-sm">
                   <thead>
@@ -526,7 +503,7 @@
 
                       <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
-                          <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-extrabold text-slate-900 tabular-nums" title="Win percentage (decimal)">
+                          <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-extrabold text-slate-900 tabular-nums">
                             {{ formatPct(row.pct) }}
                           </span>
 
@@ -709,7 +686,6 @@
             </div>
 
             <div class="px-6 py-8 bg-white">
-              <!-- Destacado -->
               <div class="rounded-3xl border border-slate-200 bg-slate-50 shadow-[0_14px_35px_rgba(15,23,42,0.08)] overflow-hidden">
                 <div class="p-5 sm:p-6 md:p-7">
                   <p class="text-[11px] uppercase tracking-[0.22em] font-semibold text-slate-500">
@@ -839,11 +815,15 @@
           <div class="grid md:grid-cols-5 gap-6 items-start">
             <div class="md:col-span-2 space-y-2">
               <h2 class="font-display text-2xl font-extrabold text-slate-900">Ubicación</h2>
-              <p class="opacity-95 text-slate-800">FES Acatlán · Entrada Principal (peatonal)</p>
+              <p class="opacity-95 text-slate-800">{{ homeLocationAddress }}</p>
               <p class="text-sm opacity-90 text-slate-700">Abre el mapa para ver la ruta exacta.</p>
 
-              <a class="inline-flex items-center gap-2 mt-3 rounded-xl px-3 py-2 text-sm bg-white text-blue-600 border border-blue-200 hover:bg-blue-50"
-                :href="mapsOpenUrl" target="_blank" rel="noopener">
+              <a
+                class="inline-flex items-center gap-2 mt-3 rounded-xl px-3 py-2 text-sm bg-white text-blue-600 border border-blue-200 hover:bg-blue-50"
+                :href="mapsOpenUrl"
+                target="_blank"
+                rel="noopener"
+              >
                 Abrir en Google Maps
               </a>
             </div>
@@ -865,7 +845,7 @@
           <hr class="mt-8 mb-4 border-slate-300/70" />
 
           <div class="flex items-center justify-between text-sm text-slate-600">
-            <span>© 2025 tochero5liga</span>
+            <span>{{ homeLocationCopyright }}</span>
 
             <span class="inline-flex items-center gap-2 opacity-90 hover:opacity-100">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
@@ -873,29 +853,178 @@
                 <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6" />
                 <circle cx="17.5" cy="6.5" r="1.3" fill="currentColor" />
               </svg>
-              <span>@tochero5liga</span>
+              <span>{{ homeLocationInstagram }}</span>
             </span>
           </div>
         </div>
       </div>
     </section>
   </main>
+
+ <!--<ChatWidget /> -->
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRuntimeConfig, useAsyncData } from '#imports'
 
+/* ===================== API_BASE ===================== */
+const config = useRuntimeConfig()
+const API_BASE = (config.public && config.public.apiBase) ? String(config.public.apiBase) : 'https://tocho5-api.tochero5.mx/api'
+const HOME_CFG_ENDPOINT = `${API_BASE}/site-configs/home`
+
+/* ===================== HOME CONFIG (desde backend) ===================== */
+function uid(prefix) {
+  return `${prefix}-${Math.random().toString(16).slice(2, 8)}-${Date.now().toString(16).slice(2)}`
+}
+function clone(x) {
+  return JSON.parse(JSON.stringify(x))
+}
+
+const HOME_DEFAULTS = {
+  schemaVersion: 1,
+  hero: {
+    title: 'Temporada 2026',
+    subtitle: 'Resultados, posiciones y registros en un solo lugar.',
+    images: [
+      { id: 'carrusel-1', src: '/img/carrusel1.jpg' },
+      { id: 'carrusel-2', src: '/img/carrusel2.jpg' },
+      { id: 'carrusel-3', src: '/img/carrusel3.jpg' }
+    ]
+  },
+  intro: {
+    title: 'TOCHERO5LIGA',
+    subtitle: 'ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.'
+  },
+  sponsors: [
+    {
+      id: 'dicass',
+      name: 'DICASS',
+      logo: '/img/sponsors/dicass-logo.png',
+      url: 'https://dicass.com.mx/',
+      tagline: 'Innovación para el juego y el bienestar.',
+      description: 'Dicass acompaña a jugadores y familias con activaciones, alimentos y experiencias dentro del deportivo.',
+      label: 'Patrocinador principal'
+    }
+  ],
+  location: {
+    address: 'FES Acatlán · Entrada Principal (peatonal)',
+    mapsUrl: 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9',
+    instagram: '@tochero5liga',
+    copyright: '© 2026 tochero5liga'
+  }
+}
+
+function normalizeHomeData(data) {
+  const merged = clone(HOME_DEFAULTS)
+
+  if (data && typeof data === 'object') {
+    if (data.hero && typeof data.hero === 'object') {
+      merged.hero.title = String(data.hero.title ?? merged.hero.title)
+      merged.hero.subtitle = String(data.hero.subtitle ?? merged.hero.subtitle)
+
+      if (Array.isArray(data.hero.images)) {
+        merged.hero.images = data.hero.images
+          .filter((x) => x && typeof x === 'object')
+          .map((x) => ({
+            id: String(x.id ?? uid('carrusel')),
+            src: String(x.src ?? '')
+          }))
+          .filter((x) => x.src)
+      }
+    }
+
+    if (data.intro && typeof data.intro === 'object') {
+      merged.intro.title = String(data.intro.title ?? merged.intro.title)
+      merged.intro.subtitle = String(data.intro.subtitle ?? merged.intro.subtitle)
+    }
+
+    if (Array.isArray(data.sponsors)) {
+      merged.sponsors = data.sponsors
+        .filter((x) => x && typeof x === 'object')
+        .map((x) => ({
+          id: String(x.id ?? uid('sp')),
+          name: String(x.name ?? ''),
+          logo: String(x.logo ?? ''),
+          url: String(x.url ?? ''),
+          tagline: String(x.tagline ?? ''),
+          description: String(x.description ?? ''),
+          label: String(x.label ?? '')
+        }))
+    }
+
+    if (data.location && typeof data.location === 'object') {
+      merged.location.address = String(data.location.address ?? merged.location.address)
+      merged.location.mapsUrl = String(data.location.mapsUrl ?? merged.location.mapsUrl)
+      merged.location.instagram = String(data.location.instagram ?? merged.location.instagram)
+      merged.location.copyright = String(data.location.copyright ?? merged.location.copyright)
+    }
+  }
+
+  if (!Array.isArray(merged.hero.images) || merged.hero.images.length === 0) {
+    merged.hero.images = clone(HOME_DEFAULTS.hero.images)
+  }
+  if (!Array.isArray(merged.sponsors)) merged.sponsors = []
+  return merged
+}
+
+const homeCfg = ref(clone(HOME_DEFAULTS))
+const homeCfgError = ref('')
+
+async function loadHomeConfig() {
+  homeCfgError.value = ''
+  try {
+    const res = await $fetch(HOME_CFG_ENDPOINT).catch(() => null)
+
+    // Tu DTO normalmente regresa { key, schemaVersion, data, updatedAt }
+    const payload = (res && typeof res === 'object' && 'data' in res) ? res.data : res
+    const merged = normalizeHomeData(payload)
+
+    homeCfg.value = merged
+
+    // aplicar a refs que usa el UI
+    heroSlides.value = merged.hero.images.map((x) => ({ id: x.id, src: x.src }))
+    if (heroSlides.value.length === 0) heroSlides.value = clone(HOME_DEFAULTS.hero.images)
+    currentSlide.value = 0
+
+    sponsors.value = Array.isArray(merged.sponsors) ? merged.sponsors : []
+    if (!sponsors.value.length) sponsors.value = clone(HOME_DEFAULTS.sponsors)
+    activeSponsorIndex.value = 0
+  } catch (e) {
+    // si falla, no truena la home: se queda con defaults
+    homeCfg.value = clone(HOME_DEFAULTS)
+    heroSlides.value = clone(HOME_DEFAULTS.hero.images)
+    sponsors.value = clone(HOME_DEFAULTS.sponsors)
+    homeCfgError.value = 'No se pudo cargar la configuración del home (usando defaults).'
+  }
+}
+
+onMounted(() => {
+  loadHomeConfig()
+
+  // opcional: refresca cuando vuelves a la pestaña (para ver cambios del admin sin hard refresh)
+  const onVis = () => {
+    if (document.visibilityState === 'visible') loadHomeConfig()
+  }
+  document.addEventListener('visibilitychange', onVis)
+  onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVis))
+})
+
+const homeHeroTitle = computed(() => String(homeCfg.value?.hero?.title ?? HOME_DEFAULTS.hero.title))
+const homeHeroSubtitle = computed(() => String(homeCfg.value?.hero?.subtitle ?? HOME_DEFAULTS.hero.subtitle))
+const homeIntroTitle = computed(() => String(homeCfg.value?.intro?.title ?? HOME_DEFAULTS.intro.title))
+const homeIntroSubtitle = computed(() => String(homeCfg.value?.intro?.subtitle ?? HOME_DEFAULTS.intro.subtitle))
+
+const homeLocationAddress = computed(() => String(homeCfg.value?.location?.address ?? HOME_DEFAULTS.location.address))
+const homeLocationInstagram = computed(() => String(homeCfg.value?.location?.instagram ?? HOME_DEFAULTS.location.instagram))
+const homeLocationCopyright = computed(() => String(homeCfg.value?.location?.copyright ?? HOME_DEFAULTS.location.copyright))
+
 /* ===================== MAPA ===================== */
 const mapsShortUrl = 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9'
 const mapsLat = 19.4820973
 const mapsLng = -99.2446694
 const mapsEmbedSrc = computed(() => `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`)
-const mapsOpenUrl = mapsShortUrl
-
-/* ===================== API_BASE ===================== */
-const config = useRuntimeConfig()
-const API_BASE = (config.public && config.public.apiBase) ? String(config.public.apiBase) : 'https://tocho5-api.tochero5.mx/api'
+const mapsOpenUrl = computed(() => String(homeCfg.value?.location?.mapsUrl || mapsShortUrl))
 
 /* ===================== HELPERS ===================== */
 function toNum(v) {
@@ -1171,12 +1300,7 @@ const topPositions = computed(() => {
 })
 
 /* ===================== HERO CARRUSEL ===================== */
-const heroSlides = ref([
-  { id: 'carrusel-1', src: '/img/carrusel1.jpg' },
-  { id: 'carrusel-2', src: '/img/carrusel2.jpg' },
-  { id: 'carrusel-3', src: '/img/carrusel3.jpg' }
-])
-
+const heroSlides = ref(clone(HOME_DEFAULTS.hero.images))
 const currentSlide = ref(0)
 const currentSlideSrc = computed(() => heroSlides.value[currentSlide.value]?.src ?? '')
 
@@ -1202,7 +1326,6 @@ const startHeroAuto = () => {
   stopHeroAuto()
   if (heroSlides.value.length > 1) intervalId = setInterval(nextSlide, HERO_AUTOPLAY_MS)
 }
-
 onMounted(() => startHeroAuto())
 
 /* ✅ SWIPE HERO */
@@ -1243,7 +1366,6 @@ const onHeroPointerDown = (e) => {
     try { el.setPointerCapture(e.pointerId) } catch {}
   }
 }
-
 const onHeroPointerMove = (e) => {
   if (!heroIsDown || heroPointerId === null || e.pointerId !== heroPointerId) return
   heroDx = e.clientX - heroStartX
@@ -1255,7 +1377,6 @@ const onHeroPointerMove = (e) => {
     if (ax > HERO_SWIPE_ACTIVATE_PX && ax > ay * 1.2) heroIsSwipe = true
   }
 }
-
 const onHeroPointerUp = (e) => {
   if (!heroIsDown || heroPointerId === null || e.pointerId !== heroPointerId) return
   const dx = heroDx
@@ -1271,7 +1392,6 @@ const onHeroPointerUp = (e) => {
   resetHeroSwipe()
   startHeroAuto()
 }
-
 const onHeroPointerCancel = () => {
   if (!heroIsDown) return
   resetHeroSwipe()
@@ -1283,14 +1403,7 @@ const onHeroPointerLeave = () => {
   startHeroAuto()
 }
 
-/* ===================== PRÓXIMOS JUEGOS (FIX + FALLBACK ENDPOINTS) ===================== */
-/**
- * Hacemos fetch robusto:
- * - /games/upcoming?seasonId=...
- * - /games?seasonId=...
- * - /games
- * y luego filtramos en frontend (status + fecha).
- */
+/* ===================== PRÓXIMOS JUEGOS ===================== */
 function pickArrayFromResponse(res) {
   if (Array.isArray(res)) return res
   if (res && Array.isArray(res.content)) return res.content
@@ -1312,7 +1425,6 @@ async function fetchGamesAny(seasonId) {
     const arr = pickArrayFromResponse(res)
     if (Array.isArray(arr) && arr.length) return arr
   }
-  // si todo falló, regresamos array vacío
   return []
 }
 
@@ -1372,7 +1484,6 @@ function niceGenderLabel(g) {
 
 function normalizeStatus(st) {
   const s = upper(st)
-  // aceptamos variaciones comunes
   if (s === 'SCHEDULED' || s === 'PROGRAMADO' || s === 'UPCOMING') return 'SCHEDULED'
   if (s === 'LIVE' || s === 'IN_PROGRESS' || s === 'EN JUEGO') return 'LIVE'
   return s || 'SCHEDULED'
@@ -1430,12 +1541,10 @@ const upcomingGames = computed(() => {
     if (!ms) continue
 
     const status = normalizeStatus(g?.status)
-    // solo scheduled/live (o equivalentes)
     if (!(status === 'SCHEDULED' || status === 'LIVE')) continue
     if (ms < cutoff) continue
 
     const sid = pickSeasonId(g)
-    // FIX: si sid viene 0 o no viene, NO lo excluimos (para no quedarnos sin nada)
     if (seasonFilter && sid > 0 && sid !== seasonFilter) continue
 
     const d = new Date(ms)
@@ -1476,7 +1585,6 @@ const upcomingGames = computed(() => {
   return out
 })
 
-/* ===================== PRÓXIMOS JUEGOS (CAROUSEL) ===================== */
 const upcomingIndex = ref(0)
 const upcomingTotal = computed(() => upcomingGames.value.length)
 
@@ -1512,7 +1620,6 @@ const prevUpcoming = () => {
   upcomingIndex.value = (upcomingIndex.value - 1 + n) % n
 }
 
-/* Auto-rotate upcoming (pausa al swipe/touch) */
 let upcomingInterval = null
 const UPCOMING_AUTOPLAY_MS = 6500
 const startUpcomingAuto = () => {
@@ -1526,7 +1633,6 @@ const stopUpcomingAuto = () => {
 }
 watch(upcomingTotal, () => startUpcomingAuto(), { immediate: true })
 
-/* Swipe upcoming */
 let upPointerId = null
 let upStartX = 0
 let upStartY = 0
@@ -1563,7 +1669,6 @@ const onUpcomingPointerDown = (e) => {
     try { el.setPointerCapture(e.pointerId) } catch {}
   }
 }
-
 const onUpcomingPointerMove = (e) => {
   if (!upIsDown || upPointerId === null || e.pointerId !== upPointerId) return
   upDx = e.clientX - upStartX
@@ -1574,7 +1679,6 @@ const onUpcomingPointerMove = (e) => {
     if (ax > UP_SWIPE_ACTIVATE_PX && ax > ay * 1.2) upIsSwipe = true
   }
 }
-
 const onUpcomingPointerUp = (e) => {
   if (!upIsDown || upPointerId === null || e.pointerId !== upPointerId) return
   const dx = upDx
@@ -1590,7 +1694,6 @@ const onUpcomingPointerUp = (e) => {
   resetUpcomingSwipe()
   startUpcomingAuto()
 }
-
 const onUpcomingPointerCancel = () => {
   if (!upIsDown) return
   resetUpcomingSwipe()
@@ -1602,45 +1705,8 @@ const onUpcomingPointerLeave = () => {
   startUpcomingAuto()
 }
 
-/* ===================== PATROCINADORES ===================== */
-const sponsors = ref([
-  {
-    id: 'dicass',
-    name: 'DICASS',
-    logo: '/img/sponsors/dicass-logo.png',
-    tagline: 'Innovación para el juego y el bienestar.',
-    description: 'Dicass acompaña a jugadores y familias con activaciones, alimentos y experiencias dentro del deportivo.',
-    url: 'https://dicass.com.mx/',
-    label: 'Patrocinador principal'
-  },
-  {
-    id: 'under-armour',
-    name: 'Under Armour',
-    logo: '/img/sponsors/underarmour-logo.png',
-    tagline: 'Performance gear.',
-    description: 'Ropa y accesorios de alto rendimiento.',
-    url: 'https://www.underarmour.com.mx/',
-    label: 'Aliado'
-  },
-  {
-    id: 'blitz',
-    name: 'Blitz',
-    logo: '/img/sponsors/blitzflag-logo.png',
-    tagline: 'Entrena fuerte.',
-    description: 'Accesorios y equipo para entrenamientos.',
-    url: 'https://www.instagram.com/blitzflag?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
-    label: 'Aliado'
-  },
-  {
-    id: 'medimex',
-    name: 'Medimex',
-    logo: '/img/sponsors/medimex-logo.png',
-    tagline: 'Salud deportiva.',
-    description: 'Atención y soporte para atletas.',
-    url: 'https://www.instagram.com/plan.medimex?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
-    label: 'Aliado'
-  }
-])
+/* ===================== PATROCINADORES (desde backend config) ===================== */
+const sponsors = ref(clone(HOME_DEFAULTS.sponsors))
 
 const FALLBACK_SPONSOR = {
   id: 'fallback',
@@ -1742,19 +1808,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-  /* ===== Próximos juegos (minimal) ===== */
-.espn-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.espn-clip-1 {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .carousel-arrow {
   width: 38px;
   height: 38px;
@@ -1782,7 +1835,7 @@ onBeforeUnmount(() => {
 }
 .hero-swipe:active { cursor: grabbing; }
 
-/* Tap zones for mobile (big invisible hit areas) */
+/* Tap zones for mobile */
 .tapzone {
   position: absolute;
   top: 0;

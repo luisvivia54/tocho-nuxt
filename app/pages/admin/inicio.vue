@@ -1,7 +1,7 @@
 <!-- app/pages/admin/home.vue -->
 <template>
   <main class="min-h-screen bg-white text-slate-900">
-    <!-- Topbar (blanca, no transparente) -->
+    <!-- Topbar -->
     <header class="sticky top-0 z-40 border-b border-slate-200 bg-white">
       <div class="mx-auto max-w-6xl px-4 sm:px-6 py-4">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -16,11 +16,11 @@
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <button type="button" class="btn-ghost" @click="resetDefaults()">
+            <button type="button" class="btn-ghost" @click="resetDefaults()" :disabled="loading || saving || !canEdit">
               Restaurar
             </button>
 
-            <button type="button" class="btn-primary" :disabled="saving" @click="save()">
+            <button type="button" class="btn-primary" :disabled="saving || loading || !canEdit" @click="save()">
               <span v-if="saving">Guardando…</span>
               <span v-else>Guardar</span>
             </button>
@@ -34,13 +34,36 @@
           >
             {{ dirty ? 'Cambios sin guardar' : 'Todo guardado' }}
           </span>
-          <span v-if="statusMsg" class="text-slate-600">· {{ statusMsg }}</span>
+
+          <span v-if="loading" class="text-slate-600">· Cargando…</span>
+          <span v-else-if="statusMsg" class="text-slate-600">· {{ statusMsg }}</span>
         </div>
       </div>
     </header>
 
     <section class="mx-auto max-w-6xl px-4 sm:px-6 py-6">
-      <div class="grid lg:grid-cols-2 gap-5">
+      <!-- GATES (igual estilo que admin/partidos) -->
+      <div v-if="!kcReady" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p class="text-sm font-semibold text-slate-900">Inicializando sesión…</p>
+        <p class="mt-1 text-xs text-slate-600">Espera a que Keycloak esté listo.</p>
+      </div>
+
+      <div v-else-if="!isAuthenticated" class="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+        <p class="text-sm font-semibold text-slate-900">Inicia sesión para editar</p>
+        <p class="mt-1 text-xs text-slate-600">Necesitas autenticarte en Keycloak.</p>
+
+        <button type="button" class="btn-primary mt-3" @click="login()">
+          Iniciar sesión
+        </button>
+      </div>
+
+      <div v-else-if="!isAdmin" class="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
+        <p class="text-sm font-semibold text-rose-800">Acceso denegado</p>
+        <p class="mt-1 text-xs text-rose-700">Tu usuario no tiene rol <b>admin</b>.</p>
+      </div>
+
+      <!-- UI -->
+      <div v-else class="grid lg:grid-cols-2 gap-5">
         <!-- FORM -->
         <div class="space-y-5">
           <!-- HERO -->
@@ -111,12 +134,7 @@
                   </div>
 
                   <div class="mt-3 grid sm:grid-cols-[1fr_auto] gap-2 items-center">
-                    <input
-                      v-model="img.src"
-                      class="in"
-                      type="text"
-                      placeholder="/img/carrusel1.jpg o URL https://..."
-                    />
+                    <input v-model="img.src" class="in" type="text" placeholder="/img/carrusel1.jpg o URL https://..." />
                     <button class="btn-ghost" @click="pickFile('hero', i)">Elegir archivo</button>
                   </div>
 
@@ -157,8 +175,8 @@
           <section class="card">
             <div class="card-h">
               <p class="step">3 · Patrocinadores</p>
-              <h2 class="h2">Logos y links</h2>
-              <p class="p">Nombre + logo + link (opcional).</p>
+              <h2 class="h2">Contenido del sponsor</h2>
+              <p class="p">Nombre, logo, link, tagline, label y descripción.</p>
             </div>
 
             <div class="card-b space-y-4">
@@ -177,14 +195,7 @@
 
                     <div class="flex gap-1.5 shrink-0">
                       <button class="icon" :disabled="i === 0" @click="moveSponsor(i, -1)" title="Subir">↑</button>
-                      <button
-                        class="icon"
-                        :disabled="i === model.sponsors.length - 1"
-                        @click="moveSponsor(i, +1)"
-                        title="Bajar"
-                      >
-                        ↓
-                      </button>
+                      <button class="icon" :disabled="i === model.sponsors.length - 1" @click="moveSponsor(i, +1)" title="Bajar">↓</button>
                       <button class="icon danger" @click="removeSponsor(i)" title="Eliminar">✕</button>
                     </div>
                   </div>
@@ -192,7 +203,7 @@
                   <div class="mt-3 grid sm:grid-cols-2 gap-2">
                     <div>
                       <label class="lbl">Nombre</label>
-                      <input v-model="sp.name" class="in" type="text" placeholder="DICASS" />
+                      <input v-model="sp.name" class="in" type="text" placeholder="Under Armour" />
                     </div>
 
                     <div>
@@ -207,6 +218,22 @@
                       <input v-model="sp.logo" class="in" type="text" placeholder="/img/sponsors/logo.png o URL https://..." />
                     </div>
                     <button class="btn-ghost" @click="pickFile('sponsor', i)">Elegir archivo</button>
+                  </div>
+
+                  <div class="mt-3 grid sm:grid-cols-2 gap-2">
+                    <div>
+                      <label class="lbl">Tagline</label>
+                      <input v-model="sp.tagline" class="in" type="text" placeholder="Performance gear." />
+                    </div>
+                    <div>
+                      <label class="lbl">Label</label>
+                      <input v-model="sp.label" class="in" type="text" placeholder="Aliado" />
+                    </div>
+                  </div>
+
+                  <div class="mt-3">
+                    <label class="lbl">Descripción</label>
+                    <textarea v-model="sp.description" class="in" rows="2" placeholder="Ropa y accesorios..." />
                   </div>
                 </div>
 
@@ -260,18 +287,10 @@
             </div>
 
             <div class="card-b space-y-4">
-              <!-- hero preview -->
               <div class="rounded-2xl overflow-hidden border border-slate-200 bg-white">
                 <div class="aspect-[16/8] bg-slate-100">
-                  <img
-                    v-if="heroPreviewSrc"
-                    :src="heroPreviewSrc"
-                    class="w-full h-full object-cover"
-                    alt="preview"
-                  />
-                  <div v-else class="w-full h-full grid place-items-center text-sm text-slate-500">
-                    Sin imagen
-                  </div>
+                  <img v-if="heroPreviewSrc" :src="heroPreviewSrc" class="w-full h-full object-cover" alt="preview" />
+                  <div v-else class="w-full h-full grid place-items-center text-sm text-slate-500">Sin imagen</div>
                 </div>
 
                 <div class="p-4 border-t border-slate-200">
@@ -287,21 +306,11 @@
                     </div>
                   </div>
 
-                  <p class="mt-3 text-xl font-extrabold text-slate-900">
-                    {{ model.hero.title || '—' }}
-                  </p>
-                  <p class="mt-1 text-sm text-slate-600">
-                    {{ model.hero.subtitle || '—' }}
-                  </p>
-
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    <span class="chip chip-primary">{{ model.hero.cta1.label || 'Botón 1' }}</span>
-                    <span class="chip">{{ model.hero.cta2.label || 'Botón 2' }}</span>
-                  </div>
+                  <p class="mt-3 text-xl font-extrabold text-slate-900">{{ model.hero.title || '—' }}</p>
+                  <p class="mt-1 text-sm text-slate-600">{{ model.hero.subtitle || '—' }}</p>
                 </div>
               </div>
 
-              <!-- sponsors preview -->
               <div class="rounded-2xl border border-slate-200 bg-white p-4">
                 <p class="font-extrabold text-slate-900">Patrocinadores</p>
                 <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -316,7 +325,6 @@
                 </div>
               </div>
 
-              <!-- footer preview -->
               <div class="rounded-2xl border border-slate-200 bg-white p-4">
                 <p class="font-extrabold text-slate-900">Footer</p>
                 <p class="mt-2 text-sm text-slate-700">{{ model.location.address || '—' }}</p>
@@ -338,81 +346,162 @@
       </div>
     </section>
 
-    <!-- input file oculto -->
     <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFileChange" />
   </main>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRuntimeConfig, useNuxtApp, useState } from '#imports'
+import { useAuthz } from '~/composables/useAuthz'
 
-const LS_KEY = 't5_home_simple_v1'
+/* =========================
+   AUTH (igual patrón admin/partidos)
+   ========================= */
+const nuxtApp = useNuxtApp()
+const kcReady = useState<boolean>('kcReady', () => false)
+const authz: any = useAuthz()
 
-function uid(prefix) {
-  return `${prefix}-${Math.random().toString(16).slice(2, 8)}-${Date.now().toString(16).slice(2)}`
+const isAuthenticated = computed<boolean>(() => {
+  const kc = (nuxtApp as any).$kc
+  return !!kc?.authenticated
+})
+
+const isAdmin = computed<boolean>(() => {
+  const v = authz?.isAdmin
+  if (typeof v === 'boolean') return v
+  if (v && typeof v === 'object' && 'value' in v) return !!v.value
+
+  const kc = (nuxtApp as any).$kc
+  const roles: string[] =
+    kc?.tokenParsed?.realm_access?.roles ||
+    kc?.tokenParsed?.resource_access?.['nuxt-app']?.roles ||
+    []
+  return roles.map((r) => String(r).toLowerCase()).includes('admin')
+})
+
+const canEdit = computed(() => kcReady.value && isAuthenticated.value && isAdmin.value)
+
+function login() {
+  const kc = (nuxtApp as any).$kc
+  if (!kc?.login) return
+  kc.login({ redirectUri: window.location.href })
 }
 
-function clone(x) {
+/* =========================
+   API
+   ========================= */
+const runtime = useRuntimeConfig()
+const API_BASE = ((runtime.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
+const ENDPOINT = `${API_BASE}/site-configs/home`
+
+function getBearer(): string | null {
+  const kc = (nuxtApp as any).$kc
+  const token = kc?.token
+  return typeof token === 'string' && token.length ? token : null
+}
+
+async function requestJson(url: string, options: RequestInit = {}, { auth = 'auto' as 'auto' | 'required' | 'none' } = {}) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+  const token = getBearer()
+  if (auth === 'required' && !token) throw new Error('No hay sesión. Inicia sesión como admin.')
+  if (auth !== 'none' && token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(url, { ...options, headers: { ...headers, ...(options.headers as any) } })
+  const text = await res.text()
+  let json: any = null
+  try { json = text ? JSON.parse(text) : null } catch {}
+
+  if (!res.ok) {
+    const msg = (json && (json.message || json.error)) ? (json.message || json.error) : `${res.status} ${res.statusText}`
+    const err = new Error(msg) as any
+    err.status = res.status
+    throw err
+  }
+
+  return json
+}
+
+/* =========================
+   Types + Model
+   ========================= */
+type HeroImage = { id: string; src: string }
+type Sponsor = { id: string; name: string; logo: string; url: string; tagline: string; description: string; label: string }
+type HomeConfig = {
+  hero: { title: string; subtitle: string; images: HeroImage[] }
+  intro: { title: string; subtitle: string }
+  sponsors: Sponsor[]
+  location: { address: string; mapsUrl: string; instagram: string; copyright: string }
+}
+
+function uid(prefix: string) {
+  return `${prefix}-${Math.random().toString(16).slice(2, 8)}-${Date.now().toString(16).slice(2)}`
+}
+function clone<T>(x: T): T {
   return JSON.parse(JSON.stringify(x))
 }
 
-const DEFAULTS = {
+const DEFAULTS: HomeConfig = {
   hero: {
     title: 'Temporada 2026',
     subtitle: 'Resultados, posiciones y registros en un solo lugar.',
-    cta1: { label: 'Ver estadísticas', to: '/estadisticas' },
-    cta2: { label: 'Registrar equipo', to: '/registro' },
     images: [
       { id: 'carrusel-1', src: '/img/carrusel1.jpg' },
       { id: 'carrusel-2', src: '/img/carrusel2.jpg' },
-      { id: 'carrusel-3', src: '/img/carrusel3.jpg' }
-    ]
+      { id: 'carrusel-3', src: '/img/carrusel3.jpg' },
+    ],
   },
-  intro: {
-    title: 'TOCHERO5LIGA',
-    subtitle: 'ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.'
-  },
+  intro: { title: 'TOCHERO5LIGA', subtitle: 'ENTÉRATE DE TODO LO QUE ESTÁ PASANDO EN EL TORNEO.' },
   sponsors: [
-    { id: 'dicass', name: 'DICASS', logo: '/img/sponsors/dicass-logo.png', url: 'https://dicass.com.mx/' },
-    { id: 'underarmour', name: 'Under Armour', logo: '/img/sponsors/underarmour-logo.png', url: 'https://www.underarmour.com.mx/' }
+    {
+      id: 'dicass',
+      name: 'DICASS',
+      logo: '/img/sponsors/dicass-logo.png',
+      url: 'https://dicass.com.mx/',
+      tagline: 'Innovación para el juego y el bienestar.',
+      description: 'Dicass acompaña a jugadores y familias con activaciones, alimentos y experiencias dentro del deportivo.',
+      label: 'Patrocinador principal',
+    },
+    {
+      id: 'under-armour',
+      name: 'Under Armour',
+      logo: '/img/sponsors/underarmour-logo.png',
+      url: 'https://www.underarmour.com.mx/',
+      tagline: 'Performance gear.',
+      description: 'Ropa y accesorios de alto rendimiento.',
+      label: 'Aliado',
+    },
   ],
   location: {
     address: 'FES Acatlán · Entrada Principal (peatonal)',
     mapsUrl: 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9',
     instagram: '@tochero5liga',
-    copyright: '© 2026 tochero5liga'
-  }
+    copyright: '© 2026 tochero5liga',
+  },
 }
 
-const model = reactive(clone(DEFAULTS))
+const model = reactive<HomeConfig>(clone(DEFAULTS))
 
+const loading = ref(false)
 const saving = ref(false)
 const statusMsg = ref('')
 
 const lastSavedSnapshot = ref('')
 const dirty = computed(() => JSON.stringify(model) !== lastSavedSnapshot.value)
 
-function safeApplyParsed(parsed) {
-  const merged = clone(DEFAULTS)
+function safeApplyParsed(parsed: any): HomeConfig {
+  const merged: HomeConfig = clone(DEFAULTS)
 
   if (parsed && typeof parsed === 'object') {
     if (parsed.hero && typeof parsed.hero === 'object') {
       merged.hero.title = String(parsed.hero.title ?? merged.hero.title)
       merged.hero.subtitle = String(parsed.hero.subtitle ?? merged.hero.subtitle)
 
-      if (parsed.hero.cta1 && typeof parsed.hero.cta1 === 'object') {
-        merged.hero.cta1.label = String(parsed.hero.cta1.label ?? merged.hero.cta1.label)
-        merged.hero.cta1.to = String(parsed.hero.cta1.to ?? merged.hero.cta1.to)
-      }
-      if (parsed.hero.cta2 && typeof parsed.hero.cta2 === 'object') {
-        merged.hero.cta2.label = String(parsed.hero.cta2.label ?? merged.hero.cta2.label)
-        merged.hero.cta2.to = String(parsed.hero.cta2.to ?? merged.hero.cta2.to)
-      }
-
       if (Array.isArray(parsed.hero.images)) {
         merged.hero.images = parsed.hero.images
-          .filter((x) => x && typeof x === 'object')
-          .map((x) => ({ id: String(x.id ?? uid('carrusel')), src: String(x.src ?? '') }))
+          .filter((x: any) => x && typeof x === 'object')
+          .map((x: any) => ({ id: String(x.id ?? uid('carrusel')), src: String(x.src ?? '') }))
       }
     }
 
@@ -423,12 +512,15 @@ function safeApplyParsed(parsed) {
 
     if (Array.isArray(parsed.sponsors)) {
       merged.sponsors = parsed.sponsors
-        .filter((x) => x && typeof x === 'object')
-        .map((x) => ({
+        .filter((x: any) => x && typeof x === 'object')
+        .map((x: any) => ({
           id: String(x.id ?? uid('sp')),
           name: String(x.name ?? ''),
           logo: String(x.logo ?? ''),
-          url: String(x.url ?? '')
+          url: String(x.url ?? ''),
+          tagline: String(x.tagline ?? ''),
+          description: String(x.description ?? ''),
+          label: String(x.label ?? ''),
         }))
     }
 
@@ -446,29 +538,56 @@ function safeApplyParsed(parsed) {
   return merged
 }
 
-function load() {
+/* =========================
+   Load / Save
+   ========================= */
+async function loadFromServer() {
   if (!import.meta.client) return
+  loading.value = true
+  statusMsg.value = ''
   try {
-    const raw = localStorage.getItem(LS_KEY)
-    const parsed = raw ? JSON.parse(raw) : null
-    const merged = safeApplyParsed(parsed)
+    // auto: si hay token lo manda, si no, no lo manda
+    const res = await requestJson(ENDPOINT, { method: 'GET' }, { auth: 'auto' })
+    const merged = safeApplyParsed(res?.data ?? null)
     Object.assign(model, merged)
     lastSavedSnapshot.value = JSON.stringify(model)
-    statusMsg.value = raw ? 'Cargado' : 'Cargado (default)'
-  } catch {
+    statusMsg.value = 'Cargado del servidor'
+  } catch (e: any) {
+    // Si backend exige auth, aquí verás 401/403
+    const st = e?.status
+    if (st === 401 || st === 403) {
+      statusMsg.value = 'Necesitas iniciar sesión como admin para cargar.'
+    } else {
+      statusMsg.value = `No se pudo cargar: ${e?.message || 'error'}`
+    }
     Object.assign(model, clone(DEFAULTS))
     lastSavedSnapshot.value = JSON.stringify(model)
-    statusMsg.value = 'Cargado (default)'
+  } finally {
+    loading.value = false
   }
 }
 
 async function save() {
   if (!import.meta.client) return
   saving.value = true
+  statusMsg.value = ''
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(model))
+    const payload = { schemaVersion: 1, data: clone(model) }
+
+    const res = await requestJson(
+      ENDPOINT,
+      { method: 'PUT', body: JSON.stringify(payload) },
+      { auth: 'required' } // ✅ write siempre con token
+    )
+
+    const merged = safeApplyParsed(res?.data ?? null)
+    Object.assign(model, merged)
     lastSavedSnapshot.value = JSON.stringify(model)
-    statusMsg.value = 'Guardado'
+    statusMsg.value = 'Guardado en servidor'
+  } catch (e: any) {
+    const st = e?.status
+    if (st === 401 || st === 403) statusMsg.value = 'No autorizado. Inicia sesión como admin.'
+    else statusMsg.value = `No se pudo guardar: ${e?.message || 'error'}`
   } finally {
     saving.value = false
   }
@@ -484,11 +603,11 @@ function addHeroImage() {
   if (model.hero.images.length >= 6) return
   model.hero.images.push({ id: uid('carrusel'), src: '' })
 }
-function removeHeroImage(i) {
+function removeHeroImage(i: number) {
   model.hero.images.splice(i, 1)
   if (previewHeroIndex.value >= model.hero.images.length) previewHeroIndex.value = 0
 }
-function moveHeroImage(i, dir) {
+function moveHeroImage(i: number, dir: -1 | 1) {
   const j = i + dir
   const arr = model.hero.images
   if (j < 0 || j >= arr.length) return
@@ -501,12 +620,12 @@ function moveHeroImage(i, dir) {
 
 /* SPONSORS */
 function addSponsor() {
-  model.sponsors.push({ id: uid('sp'), name: '', logo: '', url: '' })
+  model.sponsors.push({ id: uid('sp'), name: '', logo: '', url: '', tagline: '', description: '', label: '' })
 }
-function removeSponsor(i) {
+function removeSponsor(i: number) {
   model.sponsors.splice(i, 1)
 }
-function moveSponsor(i, dir) {
+function moveSponsor(i: number, dir: -1 | 1) {
   const j = i + dir
   const arr = model.sponsors
   if (j < 0 || j >= arr.length) return
@@ -520,14 +639,13 @@ function moveSponsor(i, dir) {
 /* PREVIEW */
 const previewHeroIndex = ref(0)
 const heroCount = computed(() => model.hero.images.length)
-
 const heroPreview = computed(() => {
   const n = heroCount.value
   if (n <= 0) return null
   const i = Math.min(Math.max(0, previewHeroIndex.value), n - 1)
   return model.hero.images[i] ?? null
 })
-const heroPreviewSrc = computed(() => (heroPreview.value && heroPreview.value.src) ? heroPreview.value.src : '')
+const heroPreviewSrc = computed(() => heroPreview.value?.src ?? '')
 
 function nextPreview() {
   const n = heroCount.value
@@ -539,7 +657,6 @@ function prevPreview() {
   if (n <= 1) return
   previewHeroIndex.value = (previewHeroIndex.value - 1 + n) % n
 }
-
 watch(
   heroCount,
   (n) => {
@@ -549,18 +666,18 @@ watch(
   { immediate: true }
 )
 
-/* FILE PICKER */
-const fileInput = ref(null)
-const pickTarget = ref(null)
+/* FILE PICKER (preview) */
+type PickTarget = { kind: 'hero' | 'sponsor'; index: number } | null
+const fileInput = ref<HTMLInputElement | null>(null)
+const pickTarget = ref<PickTarget>(null)
 
-function pickFile(kind, index) {
+function pickFile(kind: 'hero' | 'sponsor', index: number) {
   pickTarget.value = { kind, index }
-  if (fileInput.value) fileInput.value.click()
+  fileInput.value?.click()
 }
-
-function onFileChange(e) {
-  const input = e.target
-  const file = input && input.files ? input.files[0] : null
+function onFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
   input.value = ''
   if (!file || !pickTarget.value) return
 
@@ -578,14 +695,15 @@ function onFileChange(e) {
     sp.logo = url
   }
 
-  statusMsg.value = 'Imagen elegida (para hacerlo permanente, usa /public/img o una URL)'
+  statusMsg.value = 'Imagen elegida (preview). Para permanente, usa /public/img o una URL'
 }
 
-onMounted(load)
+onMounted(async () => {
+  await loadFromServer()
+})
 </script>
 
 <style scoped>
-/* Minimal + friendly (sin transparencias) */
 .card {
   background: #ffffff;
   border: 1px solid rgb(226, 232, 240);
@@ -697,23 +815,6 @@ onMounted(load)
   color: rgb(185, 28, 28);
 }
 .icon.danger:hover { background: rgb(254, 226, 226); }
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  border: 1px solid rgb(226, 232, 240);
-  background: rgb(248, 250, 252);
-  color: rgb(15, 23, 42);
-  font-weight: 900;
-  font-size: 12px;
-  padding: 8px 12px;
-}
-.chip-primary {
-  border-color: rgb(191, 219, 254);
-  background: rgb(219, 234, 254);
-  color: rgb(30, 64, 175);
-}
 
 .empty {
   border: 1px dashed rgb(203, 213, 225);
