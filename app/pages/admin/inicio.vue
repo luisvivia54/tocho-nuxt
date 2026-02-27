@@ -15,7 +15,168 @@
             </p>
           </div>
 
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-2 items-center">
+            <!-- ✅ MENU ADMIN (dentro de la vista) -->
+            <div class="relative hidden sm:block" ref="menuWrap">
+              <button
+                type="button"
+                class="btn-ghost inline-flex items-center gap-2"
+                :aria-expanded="menuOpen ? 'true' : 'false'"
+                aria-haspopup="menu"
+                @click="toggleMenu()"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Menú
+                <svg class="w-4 h-4 opacity-80" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition duration-120 ease-in"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 translate-y-1"
+              >
+                <div
+                  v-if="menuOpen"
+                  class="absolute right-0 mt-2 w-64 rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
+                  role="menu"
+                >
+                  <div class="px-4 py-3 border-b border-slate-200">
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500 font-extrabold">Panel</p>
+                    <p class="text-xs text-slate-600">Accesos rápidos</p>
+                  </div>
+
+                  <div class="p-2 grid gap-1">
+                    <!-- ⚠️ Si tu ruta real es /admin/home, cambia aquí a /admin/home -->
+                    <NuxtLink
+                      to="/admin/inicio"
+                      class="menu-item"
+                      :class="isActive('/admin/inicio') ? 'menu-item--active' : ''"
+                      @click="menuOpen = false"
+                    >
+                      <span class="menu-ic">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M4 10.5 12 4l8 6.5V20a2 2 0 0 1-2 2h-4v-6H10v6H6a2 2 0 0 1-2-2v-9.5Z"
+                            stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"
+                          />
+                          <path
+                            d="M14.8 12.8 19 8.6l1.4 1.4-4.2 4.2-2.2.8.8-2.2Z"
+                            stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-extrabold text-slate-900 truncate">Inicio</p>
+                        <p class="text-[11px] text-slate-500 truncate">Editar Home</p>
+                      </div>
+                    </NuxtLink>
+
+                    <NuxtLink
+                      to="/admin/partidos"
+                      class="menu-item"
+                      :class="isActive('/admin/partidos') ? 'menu-item--active' : ''"
+                      @click="menuOpen = false"
+                    >
+                      <span class="menu-ic">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M8 3h8v3H8V3z" stroke="currentColor" stroke-width="1.6" />
+                          <path d="M6 6h12v15H6V6z" stroke="currentColor" stroke-width="1.6" />
+                          <path d="M9 10h6M9 14h6M9 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-extrabold text-slate-900 truncate">Partidos</p>
+                        <p class="text-[11px] text-slate-500 truncate">Administración</p>
+                      </div>
+                    </NuxtLink>
+
+                    <NuxtLink
+                      to="/admin/usuarios"
+                      class="menu-item"
+                      :class="isActive('/admin/usuarios') ? 'menu-item--active' : ''"
+                      @click="menuOpen = false"
+                    >
+                      <span class="menu-ic">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                          <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="1.6"/>
+                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-extrabold text-slate-900 truncate">Usuarios</p>
+                        <p class="text-[11px] text-slate-500 truncate">Roles / acceso</p>
+                      </div>
+                    </NuxtLink>
+
+                    <NuxtLink
+                      to="/admin/jugadores"
+                      class="menu-item"
+                      :class="isActive('/admin/jugadores') ? 'menu-item--active' : ''"
+                      @click="menuOpen = false"
+                    >
+                      <span class="menu-ic">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5z" stroke="currentColor" stroke-width="1.6"/>
+                          <path d="M3 21a9 9 0 0 1 18 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                        </svg>
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-extrabold text-slate-900 truncate">Jugadores</p>
+                        <p class="text-[11px] text-slate-500 truncate">Gestión</p>
+                      </div>
+                    </NuxtLink>
+
+                    <NuxtLink
+                      to="/admin/equipos"
+                      class="menu-item"
+                      :class="isActive('/admin/equipos') ? 'menu-item--active' : ''"
+                      @click="menuOpen = false"
+                    >
+                      <span class="menu-ic">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M4 7h16M10 11v7M14 11v7M6 7l1 14h10l1-14M9 7V4h6v3"
+                            stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-extrabold text-slate-900 truncate">Equipos</p>
+                        <p class="text-[11px] text-slate-500 truncate">Borrar / limpiar</p>
+                      </div>
+                    </NuxtLink>
+
+                    <div class="h-px bg-slate-200 my-1"></div>
+
+                    <NuxtLink
+                      to="/"
+                      class="menu-item"
+                      @click="menuOpen = false"
+                    >
+                      <span class="menu-ic">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M4 10.5 12 4l8 6.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                        </svg>
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-extrabold text-slate-900 truncate">Ver sitio</p>
+                        <p class="text-[11px] text-slate-500 truncate">Página pública</p>
+                      </div>
+                    </NuxtLink>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+
             <button type="button" class="btn-ghost" @click="resetDefaults()" :disabled="loading || saving || !canEdit">
               Restaurar
             </button>
@@ -42,7 +203,7 @@
     </header>
 
     <section class="mx-auto max-w-6xl px-4 sm:px-6 py-6">
-      <!-- GATES (igual estilo que admin/partidos) -->
+      <!-- GATES -->
       <div v-if="!kcReady" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <p class="text-sm font-semibold text-slate-900">Inicializando sesión…</p>
         <p class="mt-1 text-xs text-slate-600">Espera a que Keycloak esté listo.</p>
@@ -83,12 +244,8 @@
 
                 <div>
                   <label class="lbl">Subtítulo</label>
-                  <textarea
-                    v-model="model.hero.subtitle"
-                    class="in"
-                    rows="2"
-                    placeholder="Resultados, posiciones y registros en un solo lugar."
-                  />
+                  <textarea v-model="model.hero.subtitle" class="in" rows="2"
+                    placeholder="Resultados, posiciones y registros en un solo lugar." />
                 </div>
               </div>
 
@@ -100,13 +257,8 @@
                   <p class="text-xs text-slate-600">Máximo 6. Puedes reordenar.</p>
                 </div>
 
-                <button
-                  type="button"
-                  class="btn-ghost"
-                  @click="addHeroImage()"
-                  :disabled="model.hero.images.length >= 6"
-                  title="Máximo 6"
-                >
+                <button type="button" class="btn-ghost" @click="addHeroImage()"
+                  :disabled="model.hero.images.length >= 6" title="Máximo 6">
                   + Agregar
                 </button>
               </div>
@@ -121,20 +273,15 @@
 
                     <div class="flex gap-1.5 shrink-0">
                       <button class="icon" :disabled="i === 0" @click="moveHeroImage(i, -1)" title="Subir">↑</button>
-                      <button
-                        class="icon"
-                        :disabled="i === model.hero.images.length - 1"
-                        @click="moveHeroImage(i, +1)"
-                        title="Bajar"
-                      >
-                        ↓
-                      </button>
+                      <button class="icon" :disabled="i === model.hero.images.length - 1"
+                        @click="moveHeroImage(i, +1)" title="Bajar">↓</button>
                       <button class="icon danger" @click="removeHeroImage(i)" title="Eliminar">✕</button>
                     </div>
                   </div>
 
                   <div class="mt-3 grid sm:grid-cols-[1fr_auto] gap-2 items-center">
-                    <input v-model="img.src" class="in" type="text" placeholder="/img/carrusel1.jpg o URL https://..." />
+                    <input v-model="img.src" class="in" type="text"
+                      placeholder="/img/carrusel1.jpg o URL https://..." />
                     <button class="btn-ghost" @click="pickFile('hero', i)">Elegir archivo</button>
                   </div>
 
@@ -351,12 +498,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRuntimeConfig, useNuxtApp, useState } from '#imports'
+import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useRuntimeConfig, useNuxtApp, useState, useRoute } from '#imports'
 import { useAuthz } from '~/composables/useAuthz'
 
 /* =========================
-   AUTH (igual patrón admin/partidos)
+   MENU (dentro de la vista)
+   ========================= */
+const route = useRoute()
+const menuOpen = ref(false)
+const menuWrap = ref<HTMLElement | null>(null)
+
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value
+}
+function isActive(path: string) {
+  return route.path === path || route.path.startsWith(path + '/')
+}
+function onDocClick(e: MouseEvent) {
+  if (!menuOpen.value) return
+  const wrap = menuWrap.value
+  const t = e.target as Node | null
+  if (wrap && t && !wrap.contains(t)) menuOpen.value = false
+}
+watch(
+  () => route.fullPath,
+  () => { menuOpen.value = false }
+)
+onMounted(() => {
+  if (typeof window === 'undefined') return
+  document.addEventListener('click', onDocClick, { capture: true })
+})
+onBeforeUnmount(() => {
+  if (typeof window === 'undefined') return
+  document.removeEventListener('click', onDocClick, { capture: true } as any)
+})
+
+/* =========================
+   AUTH
    ========================= */
 const nuxtApp = useNuxtApp()
 const kcReady = useState<boolean>('kcReady', () => false)
@@ -401,7 +580,11 @@ function getBearer(): string | null {
   return typeof token === 'string' && token.length ? token : null
 }
 
-async function requestJson(url: string, options: RequestInit = {}, { auth = 'auto' as 'auto' | 'required' | 'none' } = {}) {
+async function requestJson(
+  url: string,
+  options: RequestInit = {},
+  { auth = 'auto' as 'auto' | 'required' | 'none' } = {}
+) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
 
   const token = getBearer()
@@ -538,28 +721,21 @@ function safeApplyParsed(parsed: any): HomeConfig {
   return merged
 }
 
-/* =========================
-   Load / Save
-   ========================= */
+/* Load / Save */
 async function loadFromServer() {
   if (!import.meta.client) return
   loading.value = true
   statusMsg.value = ''
   try {
-    // auto: si hay token lo manda, si no, no lo manda
     const res = await requestJson(ENDPOINT, { method: 'GET' }, { auth: 'auto' })
     const merged = safeApplyParsed(res?.data ?? null)
     Object.assign(model, merged)
     lastSavedSnapshot.value = JSON.stringify(model)
     statusMsg.value = 'Cargado del servidor'
   } catch (e: any) {
-    // Si backend exige auth, aquí verás 401/403
     const st = e?.status
-    if (st === 401 || st === 403) {
-      statusMsg.value = 'Necesitas iniciar sesión como admin para cargar.'
-    } else {
-      statusMsg.value = `No se pudo cargar: ${e?.message || 'error'}`
-    }
+    if (st === 401 || st === 403) statusMsg.value = 'Necesitas iniciar sesión como admin para cargar.'
+    else statusMsg.value = `No se pudo cargar: ${e?.message || 'error'}`
     Object.assign(model, clone(DEFAULTS))
     lastSavedSnapshot.value = JSON.stringify(model)
   } finally {
@@ -573,13 +749,11 @@ async function save() {
   statusMsg.value = ''
   try {
     const payload = { schemaVersion: 1, data: clone(model) }
-
     const res = await requestJson(
       ENDPOINT,
       { method: 'PUT', body: JSON.stringify(payload) },
-      { auth: 'required' } // ✅ write siempre con token
+      { auth: 'required' }
     )
-
     const merged = safeApplyParsed(res?.data ?? null)
     Object.assign(model, merged)
     lastSavedSnapshot.value = JSON.stringify(model)
@@ -704,6 +878,31 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ---- menu ---- */
+.menu-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border-radius:14px;
+  padding:10px 10px;
+  color: rgb(15,23,42);
+  background: transparent;
+}
+.menu-item:hover{ background: rgb(248,250,252); }
+.menu-item--active{ background: rgb(241,245,249); }
+
+.menu-ic{
+  height: 38px;
+  width: 38px;
+  border-radius: 14px;
+  border: 1px solid rgb(226,232,240);
+  background: rgb(248,250,252);
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+}
+
+/* Minimal + friendly */
 .card {
   background: #ffffff;
   border: 1px solid rgb(226, 232, 240);

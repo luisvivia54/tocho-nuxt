@@ -40,7 +40,7 @@
             Mi equipo
           </NuxtLink>
 
-          <!-- ✅ NUEVO: Admin (dropdown) -->
+          <!-- ✅ Admin (dropdown) -->
           <div v-if="isAdmin" class="relative" ref="adminWrap">
             <button
               type="button"
@@ -97,6 +97,36 @@
                 </div>
 
                 <div class="p-2 grid gap-1">
+                  <!-- ✅ NUEVO: Inicio (editar home) -->
+                  <NuxtLink
+                    to="/admin/inicio"
+                    class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
+                    :class="isActive('/admin/inicio') ? 'bg-white/10' : ''"
+                    @click="adminOpen = false"
+                  >
+                    <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
+                      <!-- icon home + edit -->
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M4 10.5 12 4l8 6.5V20a2 2 0 0 1-2 2h-4v-6H10v6H6a2 2 0 0 1-2-2v-9.5Z"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                        <path
+                          d="M14.8 12.8 19 8.6l1.4 1.4-4.2 4.2-2.2.8.8-2.2Z"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    <div class="min-w-0">
+                      <p class="font-semibold truncate">Inicio</p>
+                      <p class="text-[11px] text-slate-300/80">Editar Home</p>
+                    </div>
+                  </NuxtLink>
+
                   <NuxtLink
                     to="/admin/partidos"
                     class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
@@ -179,7 +209,7 @@
                     </div>
                   </NuxtLink>
 
-                  <!-- ✅ NUEVO: Equipos (borrar equipos) -->
+                  <!-- Equipos -->
                   <NuxtLink
                     to="/admin/equipos"
                     class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
@@ -279,11 +309,7 @@
                 <NuxtLink to="/equipos" class="px-3 py-2 rounded-xl hover:bg-white/10" @click="closeMobile">
                   Equipos
                 </NuxtLink>
-                <NuxtLink
-                  to="/estadisticas"
-                  class="px-3 py-2 rounded-xl hover:bg-white/10"
-                  @click="closeMobile"
-                >
+                <NuxtLink to="/estadisticas" class="px-3 py-2 rounded-xl hover:bg-white/10" @click="closeMobile">
                   Estadísticas
                 </NuxtLink>
 
@@ -304,8 +330,6 @@
                 >
                   Mi equipo
                 </NuxtLink>
-
-                <!-- ✅ Ya NO metemos las rutas admin aquí (ahora van en el dock inferior / dropdown desktop) -->
               </div>
 
               <div class="px-4 pb-4 pt-2 border-t border-white/10 flex items-center justify-between gap-3">
@@ -343,15 +367,38 @@
     <!-- CONTENIDO DE LAS PÁGINAS -->
     <slot />
 
-    <!-- ✅ NUEVO: Dock admin móvil (solo admins) -->
+    <!-- ✅ Dock admin móvil (solo admins) -->
     <div v-if="isAdmin" class="sm:hidden fixed bottom-0 inset-x-0 z-30" aria-label="Admin dock">
       <div class="mx-auto max-w-6xl px-4 pb-3">
         <div
           class="rounded-2xl border border-white/10 bg-gradient-to-r from-[#0B1220]/95 to-[#0F1A33]/95
                  backdrop-blur shadow-[0_18px_50px_rgba(0,0,0,0.35)] px-2 py-2"
         >
-          <!-- ✅ CAMBIO: 3 -> 4 columnas -->
-          <div class="grid grid-cols-4 gap-2">
+          <!-- ✅ CAMBIO: 4 -> 5 columnas -->
+          <div class="grid grid-cols-5 gap-2">
+            <!-- ✅ NUEVO: Inicio (editar Home) -->
+            <NuxtLink
+              to="/admin/inicio"
+              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
+              :class="isActive('/admin/inicio') ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/10'"
+            >
+              <svg class="w-5 h-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M4 10.5 12 4l8 6.5V20a2 2 0 0 1-2 2h-4v-6H10v6H6a2 2 0 0 1-2-2v-9.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M14.8 12.8 19 8.6l1.4 1.4-4.2 4.2-2.2.8.8-2.2Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Inicio
+            </NuxtLink>
+
             <NuxtLink
               to="/admin/partidos"
               class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
@@ -406,7 +453,6 @@
               Jugadores
             </NuxtLink>
 
-            <!-- ✅ NUEVO: Equipos -->
             <NuxtLink
               to="/admin/equipos"
               class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"

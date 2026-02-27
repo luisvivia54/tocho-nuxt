@@ -381,6 +381,14 @@
                 </div>
               </div>
 
+              <!-- ✅ mensajes globales delete -->
+              <div v-if="deleteError" class="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+                {{ deleteError }}
+              </div>
+              <div v-if="deleteOk" class="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+                {{ deleteOk }}
+              </div>
+
               <div class="mt-4">
                 <div v-if="gamesPending" class="text-sm text-slate-300">Cargando partidos…</div>
                 <div v-else-if="gamesError" class="text-sm text-rose-300">Error cargando partidos.</div>
@@ -445,6 +453,18 @@
                             @click="loadForEdit(g)"
                           >
                             Editar
+                          </button>
+
+                          <!-- ✅ HARD DELETE (solo SCHEDULED) -->
+                          <button
+                            v-if="upper(g.status) === 'SCHEDULED'"
+                            type="button"
+                            class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] font-extrabold text-rose-100 hover:bg-rose-500/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="deletingId === g.id"
+                            @click="deleteGame(g)"
+                            title="Borra el partido (hard delete). Solo SCHEDULED."
+                          >
+                            {{ deletingId === g.id ? 'Borrando…' : 'Borrar' }}
                           </button>
 
                           <button
@@ -731,6 +751,7 @@
     </section>
   </main>
 </template>
+
 <script setup lang="ts">
 import { computed, ref, watch, shallowRef, onMounted, onBeforeUnmount } from 'vue'
 import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from '#imports'
@@ -794,6 +815,16 @@ const isAdmin = computed<boolean>(() => {
   return roles.map((r) => String(r).toLowerCase()).includes('admin')
 })
 
+async function authHeaders() {
+  const kc = (nuxtApp as any).$kc
+  try {
+    // intenta refrescar token si existe
+    await kc?.updateToken?.(30)
+  } catch {}
+  const token = kc?.token
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 /** =========================
  *  API
  *  ========================= */
@@ -802,13 +833,16 @@ const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5
 const DEFAULT_SEASON_ID = Number((config.public as any)?.seasonId ?? 2)
 
 const API_GAMES = `${API_BASE}/games`
-const API_GAMES_FINAL = `${API_BASE}/gamesFinal` // ✅ SOLO LECTURA (GET). NO POST (te da 405)
+const API_GAMES_FINAL = `${API_BASE}/gamesFinal`
 const API_TEAMS = `${API_BASE}/teams`
 const API_TEAMS_LIST = `${API_BASE}/teams/list`
 const API_CATEGORIES = `${API_BASE}/categories`
-const API_PARTIDO_UPDATE = `${API_BASE}/partido/update` // ✅ FINALIZAR AQUÍ
+const API_PARTIDO_UPDATE = `${API_BASE}/partido/update`
 const API_TEAM_PLAYERS = (teamId: number) => `${API_BASE}/teams/${teamId}/players`
 const PLAYER_STATS_URL = (gameId: number) => `${API_BASE}/games/${gameId}/player-stats`
+
+/** ✅ HARD DELETE endpoint */
+const API_GAME_DELETE = (gameId: number) => `${API_GAMES}/${gameId}`
 
 /** =========================
  *  TYPES
@@ -1148,7 +1182,7 @@ const form = ref({
   date: '',
   time: '',
   jornada: 0,
-  field: '', // ✅ opcional
+  field: '',
 })
 
 const catHint = computed(() => {
@@ -1438,6 +1472,57 @@ const pageTabs = computed(() => {
 })
 
 /** =========================
+ *  ✅ HARD DELETE UI STATE + ACTION
+ *  ========================= */
+const deletingId = ref<number | null>(null)
+const deleteError = ref('')
+const deleteOk = ref('')
+
+async function deleteGame(g: GameVM) {
+  deleteError.value = ''
+  deleteOk.value = ''
+
+  const gid = Number(g?.id || 0)
+  if (!gid) {
+    deleteError.value = 'No hay gameId válido.'
+    return
+  }
+
+  // UI only (backend también valida)
+  if (upper(g.status) !== 'SCHEDULED') {
+    deleteError.value = 'Solo puedes borrar partidos SCHEDULED.'
+    return
+  }
+
+  const ok = window.confirm(
+    `¿Borrar partido #${gid}?\n\nEsto es HARD DELETE (se elimina de la BD).\nSolo úsalo si estás seguro.`
+  )
+  if (!ok) return
+
+  deletingId.value = gid
+  try {
+    const headers = await authHeaders()
+    await $fetch(API_GAME_DELETE(gid), { method: 'DELETE', headers })
+
+    // optimista: quítalo de la lista ya
+    gamesVm.value = gamesVm.value.filter((x) => x.id !== gid)
+    if (finishPanelId.value === gid) closeFinish()
+    if (editingId.value === gid) clearForm()
+
+    deleteOk.value = `Partido #${gid} eliminado.`
+    await refreshGames()
+    setTimeout(() => (deleteOk.value = ''), 1800)
+  } catch (e: any) {
+    deleteError.value =
+      e?.data?.message ||
+      e?.message ||
+      'No se pudo borrar. (¿Token/rol admin? ¿FKs en BD?)'
+  } finally {
+    deletingId.value = null
+  }
+}
+
+/** =========================
  *  FINALIZAR + STATS
  *  ========================= */
 const finishPanelId = ref<number | null>(null)
@@ -1655,11 +1740,10 @@ async function tryPostPlayerStats(gameId: number) {
   if (!entries.length) return
 
   try {
-    const payload = {
-      gameId,
-      entries: entries.map((e) => ({ kind: e.kind, side: e.side, playerId: e.playerId, qty: e.qty })),
-    }
-    await $fetch(PLAYER_STATS_URL(gameId), { method: 'POST', body: payload })
+    const payload = entries.map((e) => ({ kind: e.kind, side: e.side, playerId: e.playerId, qty: e.qty }))
+    const headers = await authHeaders()
+    // ✅ tu Controller es PUT /games/{gameId}/player-stats
+    await $fetch(PLAYER_STATS_URL(gameId), { method: 'PUT', body: payload, headers })
     statsOk.value = 'Stats individuales guardadas.'
     statsWarn.value = ''
   } catch {
@@ -1674,7 +1758,8 @@ async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: nu
     home_score: Number(homeScore),
     away_score: Number(awayScore),
   }
-  return await $fetch<any>(API_PARTIDO_UPDATE, { method: 'POST', body })
+  const headers = await authHeaders()
+  return await $fetch<any>(API_PARTIDO_UPDATE, { method: 'POST', body, headers })
 }
 
 async function finishGame(g: GameVM) {
@@ -1721,13 +1806,14 @@ async function hardRefresh() {
   formError.value = ''
   finishOk.value = ''
   finishError.value = ''
+  deleteOk.value = ''
+  deleteError.value = ''
   statsWarn.value = ''
   statsOk.value = ''
   rosterHint.value = ''
   await Promise.all([refreshTeams(), refreshGames()])
 }
 </script>
-
 
 <style scoped>
 .date-time {
