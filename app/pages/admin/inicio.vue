@@ -177,11 +177,11 @@
               </Transition>
             </div>
 
-            <button type="button" class="btn-ghost" @click="resetDefaults()" :disabled="loading || saving || !canEdit">
+            <button type="button" class="btn-ghost" @click="resetDefaults()" :disabled="loading || saving || uploading || !canEdit">
               Restaurar
             </button>
 
-            <button type="button" class="btn-primary" :disabled="saving || loading || !canEdit" @click="save()">
+            <button type="button" class="btn-primary" :disabled="saving || loading || uploading || !canEdit" @click="save()">
               <span v-if="saving">Guardando…</span>
               <span v-else>Guardar</span>
             </button>
@@ -197,6 +197,7 @@
           </span>
 
           <span v-if="loading" class="text-slate-600">· Cargando…</span>
+          <span v-else-if="uploading" class="text-slate-600">· Subiendo imagen…</span>
           <span v-else-if="statusMsg" class="text-slate-600">· {{ statusMsg }}</span>
         </div>
       </div>
@@ -244,8 +245,12 @@
 
                 <div>
                   <label class="lbl">Subtítulo</label>
-                  <textarea v-model="model.hero.subtitle" class="in" rows="2"
-                    placeholder="Resultados, posiciones y registros en un solo lugar." />
+                  <textarea
+                    v-model="model.hero.subtitle"
+                    class="in"
+                    rows="2"
+                    placeholder="Resultados, posiciones y registros en un solo lugar."
+                  />
                 </div>
               </div>
 
@@ -282,12 +287,13 @@
                   <div class="mt-3 grid sm:grid-cols-[1fr_auto] gap-2 items-center">
                     <input v-model="img.src" class="in" type="text"
                       placeholder="/img/carrusel1.jpg o URL https://..." />
-                    <button class="btn-ghost" @click="pickFile('hero', i)">Elegir archivo</button>
+                    <button class="btn-ghost" :disabled="uploading || !canEdit" @click="pickFile('hero', i)">
+                      {{ uploading ? 'Subiendo…' : 'Elegir archivo' }}
+                    </button>
                   </div>
 
                   <p class="mt-2 text-[11px] text-slate-500">
-                    Tip: si la subes a <span class="font-semibold">/public/img</span>, úsala como
-                    <span class="font-semibold">/img/archivo.jpg</span>.
+                    Ahora sube directo a R2: selecciona un archivo y luego dale <b>Guardar</b>.
                   </p>
                 </div>
 
@@ -364,7 +370,9 @@
                       <label class="lbl">Logo</label>
                       <input v-model="sp.logo" class="in" type="text" placeholder="/img/sponsors/logo.png o URL https://..." />
                     </div>
-                    <button class="btn-ghost" @click="pickFile('sponsor', i)">Elegir archivo</button>
+                    <button class="btn-ghost" :disabled="uploading || !canEdit" @click="pickFile('sponsor', i)">
+                      {{ uploading ? 'Subiendo…' : 'Elegir archivo' }}
+                    </button>
                   </div>
 
                   <div class="mt-3 grid sm:grid-cols-2 gap-2">
@@ -485,6 +493,7 @@
             <p class="font-extrabold text-slate-900">Uso rápido</p>
             <ol class="mt-2 list-decimal list-inside space-y-1">
               <li>Edita lo que quieras.</li>
+              <li>Sube imágenes (si aplica).</li>
               <li>Da click en <span class="font-semibold">Guardar</span>.</li>
               <li>Listo.</li>
             </ol>
@@ -573,6 +582,7 @@ function login() {
 const runtime = useRuntimeConfig()
 const API_BASE = ((runtime.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
 const ENDPOINT = `${API_BASE}/site-configs/home`
+const ASSET_UPLOAD_ENDPOINT = `${API_BASE}/assets/upload`
 
 function getBearer(): string | null {
   const kc = (nuxtApp as any).$kc
@@ -604,6 +614,45 @@ async function requestJson(
   }
 
   return json
+}
+
+function safeSegment(x: string) {
+  return String(x || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+async function uploadAsset(folder: string, file: File) {
+  const token = getBearer()
+  if (!token) throw new Error('No hay sesión. Inicia sesión como admin.')
+
+  const fd = new FormData()
+  fd.append('folder', folder)
+  fd.append('file', file)
+
+  const res = await fetch(ASSET_UPLOAD_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  })
+
+  const text = await res.text()
+  let json: any = null
+  try { json = text ? JSON.parse(text) : null } catch {}
+
+  if (!res.ok) {
+    const msg =
+      (json && (json.message || json.error)) ? (json.message || json.error)
+      : `${res.status} ${res.statusText}`
+    const err = new Error(msg) as any
+    err.status = res.status
+    throw err
+  }
+
+  return json // { id, publicUrl, r2Key, contentType, sizeBytes }
 }
 
 /* =========================
@@ -668,6 +717,7 @@ const model = reactive<HomeConfig>(clone(DEFAULTS))
 
 const loading = ref(false)
 const saving = ref(false)
+const uploading = ref(false)
 const statusMsg = ref('')
 
 const lastSavedSnapshot = ref('')
@@ -840,7 +890,7 @@ watch(
   { immediate: true }
 )
 
-/* FILE PICKER (preview) */
+/* FILE PICKER + UPLOAD */
 type PickTarget = { kind: 'hero' | 'sponsor'; index: number } | null
 const fileInput = ref<HTMLInputElement | null>(null)
 const pickTarget = ref<PickTarget>(null)
@@ -849,27 +899,83 @@ function pickFile(kind: 'hero' | 'sponsor', index: number) {
   pickTarget.value = { kind, index }
   fileInput.value?.click()
 }
-function onFileChange(e: Event) {
+
+async function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
   if (!file || !pickTarget.value) return
 
-  const url = URL.createObjectURL(file)
+  if (!canEdit.value) {
+    statusMsg.value = 'No autorizado. Inicia sesión como admin.'
+    pickTarget.value = null
+    return
+  }
+
   const { kind, index } = pickTarget.value
   pickTarget.value = null
+
+  // preview inmediato
+  const previewUrl = URL.createObjectURL(file)
+
+  // guarda valor anterior por si falla
+  const prev =
+    kind === 'hero'
+      ? (model.hero.images[index]?.src ?? '')
+      : (model.sponsors[index]?.logo ?? '')
 
   if (kind === 'hero') {
     const img = model.hero.images[index]
     if (!img) return
-    img.src = url
+    img.src = previewUrl
   } else {
     const sp = model.sponsors[index]
     if (!sp) return
-    sp.logo = url
+    sp.logo = previewUrl
   }
 
-  statusMsg.value = 'Imagen elegida (preview). Para permanente, usa /public/img o una URL'
+  uploading.value = true
+  statusMsg.value = 'Subiendo imagen a R2…'
+
+  try {
+    let folder = 'site/home'
+    if (kind === 'hero') {
+      folder = 'site/home/hero'
+    } else {
+      const sp = model.sponsors[index]
+      const seg = safeSegment(sp?.id || `sponsor-${index}`)
+      folder = `site/home/sponsors/${seg}`
+    }
+
+    const res = await uploadAsset(folder, file)
+    const publicUrl = String(res?.publicUrl || '')
+    if (!publicUrl) throw new Error('La API no regresó publicUrl')
+
+    if (kind === 'hero') {
+      const img = model.hero.images[index]
+      if (img) img.src = publicUrl
+    } else {
+      const sp = model.sponsors[index]
+      if (sp) sp.logo = publicUrl
+    }
+
+    statusMsg.value = 'Imagen subida ✅ (ahora da click en Guardar)'
+  } catch (err: any) {
+    if (kind === 'hero') {
+      const img = model.hero.images[index]
+      if (img) img.src = prev
+    } else {
+      const sp = model.sponsors[index]
+      if (sp) sp.logo = prev
+    }
+
+    const st = err?.status
+    if (st === 401 || st === 403) statusMsg.value = 'No autorizado para subir (admin).'
+    else statusMsg.value = `Falló la subida: ${err?.message || 'error'}`
+  } finally {
+    uploading.value = false
+    try { URL.revokeObjectURL(previewUrl) } catch {}
+  }
 }
 
 onMounted(async () => {
