@@ -1,19 +1,25 @@
 <template>
-  <main class="min-h-screen bg-[#050816] text-slate-50">
-    <!-- BG stadium -->
+  <main class="min-h-screen text-slate-50">
+    <!-- BG stadium (Lovable-style) -->
     <div class="fixed inset-0 -z-10">
+      <!-- Foto base -->
       <div
-        class="absolute inset-0 bg-cover bg-center opacity-70"
+        class="absolute inset-0 bg-cover bg-center opacity-80"
         :style="{ backgroundImage: `url(${stadiumBg})` }"
       />
-      <!-- vignette -->
-      <div class="absolute inset-0 bg-gradient-to-b from-black/55 via-black/70 to-[#050816]" />
-      <!-- glow green -->
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(16,185,129,0.18),transparent_60%)]" />
-      <!-- glow orange soft -->
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_85%,rgba(251,146,60,0.10),transparent_55%)]" />
-      <!-- bottom fade -->
-      <div class="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent to-[#050816]" />
+      <!-- Oscurecer suave -->
+      <div class="absolute inset-0 bg-black/35" />
+      <!-- Viñeta (bordes negros) -->
+      <div
+        class="absolute inset-0"
+        style="background: radial-gradient(ellipse at center, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 62%, rgba(0,0,0,0.92) 100%);"
+      />
+      <!-- Gradiente vertical -->
+      <div class="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-[#050816]" />
+      <!-- Glow verde suave -->
+      <div class="absolute inset-0 opacity-35 bg-[radial-gradient(circle_at_50%_28%,rgba(16,185,129,0.35),transparent_58%)]" />
+      <!-- Glow naranja sutil -->
+      <div class="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_85%,rgba(251,146,60,0.28),transparent_55%)]" />
     </div>
 
     <!-- HEADER -->
@@ -130,7 +136,6 @@
     <section id="inicio" class="relative pt-24 md:pt-28">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <div class="min-h-[72vh] py-10 md:py-14 flex flex-col items-center justify-center text-center">
-          <!-- badge -->
           <div class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-200">
             <span class="h-2 w-2 rounded-full bg-emerald-300" />
             <span>TEMPORADA {{ season }} ACTIVA</span>
@@ -165,14 +170,12 @@
             </NuxtLink>
           </div>
 
-          <!-- mini stats -->
           <div class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs text-slate-300">
             <div><span class="font-bold text-white">{{ teamsTotal }}</span> <span class="opacity-75">Equipos</span></div>
             <div><span class="font-bold text-white">{{ gamesSeason }}</span> <span class="opacity-75">Partidos</span></div>
             <div><span class="font-bold text-white">{{ season }}</span> <span class="opacity-75">Temporada</span></div>
           </div>
 
-          <!-- scroll indicator -->
           <div class="mt-14 flex flex-col items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-slate-400">
             <span>SCROLL</span>
             <div class="relative h-10 w-[2px] rounded-full bg-white/15">
@@ -210,7 +213,7 @@
       </div>
     </section>
 
-    <!-- NUESTRAS LIGAS -->
+    <!-- NUESTRAS LIGAS (SIN RECORTAR + DOMINGO AZUL / JUEVES NARANJA) -->
     <section id="ligas" class="py-14 md:py-16">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <div class="flex items-center gap-4">
@@ -219,19 +222,27 @@
         </div>
 
         <div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-          <!-- Domingo -->
+          <!-- DOMINGO (toque azul) -->
           <NuxtLink
             to="/domingo"
-            class="group relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.40)]"
+            class="group relative overflow-hidden rounded-[28px] border bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.40)]"
+            :class="['border-sky-400/20 hover:border-sky-400/35']"
           >
-            <div
-              class="absolute inset-0 bg-cover bg-center opacity-85 transition-transform duration-500 group-hover:scale-[1.03]"
-              :style="{ backgroundImage: `url(${domingoBg})` }"
-            />
-            <div class="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-transparent" />
+            <!-- glow azul -->
+            <div class="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100 bg-[radial-gradient(circle_at_35%_20%,rgba(56,189,248,0.22),transparent_55%)]" />
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_85%,rgba(56,189,248,0.12),transparent_60%)]" />
+
+            <!-- media (foto completa) -->
+            <div class="relative bg-black/20">
+              <div class="h-[360px] w-full">
+                <img :src="domingoBg" alt="Liga de Domingo" class="h-full w-full object-contain" />
+              </div>
+              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+            </div>
+
             <div class="relative p-8 md:p-10">
-              <div class="inline-flex items-center gap-2 rounded-full bg-emerald-300/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-200">
-                <span class="h-2 w-2 rounded-full bg-emerald-300" />
+              <div class="inline-flex items-center gap-2 rounded-full border border-sky-400/25 bg-sky-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-sky-200">
+                <span class="h-2 w-2 rounded-full bg-sky-300" />
                 PROFESIONAL
               </div>
 
@@ -246,19 +257,27 @@
             </div>
           </NuxtLink>
 
-          <!-- Jueves -->
+          <!-- JUEVES (toque naranja) -->
           <NuxtLink
             to="/jueves"
-            class="group relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.40)]"
+            class="group relative overflow-hidden rounded-[28px] border bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.40)]"
+            :class="['border-orange-400/20 hover:border-orange-400/35']"
           >
-            <div
-              class="absolute inset-0 bg-cover bg-center opacity-85 transition-transform duration-500 group-hover:scale-[1.03]"
-              :style="{ backgroundImage: `url(${juevesBg})` }"
-            />
-            <div class="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-transparent" />
+            <!-- glow naranja -->
+            <div class="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100 bg-[radial-gradient(circle_at_35%_20%,rgba(251,146,60,0.22),transparent_55%)]" />
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_85%,rgba(251,146,60,0.12),transparent_60%)]" />
+
+            <!-- media (foto completa) -->
+            <div class="relative bg-black/20">
+              <div class="h-[360px] w-full">
+                <img :src="juevesBg" alt="Liga de Jueves" class="h-full w-full object-contain" />
+              </div>
+              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+            </div>
+
             <div class="relative p-8 md:p-10">
-              <div class="inline-flex items-center gap-2 rounded-full bg-amber-300/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-amber-200">
-                <span class="h-2 w-2 rounded-full bg-amber-300" />
+              <div class="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-orange-200">
+                <span class="h-2 w-2 rounded-full bg-orange-300" />
                 DESARROLLO
               </div>
 
@@ -276,7 +295,7 @@
       </div>
     </section>
 
-    <!-- PRÓXIMOS ENCUENTROS -->
+    <!-- PRÓXIMOS ENCUENTROS (regresado como en tus capturas) -->
     <section class="py-14 md:py-16">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -337,7 +356,7 @@
       </div>
     </section>
 
-    <!-- CTA -->
+    <!-- CTA (regresado como en tus capturas) -->
     <section class="py-14 md:py-16">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <div class="rounded-[34px] border border-white/10 bg-white/5 px-8 py-14 text-center shadow-[0_26px_110px_rgba(0,0,0,0.45)]">
@@ -348,11 +367,17 @@
           </p>
 
           <div class="mt-7 flex flex-col sm:flex-row justify-center gap-3">
-            <NuxtLink to="/domingo" class="rounded-full bg-emerald-300 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-slate-900 hover:brightness-105 transition">
-              Ir a Liga Domingo →
+            <NuxtLink
+              to="/domingo"
+              class="rounded-full bg-emerald-300 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-slate-900 hover:brightness-105 transition"
+            >
+              IR A LIGA DOMINGO →
             </NuxtLink>
-            <NuxtLink to="/jueves" class="rounded-full border border-white/12 bg-black/25 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-white hover:bg-black/35 transition">
-              Ir a Liga Jueves →
+            <NuxtLink
+              to="/jueves"
+              class="rounded-full border border-white/12 bg-black/25 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-white hover:bg-black/35 transition"
+            >
+              IR A LIGA JUEVES →
             </NuxtLink>
           </div>
         </div>
@@ -379,7 +404,7 @@
             rel="noopener noreferrer"
             class="text-xs font-extrabold uppercase tracking-[0.22em] text-slate-300 hover:text-white"
           >
-            Instagram @tochero5liga
+            INSTAGRAM @TOCHERO5LIGA
           </a>
 
           <div class="text-xs text-slate-500">
@@ -401,20 +426,19 @@ const teamsTotal = 26
 const gamesSeason = 52
 const rounds = 18
 
-// Puedes cambiar a imágenes locales cuando quieras (public/img/...)
-const stadiumBg =
-  'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=2200&q=80'
-const domingoBg =
-  'https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=2200&q=80'
-const juevesBg =
-  'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=2200&q=80'
+// Fondo estadio
+const stadiumBg = "/img/hero-stadium.jpg"
+
+// Imágenes ligas
+const domingoBg = "/img/liga-domingo.png"
+const juevesBg = "/img/liga-jueves.png"
 
 const mobileOpen = ref(false)
 
-// Nav highlight por scroll (solo inicio/contacto)
-const activeNav = ref<'inicio' | 'contacto'>('inicio')
+// Nav highlight por scroll (inicio/ligas/contacto)
+const activeNav = ref<'inicio' | 'ligas' | 'contacto'>('inicio')
 
-function scrollTo(id: 'inicio' | 'contacto') {
+function scrollTo(id: 'inicio' | 'ligas' | 'contacto') {
   const el = document.getElementById(id)
   if (!el) return
   el.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -422,8 +446,12 @@ function scrollTo(id: 'inicio' | 'contacto') {
 
 function onScroll() {
   const y = window.scrollY || 0
+  const ligasTop = document.getElementById('ligas')?.offsetTop ?? 999999
   const contactoTop = document.getElementById('contacto')?.offsetTop ?? 999999
-  activeNav.value = y + 160 >= contactoTop ? 'contacto' : 'inicio'
+
+  if (y + 160 >= contactoTop) activeNav.value = 'contacto'
+  else if (y + 160 >= ligasTop) activeNav.value = 'ligas'
+  else activeNav.value = 'inicio'
 }
 
 onMounted(() => {
@@ -434,7 +462,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll)
 })
 
-// Matches (UI estática por ahora)
+/** Matches */
 type Match = {
   id: string
   league: 'domingo' | 'jueves'
