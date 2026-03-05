@@ -1,3 +1,4 @@
+<!-- app/pages/domingo.vue -->
 <template>
   <main class="bg-[#F3F4FF] text-slate-900 min-h-screen overflow-x-hidden">
     <!-- ========== HERO + CARRUSEL ========== -->
@@ -168,7 +169,7 @@
                             <div class="min-w-0">
                               <p
                                 class="text-[11px] font-semibold text-slate-500 break-words"
-                                style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
+                                style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;"
                               >
                                 {{ activeUpcoming.categoryName }}
                                 <template v-if="activeUpcoming.code"> · {{ activeUpcoming.code }}</template>
@@ -213,7 +214,7 @@
                                 <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Local</p>
                                 <p
                                   class="mt-0.5 text-[13px] font-extrabold text-slate-900 leading-snug break-words"
-                                  style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
+                                  style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;"
                                 >
                                   {{ activeUpcoming.homeName }}
                                 </p>
@@ -241,7 +242,7 @@
                                 <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Visitante</p>
                                 <p
                                   class="mt-0.5 text-[13px] font-extrabold text-slate-900 leading-snug break-words"
-                                  style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
+                                  style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;"
                                 >
                                   {{ activeUpcoming.awayName }}
                                 </p>
@@ -1412,20 +1413,50 @@ function pickArrayFromResponse(res) {
   return []
 }
 
+/**
+ * ✅ FIX: merge + dedupe (/games + /gamesFinal)
+ * - Si /games viene vacío (común), /gamesFinal suele traer data.
+ * - Filtra por seasonId cuando el objeto lo trae.
+ */
 async function fetchGamesAny(seasonId) {
   const sid = Number(seasonId || 0) || 0
-  const tries = [
+
+  const urls = [
     `${API_BASE}/games/upcoming?seasonId=${encodeURIComponent(String(sid))}`,
     `${API_BASE}/games?seasonId=${encodeURIComponent(String(sid))}`,
+    `${API_BASE}/gamesFinal?seasonId=${encodeURIComponent(String(sid))}`,
+    `${API_BASE}/gamesFinal`,
     `${API_BASE}/games`
   ]
 
-  for (const url of tries) {
+  const merged = []
+  for (const url of urls) {
     const res = await $fetch(url).catch(() => null)
     const arr = pickArrayFromResponse(res)
-    if (Array.isArray(arr) && arr.length) return arr
+    if (Array.isArray(arr) && arr.length) merged.push(...arr)
   }
-  return []
+
+  if (!merged.length) return []
+
+  // dedupe por id si existe
+  const map = new Map()
+  for (const g of merged) {
+    const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
+    const key = id ? `id:${id}` : `k:${pickIso(g) || Math.random()}`
+    map.set(key, g)
+  }
+
+  let out = Array.from(map.values())
+
+  // si hay seasonId, filtra por season cuando el objeto lo trae
+  if (sid) {
+    out = out.filter((g) => {
+      const s = pickSeasonId(g)
+      return !s || s === sid
+    })
+  }
+
+  return out
 }
 
 const { data: gamesRaw, pending: gamesPending, refresh: refreshGames } = useAsyncData(
