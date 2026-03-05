@@ -1,9 +1,6 @@
 <!-- app/pages/admin/partidos.vue -->
 <template>
-  <main
-    class="min-h-screen bg-[#050816] text-slate-50"
-    :class="{ 'no-blur': isScrolling }"
-  >
+  <main class="min-h-screen bg-[#050816] text-slate-50" :class="{ 'no-blur': isScrolling }">
     <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <!-- HEADER -->
@@ -47,7 +44,7 @@
 
         <!-- ADMIN UI -->
         <div v-else class="mt-8 space-y-6">
-          <!-- CREATE / EDIT -->
+          <!-- CREATE / EDIT (se mantiene arriba; en la lista NO hay botón Editar) -->
           <section class="rounded-2xl border border-slate-700 bg-slate-900/60 shadow-lg backdrop-blur overflow-hidden">
             <div class="h-1.5 bg-gradient-to-r from-cyan-400 to-fuchsia-500"></div>
 
@@ -125,7 +122,6 @@
                     </button>
                   </div>
 
-                  <!-- suggestions (máx 5) -->
                   <div
                     v-if="homeOpen && homeSuggestions.length"
                     class="mt-2 rounded-xl border border-slate-700 bg-slate-950/70 overflow-hidden"
@@ -264,7 +260,6 @@
               <div class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 <div class="md:col-span-3">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha</label>
-
                   <div class="relative cursor-pointer" @click="openNativePicker(dateEl)">
                     <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">📅</span>
                     <input
@@ -278,7 +273,6 @@
 
                 <div class="md:col-span-2">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Hora</label>
-
                   <div class="relative cursor-pointer" @click="openNativePicker(timeEl)">
                     <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">🕒</span>
                     <input
@@ -381,7 +375,7 @@
                 </div>
               </div>
 
-              <!-- ✅ mensajes globales delete -->
+              <!-- mensajes globales delete -->
               <div v-if="deleteError" class="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
                 {{ deleteError }}
               </div>
@@ -429,7 +423,7 @@
                           </p>
                         </div>
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                           <span
                             class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
                             :class="upper(g.status) === 'FINAL'
@@ -447,24 +441,28 @@
                             {{ g.homeScore }} - {{ g.awayScore }}
                           </span>
 
+                          <!-- ✅ CORREGIR SCORE (NO SE QUITA) -->
                           <button
+                            v-if="upper(g.status) === 'FINAL'"
                             type="button"
-                            class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-[11px] font-semibold text-slate-100 hover:border-slate-500"
-                            @click="loadForEdit(g)"
+                            class="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] font-extrabold text-amber-100 hover:bg-amber-500/15"
+                            @click="openEditScore(g)"
                           >
-                            Editar
+                            Corregir score
                           </button>
 
-                          <!-- ✅ HARD DELETE (solo SCHEDULED) -->
+                          <!-- ✅ BORRAR (SCHEDULED hard delete / FINAL revert + CANCELLED) -->
                           <button
-                            v-if="upper(g.status) === 'SCHEDULED'"
+                            v-if="upper(g.status) !== 'CANCELLED'"
                             type="button"
                             class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] font-extrabold text-rose-100 hover:bg-rose-500/15 disabled:opacity-50 disabled:cursor-not-allowed"
                             :disabled="deletingId === g.id"
                             @click="deleteGame(g)"
-                            title="Borra el partido (hard delete). Solo SCHEDULED."
+                            :title="upper(g.status) === 'FINAL'
+                              ? 'Revertir standings y cancelar el partido (CANCELLED).'
+                              : 'Hard delete (elimina de la BD).'"
                           >
-                            {{ deletingId === g.id ? 'Borrando…' : 'Borrar' }}
+                            {{ deletingId === g.id ? 'Borrando…' : (upper(g.status) === 'FINAL' ? 'Eliminar (revertir)' : 'Borrar') }}
                           </button>
 
                           <button
@@ -476,6 +474,67 @@
                             Finalizar
                           </button>
                         </div>
+                      </div>
+
+                      <!-- ✅ EDIT SCORE PANEL (solo FINAL) -->
+                      <div
+                        v-if="editScorePanelId === g.id"
+                        class="mt-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3"
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          <p class="text-xs font-semibold text-amber-100">Corregir marcador (recalcula standings)</p>
+                          <button
+                            type="button"
+                            class="text-[11px] font-semibold text-amber-100/80 hover:text-amber-100 underline underline-offset-4"
+                            @click="closeEditScore()"
+                          >
+                            Cerrar
+                          </button>
+                        </div>
+
+                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label class="block text-[11px] font-semibold text-amber-100/80 mb-1">Puntos Local</label>
+                            <input
+                              v-model.number="editHomeScore"
+                              type="number"
+                              min="0"
+                              class="w-full rounded-xl border border-amber-500/30 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                            />
+                          </div>
+
+                          <div>
+                            <label class="block text-[11px] font-semibold text-amber-100/80 mb-1">Puntos Visitante</label>
+                            <input
+                              v-model.number="editAwayScore"
+                              type="number"
+                              min="0"
+                              class="w-full rounded-xl border border-amber-500/30 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="mt-3 flex flex-col sm:flex-row gap-2 justify-end">
+                          <button
+                            type="button"
+                            class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-slate-900 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                            :disabled="editingScore"
+                            @click="saveEditedScore(g)"
+                          >
+                            {{ editingScore ? 'Guardando…' : 'Actualizar score' }}
+                          </button>
+
+                          <button
+                            type="button"
+                            class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/40 px-4 py-2.5 text-xs font-semibold text-slate-100 hover:border-slate-500"
+                            @click="closeEditScore()"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+
+                        <p v-if="editScoreError" class="mt-2 text-xs text-rose-200">{{ editScoreError }}</p>
+                        <p v-if="editScoreOk" class="mt-2 text-xs text-emerald-200">{{ editScoreOk }}</p>
                       </div>
 
                       <!-- FINALIZAR PANEL -->
@@ -491,7 +550,7 @@
                           </button>
                         </div>
 
-                        <div class="mt-3 grid grid-cols-2 gap-3">
+                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label class="block text-[11px] font-semibold text-emerald-100/80 mb-1">Puntos Local</label>
                             <input
@@ -661,14 +720,6 @@
                           >
                             {{ finishing ? 'Guardando…' : 'Guardar FINAL' }}
                           </button>
-
-                          <button
-                            type="button"
-                            class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/40 px-4 py-2.5 text-xs font-semibold text-slate-100 hover:border-slate-500"
-                            @click="loadForEditAndFinal(g)"
-                          >
-                            Abrir en formulario
-                          </button>
                         </div>
 
                         <p v-if="finishError" class="mt-2 text-xs text-rose-200">{{ finishError }}</p>
@@ -676,7 +727,7 @@
                       </div>
                     </div>
 
-                    <!-- PAGINACIÓN 5 POR PÁGINA -->
+                    <!-- PAGINACIÓN -->
                     <div class="pt-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <p class="text-[11px] text-slate-400">
                         Página <span class="text-slate-100 font-semibold">{{ currentPage }}</span> de
@@ -758,7 +809,7 @@ import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from '#imports'
 import { useAuthz } from '~/composables/useAuthz'
 
 /** =========================
- *  PERF: quitar blur ANTES del scroll (evita el “lag” del arranque)
+ *  PERF: quitar blur ANTES del scroll
  *  ========================= */
 const isScrolling = ref(false)
 let scrollTO: ReturnType<typeof setTimeout> | null = null
@@ -818,7 +869,6 @@ const isAdmin = computed<boolean>(() => {
 async function authHeaders() {
   const kc = (nuxtApp as any).$kc
   try {
-    // intenta refrescar token si existe
     await kc?.updateToken?.(30)
   } catch {}
   const token = kc?.token
@@ -841,8 +891,15 @@ const API_PARTIDO_UPDATE = `${API_BASE}/partido/update`
 const API_TEAM_PLAYERS = (teamId: number) => `${API_BASE}/teams/${teamId}/players`
 const PLAYER_STATS_URL = (gameId: number) => `${API_BASE}/games/${gameId}/player-stats`
 
-/** ✅ HARD DELETE endpoint */
-const API_GAME_DELETE = (gameId: number) => `${API_GAMES}/${gameId}`
+/** DELETE:
+ * - SCHEDULED: tu Controller actual ya tiene DELETE /api/games/{id}
+ * - FINAL: usa tu endpoint “revert + CANCELLED” (DELETE /api/admin/games/{id})
+ */
+const API_GAME_DELETE_SCHEDULED = (gameId: number) => `${API_BASE}/games/${gameId}`
+const API_GAME_DELETE_ADMIN = (gameId: number) => `${API_BASE}/admin/games/${gameId}`
+
+/** CORREGIR SCORE: PATCH /api/admin/games/{id}/score */
+const API_GAME_EDIT_SCORE = (gameId: number) => `${API_BASE}/admin/games/${gameId}/score`
 
 /** =========================
  *  TYPES
@@ -871,7 +928,7 @@ type GameVM = {
   homeTeamId?: number
   awayTeamId?: number
   jornada?: number
-  field?: string
+  field?: string // venue/cancha
   homeScore?: number | null
   awayScore?: number | null
   _search?: string
@@ -1130,7 +1187,8 @@ watch(
 
       const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? 0) || undefined
       const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined
-      const field = String(g.field ?? g.location ?? '')
+
+      const venue = String(g.venue ?? g.field ?? g.location ?? '') // 👈 aquí se muestra la cancha
 
       const jornada = Number(g.jornada ?? g.matchday ?? g.round ?? g.week ?? 0) || undefined
 
@@ -1148,7 +1206,7 @@ watch(
         homeTeamId,
         awayTeamId,
         jornada,
-        field,
+        field: venue,
         homeScore: g.homeScore ?? g.home_score ?? null,
         awayScore: g.awayScore ?? g.away_score ?? null,
         _search: `${homeName} ${awayName}`.toLowerCase(),
@@ -1214,31 +1272,6 @@ function ensureUtc(iso: string) {
   return `${s}Z`
 }
 
-function loadForEdit(g: GameVM) {
-  editingId.value = g.id
-  homeTeamId.value = g.homeTeamId ?? null
-  awayTeamId.value = g.awayTeamId ?? null
-
-  if (g.match_date_utc) {
-    const dt = toLocalDateTime(g.match_date_utc)
-    form.value.date = dt.date
-    form.value.time = dt.time
-  } else {
-    form.value.date = ''
-    form.value.time = ''
-  }
-
-  form.value.seasonId = g.seasonId ?? DEFAULT_SEASON_ID
-  form.value.categoryId = g.categoryId ?? form.value.categoryId
-  form.value.jornada = Number(g.jornada ?? 0)
-  form.value.field = String(g.field ?? '')
-
-  homeInput.value = homeTeam.value?.name || ''
-  awayInput.value = awayTeam.value?.name || ''
-  formOk.value = ''
-  formError.value = ''
-}
-
 function validateForm() {
   if (!form.value.categoryId || form.value.categoryId < 1) return 'Selecciona categoría del partido.'
   if (!homeTeamId.value) return 'Selecciona equipo Local.'
@@ -1265,46 +1298,42 @@ async function saveGame() {
     const payloadCreate: any = {
       season_id: seasonId,
       seasonId,
-
       category_id: form.value.categoryId,
       categoryId: form.value.categoryId,
-
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
-
       away_team_id: awayTeamId.value,
       awayTeamId: awayTeamId.value,
-
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
-
       round_label: `J${Number(form.value.jornada)}`,
       roundLabel: `J${Number(form.value.jornada)}`,
+
+      // cancha (si backend lo soporta; si no, lo ignora por @JsonIgnoreProperties)
+      venue: form.value.field,
+      field: form.value.field,
+      location: form.value.field,
     }
 
     const payloadEdit: any = {
       game_id: editingId.value,
       gameId: editingId.value,
       id: editingId.value,
-
       season_id: seasonId,
       seasonId,
-
       category_id: form.value.categoryId,
       categoryId: form.value.categoryId,
-
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
-
       status: 'SCHEDULED',
 
+      venue: form.value.field,
       field: form.value.field,
       location: form.value.field,
-      jornada: Number(form.value.jornada),
 
+      jornada: Number(form.value.jornada),
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
-
       away_team_id: awayTeamId.value,
       awayTeamId: awayTeamId.value,
     }
@@ -1472,7 +1501,7 @@ const pageTabs = computed(() => {
 })
 
 /** =========================
- *  ✅ HARD DELETE UI STATE + ACTION
+ *  ✅ DELETE
  *  ========================= */
 const deletingId = ref<number | null>(null)
 const deleteError = ref('')
@@ -1483,42 +1512,111 @@ async function deleteGame(g: GameVM) {
   deleteOk.value = ''
 
   const gid = Number(g?.id || 0)
-  if (!gid) {
-    deleteError.value = 'No hay gameId válido.'
-    return
-  }
+  if (!gid) return (deleteError.value = 'No hay gameId válido.')
 
-  // UI only (backend también valida)
-  if (upper(g.status) !== 'SCHEDULED') {
-    deleteError.value = 'Solo puedes borrar partidos SCHEDULED.'
-    return
-  }
+  const st = upper(g.status)
 
-  const ok = window.confirm(
-    `¿Borrar partido #${gid}?\n\nEsto es HARD DELETE (se elimina de la BD).\nSolo úsalo si estás seguro.`
-  )
-  if (!ok) return
+  const msg =
+    st === 'FINAL'
+      ? `¿Eliminar partido #${gid}?\n\nEsto revierte standings (GP/W/D/L/PF/PA/TP) y lo marca como CANCELLED.\n\n¿Seguro?`
+      : `¿Borrar partido #${gid}?\n\nEsto es HARD DELETE (se elimina de la BD).\n\n¿Seguro?`
+
+  if (!window.confirm(msg)) return
 
   deletingId.value = gid
   try {
     const headers = await authHeaders()
-    await $fetch(API_GAME_DELETE(gid), { method: 'DELETE', headers })
 
-    // optimista: quítalo de la lista ya
+    if (st === 'FINAL') {
+      // requiere endpoint DELETE /api/admin/games/{id} -> gameservice.deleteGameAndRevert(id)
+      await $fetch(API_GAME_DELETE_ADMIN(gid), { method: 'DELETE', headers })
+      deleteOk.value = `Partido #${gid} eliminado y revertido (CANCELLED).`
+    } else {
+      // endpoint que ya tienes: DELETE /api/games/{id}
+      await $fetch(API_GAME_DELETE_SCHEDULED(gid), { method: 'DELETE', headers })
+      deleteOk.value = `Partido #${gid} borrado.`
+    }
+
+    // UI optimista
     gamesVm.value = gamesVm.value.filter((x) => x.id !== gid)
     if (finishPanelId.value === gid) closeFinish()
-    if (editingId.value === gid) clearForm()
+    if (editScorePanelId.value === gid) closeEditScore()
 
-    deleteOk.value = `Partido #${gid} eliminado.`
     await refreshGames()
-    setTimeout(() => (deleteOk.value = ''), 1800)
+    setTimeout(() => (deleteOk.value = ''), 2200)
   } catch (e: any) {
     deleteError.value =
       e?.data?.message ||
       e?.message ||
-      'No se pudo borrar. (¿Token/rol admin? ¿FKs en BD?)'
+      'No se pudo borrar. Revisa endpoints/rol admin.'
   } finally {
     deletingId.value = null
+  }
+}
+
+/** =========================
+ *  ✅ EDIT SCORE (FINAL)
+ *  ========================= */
+const editScorePanelId = ref<number | null>(null)
+const editHomeScore = ref<number>(0)
+const editAwayScore = ref<number>(0)
+const editingScore = ref(false)
+const editScoreError = ref('')
+const editScoreOk = ref('')
+
+function openEditScore(g: GameVM) {
+  // solo 1 panel a la vez
+  finishPanelId.value = null
+  finishError.value = ''
+  finishOk.value = ''
+
+  editScorePanelId.value = g.id
+  editHomeScore.value = Number(g.homeScore ?? 0)
+  editAwayScore.value = Number(g.awayScore ?? 0)
+  editScoreError.value = ''
+  editScoreOk.value = ''
+}
+
+function closeEditScore() {
+  editScorePanelId.value = null
+  editScoreError.value = ''
+  editScoreOk.value = ''
+}
+
+async function saveEditedScore(g: GameVM) {
+  editScoreError.value = ''
+  editScoreOk.value = ''
+
+  const gid = Number(g?.id || 0)
+  if (!gid) return (editScoreError.value = 'No hay gameId válido.')
+
+  if (upper(g.status) !== 'FINAL') return (editScoreError.value = 'Solo puedes corregir score si está FINAL.')
+
+  const hs = Number(editHomeScore.value ?? 0)
+  const as = Number(editAwayScore.value ?? 0)
+  if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
+    return (editScoreError.value = 'Scores inválidos.')
+  }
+
+  editingScore.value = true
+  try {
+    const headers = await authHeaders()
+    await $fetch(API_GAME_EDIT_SCORE(gid), {
+      method: 'PATCH',
+      headers,
+      body: { homeScore: hs, awayScore: as },
+    })
+
+    editScoreOk.value = `Score actualizado (${hs} - ${as}).`
+    await refreshGames()
+    setTimeout(() => (editScoreOk.value = ''), 1800)
+  } catch (e: any) {
+    editScoreError.value =
+      e?.data?.message ||
+      e?.message ||
+      'No se pudo actualizar el score. (¿Token/rol admin? ¿endpoint?)'
+  } finally {
+    editingScore.value = false
   }
 }
 
@@ -1537,7 +1635,7 @@ const statsWarn = ref('')
 const statsOk = ref('')
 const rosterHint = ref('')
 
-/** --- stats cache (Map + tick) --- */
+/** --- stats cache --- */
 const statsMap = shallowRef<Map<number, StatEntry[]>>(new Map())
 const statsTick = ref(0)
 function getStats(gameId: number) {
@@ -1549,7 +1647,7 @@ function setStats(gameId: number, entries: StatEntry[]) {
   statsTick.value++
 }
 
-/** --- roster cache (Map + tick) --- */
+/** --- roster cache --- */
 const rosterMap = shallowRef<Map<number, Player[]>>(new Map())
 const rosterTick = ref(0)
 const rosterLoading = ref<Set<number>>(new Set())
@@ -1610,7 +1708,6 @@ const currentRosterOptions = computed(() => {
   return teamId ? getRoster(teamId) : []
 })
 
-/** key que cambia al cambiar de equipo/side/roster */
 const rosterSelectKey = computed(() => {
   const gid = finishPanelId.value || 0
   const side = statDraft.value.side
@@ -1668,10 +1765,7 @@ function addStatForGame(g: GameVM) {
   const roster = currentRosterOptions.value
   const p = roster.find((x) => Number(x.id) === pid)
 
-  if (!p) {
-    statsWarn.value = 'Selecciona un jugador válido del roster.'
-    return
-  }
+  if (!p) return (statsWarn.value = 'Selecciona un jugador válido del roster.')
 
   const entry: StatEntry = {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -1702,6 +1796,11 @@ function clearStats(gameId: number) {
 }
 
 async function openFinish(g: GameVM) {
+  // solo 1 panel a la vez
+  editScorePanelId.value = null
+  editScoreError.value = ''
+  editScoreOk.value = ''
+
   finishPanelId.value = g.id
   finishHomeScore.value = Number(g.homeScore ?? 0)
   finishAwayScore.value = Number(g.awayScore ?? 0)
@@ -1730,11 +1829,6 @@ function closeFinish() {
   rosterHint.value = ''
 }
 
-function loadForEditAndFinal(g: GameVM) {
-  loadForEdit(g)
-  finishPanelId.value = null
-}
-
 async function tryPostPlayerStats(gameId: number) {
   const entries = getStats(gameId)
   if (!entries.length) return
@@ -1742,7 +1836,6 @@ async function tryPostPlayerStats(gameId: number) {
   try {
     const payload = entries.map((e) => ({ kind: e.kind, side: e.side, playerId: e.playerId, qty: e.qty }))
     const headers = await authHeaders()
-    // ✅ tu Controller es PUT /games/{gameId}/player-stats
     await $fetch(PLAYER_STATS_URL(gameId), { method: 'PUT', body: payload, headers })
     statsOk.value = 'Stats individuales guardadas.'
     statsWarn.value = ''
@@ -1751,7 +1844,7 @@ async function tryPostPlayerStats(gameId: number) {
   }
 }
 
-/** ✅ FINALIZAR: body mínimo EXACTO a /partido/update */
+/** FINALIZAR: body mínimo EXACTO a /partido/update */
 async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: number) {
   const body = {
     game_id: String(gameId),
@@ -1768,28 +1861,20 @@ async function finishGame(g: GameVM) {
   statsWarn.value = ''
   statsOk.value = ''
 
-  if (!g?.id) {
-    finishError.value = 'No hay game_id válido.'
-    return
-  }
+  if (!g?.id) return (finishError.value = 'No hay game_id válido.')
 
   const hs = Number(finishHomeScore.value ?? 0)
   const as = Number(finishAwayScore.value ?? 0)
   if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
-    finishError.value = 'Scores inválidos.'
-    return
+    return (finishError.value = 'Scores inválidos.')
   }
 
   finishing.value = true
   try {
     await postFinalizeOnly(g.id, hs, as)
-
     finishOk.value = `Partido ${g.id} finalizado (${hs} - ${as}).`
     await refreshGames()
-
-    // stats opcionales
     await tryPostPlayerStats(g.id)
-
     setTimeout(() => (finishOk.value = ''), 2000)
   } catch (e: any) {
     finishError.value = e?.data?.message || e?.message || 'No se pudo finalizar. Revisa el backend.'
@@ -1808,6 +1893,8 @@ async function hardRefresh() {
   finishError.value = ''
   deleteOk.value = ''
   deleteError.value = ''
+  editScoreOk.value = ''
+  editScoreError.value = ''
   statsWarn.value = ''
   statsOk.value = ''
   rosterHint.value = ''
