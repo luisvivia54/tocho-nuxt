@@ -168,12 +168,12 @@
           </div>
 
           <h1 class="mt-6 font-extrabold leading-[0.95] tracking-tight">
-            <span class="block text-4xl sm:text-5xl md:text-7xl text-white">Donde se vive la</span>
-            <span class="mt-2 block text-4xl sm:text-5xl md:text-7xl text-emerald-300">Tochero5Liga</span>
+            <span class="block text-4xl sm:text-5xl md:text-7xl text-white">Donde se vive la liga</span>
+            <span class="mt-2 block text-4xl sm:text-5xl md:text-7xl text-emerald-300">Tochero5</span>
           </h1>
 
           <p class="mt-6 max-w-2xl text-sm sm:text-base text-slate-300">
-            Elige cuál liga quieres ver: la Liga de Domingo (sitio actual) o la Liga de Jueves (nuevo diseño).
+            Elige cuál liga quieres ver: la Liga de Dominical o la Liga nocturna (jueves)
           </p>
 
           <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -182,7 +182,7 @@
               class="group inline-flex items-center justify-center gap-3 rounded-full bg-emerald-300 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-slate-900 shadow-[0_18px_60px_rgba(16,185,129,0.25)] hover:brightness-105 transition"
             >
               <span class="h-2 w-2 rounded-full bg-slate-900/80" />
-              LIGA DE DOMINGO
+              LIGA DOMINICAL
               <span class="transition-transform group-hover:translate-x-0.5">→</span>
             </NuxtLink>
 
@@ -191,7 +191,7 @@
               class="group inline-flex items-center justify-center gap-3 rounded-full border border-white/12 bg-black/25 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-white hover:bg-black/35 transition"
             >
               <span class="h-2 w-2 rounded-full bg-amber-300" />
-              LIGA DE JUEVES
+              LIGA NOCTUNRA (JUEVES)
               <span class="transition-transform group-hover:translate-x-0.5">→</span>
             </NuxtLink>
           </div>
@@ -270,7 +270,7 @@
                 PROFESIONAL
               </div>
 
-              <h3 class="mt-4 text-3xl font-extrabold text-white">Liga de Domingo</h3>
+              <h3 class="mt-4 text-3xl font-extrabold text-white">Liga Dominical</h3>
               <p class="mt-3 max-w-md text-sm text-slate-300">
                 Competencia de élite. Equipos consolidados, intensidad y el mejor ambiente cada domingo.
               </p>
@@ -303,7 +303,7 @@
                 DESARROLLO
               </div>
 
-              <h3 class="mt-4 text-3xl font-extrabold text-white">Liga de Jueves</h3>
+              <h3 class="mt-4 text-3xl font-extrabold text-white">Liga Nocturna (Jueves)</h3>
               <p class="mt-3 max-w-md text-sm text-slate-300">
                 Talento en crecimiento, ritmo dinámico y una liga diseñada para competir y desarrollarse.
               </p>
@@ -408,13 +408,13 @@
               to="/domingo"
               class="rounded-full bg-emerald-300 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-slate-900 hover:brightness-105 transition"
             >
-              IR A LIGA DOMINGO →
+              IR A LIGA DOMINICAL →
             </NuxtLink>
             <NuxtLink
               to="/jueves"
               class="rounded-full border border-white/12 bg-black/25 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-white hover:bg-black/35 transition"
             >
-              IR A LIGA JUEVES →
+              IR A LIGA NOCTURNA (JUEVES) →
             </NuxtLink>
           </div>
         </div>
@@ -464,7 +464,9 @@ const gamesSeason = 52;
 const rounds = 18;
 
 // Fondo estadio / ligas
-const stadiumBg = "/img/hero-stadium.jpg";
+// ✅ CAMBIO ÚNICO: antes "/img/hero-stadium.jpg"
+const stadiumBg = "/img/sponsors/Tochero5.JPG";
+
 const domingoBg = "/img/liga-domingo.png";
 const juevesBg = "/img/liga-jueves.png";
 
