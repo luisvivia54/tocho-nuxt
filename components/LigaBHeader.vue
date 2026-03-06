@@ -1,147 +1,90 @@
-<!-- components/LigaBHeader.vue -->
 <template>
-  <header class="glass-header">
-    <div class="section-container flex items-center justify-between h-16 md:h-[72px]">
-      <!-- Logo -->
-      <NuxtLink
-        :to="homeTo"
-        class="flex items-center gap-2 font-display text-xl font-bold tracking-tight text-foreground"
-        @click="menuOpen = false"
-      >
-        <span class="text-accent">T5</span>
-        <span class="hidden sm:inline text-sm font-medium text-muted-foreground">Liga de Jueves</span>
-      </NuxtLink>
-
-      <!-- Desktop Nav -->
-      <nav class="hidden md:flex items-center gap-1">
-        <NuxtLink
-          :to="homeTo"
-          class="relative px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors duration-200"
-          :class="isActive('inicio') ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
-        >
-          Inicio
-          <span v-if="isActive('inicio')" class="absolute bottom-0 left-1/2 -translate-x-1/2">
-            <span class="block h-px w-5 bg-accent" />
-          </span>
+  <header class="fixed inset-x-0 top-0 z-[100] border-b border-white/8 bg-[#050816]/88 backdrop-blur-xl">
+    <div class="mx-auto max-w-7xl px-6">
+      <div class="flex h-20 items-center justify-between gap-6">
+        <!-- Left -->
+        <NuxtLink to="/jueves" class="flex items-center gap-3">
+          <span class="text-[2rem] font-black tracking-tight text-orange-400 leading-none">T5</span>
+          <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
         </NuxtLink>
 
-        <NuxtLink
-          v-for="item in navItems"
-          :key="item.label"
-          :to="item.to"
-          class="relative px-4 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors duration-200"
-          :class="isActive(item.tab) ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'"
-        >
-          {{ item.label }}
-          <span v-if="isActive(item.tab)" class="absolute bottom-0 left-1/2 -translate-x-1/2">
-            <span class="block h-px w-5 bg-accent" />
-          </span>
-        </NuxtLink>
-      </nav>
-
-      <!-- Right side -->
-      <div class="flex items-center gap-4">
-        <NuxtLink
-          to="/"
-          class="hidden md:inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ← Volver
-        </NuxtLink>
-
-        <div class="flex items-center gap-3">
-          <a
-            href="https://www.instagram.com/p/DVChsjbjRg-/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-muted-foreground transition-colors hover:text-accent"
+        <!-- Center -->
+        <nav class="hidden md:flex items-center gap-12">
+          <NuxtLink
+            v-for="item in nav"
+            :key="item.to"
+            :to="item.to"
+            class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
+            :class="isActive(item.to) ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
           >
-            <Instagram :size="18" />
-          </a>
-          <a
-            href="https://facebook.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-muted-foreground transition-colors hover:text-accent"
+            {{ item.label }}
+            <span
+              v-if="isActive(item.to)"
+              class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
+            />
+          </NuxtLink>
+        </nav>
+
+        <!-- Right -->
+        <div class="hidden md:flex items-center gap-6">
+          <NuxtLink
+            to="/"
+            class="text-[0.95rem] font-extrabold uppercase tracking-[0.22em] text-slate-400 hover:text-slate-200"
           >
-            <Facebook :size="18" />
-          </a>
+            ← Volver
+          </NuxtLink>
+
+          <a href="#" class="text-slate-400 hover:text-slate-200" aria-label="Instagram">IG</a>
+          <a href="#" class="text-slate-400 hover:text-slate-200" aria-label="Facebook">FB</a>
         </div>
 
-        <button class="md:hidden text-foreground" @click="menuOpen = !menuOpen">
-          <X v-if="menuOpen" :size="24" />
-          <Menu v-else :size="24" />
+        <!-- Mobile -->
+        <button
+          type="button"
+          class="md:hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200"
+          @click="open = !open"
+        >
+          Menú
         </button>
       </div>
+
+      <div v-if="open" class="md:hidden pb-4">
+        <div class="flex flex-col gap-2">
+          <NuxtLink
+            v-for="item in nav"
+            :key="item.to + '-m'"
+            :to="item.to"
+            class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
+            @click="open = false"
+          >
+            {{ item.label }}
+          </NuxtLink>
+
+          <NuxtLink
+            to="/"
+            class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
+            @click="open = false"
+          >
+            ← Volver
+          </NuxtLink>
+        </div>
+      </div>
     </div>
-
-    <!-- Mobile nav -->
-    <nav
-      v-if="menuOpen"
-      class="md:hidden border-t border-border/30 bg-background/95 backdrop-blur-md px-6 py-4 flex flex-col gap-3"
-    >
-      <NuxtLink
-        :to="homeTo"
-        class="text-xs font-semibold uppercase tracking-[0.15em]"
-        :class="isActive('inicio') ? 'text-accent' : 'text-muted-foreground'"
-        @click="menuOpen = false"
-      >
-        Inicio
-      </NuxtLink>
-
-      <NuxtLink
-        v-for="item in navItems"
-        :key="item.label"
-        :to="item.to"
-        class="text-xs font-semibold uppercase tracking-[0.15em]"
-        :class="isActive(item.tab) ? 'text-accent' : 'text-muted-foreground'"
-        @click="menuOpen = false"
-      >
-        {{ item.label }}
-      </NuxtLink>
-
-      <NuxtLink
-        to="/"
-        class="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground mt-2"
-        @click="menuOpen = false"
-      >
-        ← Volver al inicio
-      </NuxtLink>
-    </nav>
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { useRoute } from "#imports";
-import { Instagram, Facebook, Menu, X } from "lucide-vue-next";
+const route = useRoute()
+const open = ref(false)
 
-type Tab = "inicio" | "partidos" | "equipos" | "estadisticas";
+const nav = [
+  { label: "Inicio", to: "/jueves" },
+  { label: "Partidos", to: "/jueves/partidos" },
+  { label: "Equipos", to: "/jueves/equipos" },
+  { label: "Estadísticas", to: "/jueves/estadisticas" },
+]
 
-const route = useRoute();
-const menuOpen = ref(false);
-
-// ✅ fijo a JUEVES para que NUNCA se “contamine” con domingo
-const BASE = "/jueves";
-
-const currentTab = computed<Tab>(() => {
-  if (route.path !== BASE) return "inicio";
-  const t = String(route.query.tab ?? "inicio").toLowerCase();
-  if (t === "partidos" || t === "equipos" || t === "estadisticas") return t as Tab;
-  return "inicio";
-});
-
-const homeTo = computed(() => ({
-  path: BASE,
-  query: { ...route.query, tab: undefined, league: "jueves" }, // fuerza jueves
-}));
-
-const navItems = computed(() => [
-  { label: "Partidos", tab: "partidos" as const, to: { path: BASE, query: { ...route.query, tab: "partidos", league: "jueves" } } },
-  { label: "Equipos", tab: "equipos" as const, to: { path: BASE, query: { ...route.query, tab: "equipos", league: "jueves" } } },
-  { label: "Estadísticas", tab: "estadisticas" as const, to: { path: BASE, query: { ...route.query, tab: "estadisticas", league: "jueves" } } },
-]);
-
-function isActive(tab: Tab) {
-  return currentTab.value === tab;
+function isActive(path: string) {
+  return route.path === path
 }
 </script>

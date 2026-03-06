@@ -68,7 +68,7 @@
                 </h1>
                 <p class="mt-2 text-slate-700">{{ homeHeroSubtitle }}</p>
 
-                <!-- ✅ CTAs fijos (ya que quitaste cta1/cta2 del admin) -->
+                <!-- ✅ CTAs fijos -->
                 <div class="mt-4 flex flex-wrap gap-3">
                   <NuxtLink
                     to="/estadisticas"
@@ -84,7 +84,6 @@
                   </NuxtLink>
                 </div>
 
-                <!-- Debug light (solo si falla el fetch) -->
                 <p v-if="homeCfgError" class="mt-3 text-[11px] text-rose-700">
                   {{ homeCfgError }}
                 </p>
@@ -558,9 +557,7 @@
                 <article
                   v-for="doc in reglamentos"
                   :key="doc.id"
-                  class="group relative rounded-2xl border border-slate-200 bg-white overflow-hidden
-                         shadow-[0_14px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]
-                         transition-shadow"
+                  class="group relative rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-[0_14px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)] transition-shadow"
                 >
                   <div class="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500"></div>
 
@@ -630,10 +627,7 @@
                         :href="doc.href"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold
-                               bg-blue-600 hover:bg-blue-500 text-white
-                               shadow-[0_10px_25px_rgba(37,99,235,0.35)]
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       >
                         Ver reglamento <span class="ml-1 text-xs">↗</span>
                       </a>
@@ -641,9 +635,7 @@
                       <a
                         :href="doc.href"
                         :download="doc.downloadName"
-                        class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold
-                               bg-white border border-slate-200 text-slate-800 hover:bg-slate-50
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         title="Descargar"
                       >
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
@@ -862,7 +854,7 @@
     </section>
   </main>
 
- <!--<ChatWidget /> -->
+ <!-- <ChatWidget /> -->
 </template>
 
 <script setup>
@@ -906,6 +898,33 @@ const HOME_DEFAULTS = {
       tagline: 'Innovación para el juego y el bienestar.',
       description: 'Dicass acompaña a jugadores y familias con activaciones, alimentos y experiencias dentro del deportivo.',
       label: 'Patrocinador principal'
+    },
+    {
+      id: 'blitzflag',
+      name: 'BlitzFlag',
+      logo: '/img/sponsors/blitzflag-logo.png',
+      url: '',
+      tagline: 'Impulsando el flag football.',
+      description: 'BlitzFlag fortalece la experiencia competitiva de la liga con presencia de marca, comunidad y pasión por el juego.',
+      label: 'Patrocinador oficial'
+    },
+    {
+      id: 'underarmour',
+      name: 'Under Armour',
+      logo: '/img/sponsors/underarmour-logo.png',
+      url: '',
+      tagline: 'Rendimiento dentro y fuera del campo.',
+      description: 'Under Armour se suma como aliado de la liga con imagen, energía competitiva y respaldo a los jugadores.',
+      label: 'Patrocinador oficial'
+    },
+    {
+      id: 'medimex',
+      name: 'Fundación Medimex',
+      logo: '/img/sponsors/medimex-logo.png',
+      url: '',
+      tagline: 'Bienestar y comunidad.',
+      description: 'Fundación Medimex participa como aliado estratégico apoyando el crecimiento del torneo y su comunidad.',
+      label: 'Patrocinador oficial'
     }
   ],
   location: {
@@ -914,6 +933,57 @@ const HOME_DEFAULTS = {
     instagram: '@tochero5liga',
     copyright: '© 2026 tochero5liga'
   }
+}
+
+const SPONSOR_FALLBACKS = clone(HOME_DEFAULTS.sponsors)
+
+function normalizeSponsorId(nameOrId) {
+  return String(nameOrId || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+}
+
+function mergeSponsorsWithFallbacks(inputSponsors) {
+  const map = new Map()
+
+  for (const sp of SPONSOR_FALLBACKS) {
+    map.set(normalizeSponsorId(sp.id || sp.name), clone(sp))
+  }
+
+  for (const raw of Array.isArray(inputSponsors) ? inputSponsors : []) {
+    const normalized = {
+      id: String(raw.id ?? uid('sp')),
+      name: String(raw.name ?? ''),
+      logo: String(raw.logo ?? ''),
+      url: String(raw.url ?? ''),
+      tagline: String(raw.tagline ?? ''),
+      description: String(raw.description ?? ''),
+      label: String(raw.label ?? '')
+    }
+
+    const key = normalizeSponsorId(normalized.id || normalized.name)
+
+    if (!map.has(key)) {
+      map.set(key, normalized)
+      continue
+    }
+
+    const base = map.get(key)
+    map.set(key, {
+      ...base,
+      ...normalized,
+      id: normalized.id || base.id,
+      name: normalized.name || base.name,
+      logo: normalized.logo || base.logo,
+      url: normalized.url || base.url,
+      tagline: normalized.tagline || base.tagline,
+      description: normalized.description || base.description,
+      label: normalized.label || base.label
+    })
+  }
+
+  return Array.from(map.values())
 }
 
 function normalizeHomeData(data) {
@@ -941,17 +1011,19 @@ function normalizeHomeData(data) {
     }
 
     if (Array.isArray(data.sponsors)) {
-      merged.sponsors = data.sponsors
-        .filter((x) => x && typeof x === 'object')
-        .map((x) => ({
-          id: String(x.id ?? uid('sp')),
-          name: String(x.name ?? ''),
-          logo: String(x.logo ?? ''),
-          url: String(x.url ?? ''),
-          tagline: String(x.tagline ?? ''),
-          description: String(x.description ?? ''),
-          label: String(x.label ?? '')
-        }))
+      merged.sponsors = mergeSponsorsWithFallbacks(
+        data.sponsors
+          .filter((x) => x && typeof x === 'object')
+          .map((x) => ({
+            id: String(x.id ?? uid('sp')),
+            name: String(x.name ?? ''),
+            logo: String(x.logo ?? ''),
+            url: String(x.url ?? ''),
+            tagline: String(x.tagline ?? ''),
+            description: String(x.description ?? ''),
+            label: String(x.label ?? '')
+          }))
+      )
     }
 
     if (data.location && typeof data.location === 'object') {
@@ -965,7 +1037,9 @@ function normalizeHomeData(data) {
   if (!Array.isArray(merged.hero.images) || merged.hero.images.length === 0) {
     merged.hero.images = clone(HOME_DEFAULTS.hero.images)
   }
-  if (!Array.isArray(merged.sponsors)) merged.sponsors = []
+  if (!Array.isArray(merged.sponsors) || merged.sponsors.length === 0) {
+    merged.sponsors = clone(SPONSOR_FALLBACKS)
+  }
   return merged
 }
 
@@ -976,14 +1050,10 @@ async function loadHomeConfig() {
   homeCfgError.value = ''
   try {
     const res = await $fetch(HOME_CFG_ENDPOINT).catch(() => null)
-
-    // Tu DTO normalmente regresa { key, schemaVersion, data, updatedAt }
     const payload = (res && typeof res === 'object' && 'data' in res) ? res.data : res
     const merged = normalizeHomeData(payload)
 
     homeCfg.value = merged
-
-    // aplicar a refs que usa el UI
     heroSlides.value = merged.hero.images.map((x) => ({ id: x.id, src: x.src }))
     if (heroSlides.value.length === 0) heroSlides.value = clone(HOME_DEFAULTS.hero.images)
     currentSlide.value = 0
@@ -992,7 +1062,6 @@ async function loadHomeConfig() {
     if (!sponsors.value.length) sponsors.value = clone(HOME_DEFAULTS.sponsors)
     activeSponsorIndex.value = 0
   } catch (e) {
-    // si falla, no truena la home: se queda con defaults
     homeCfg.value = clone(HOME_DEFAULTS)
     heroSlides.value = clone(HOME_DEFAULTS.hero.images)
     sponsors.value = clone(HOME_DEFAULTS.sponsors)
@@ -1003,7 +1072,6 @@ async function loadHomeConfig() {
 onMounted(() => {
   loadHomeConfig()
 
-  // opcional: refresca cuando vuelves a la pestaña (para ver cambios del admin sin hard refresh)
   const onVis = () => {
     if (document.visibilityState === 'visible') loadHomeConfig()
   }
@@ -1016,16 +1084,15 @@ const homeHeroSubtitle = computed(() => String(homeCfg.value?.hero?.subtitle ?? 
 const homeIntroTitle = computed(() => String(homeCfg.value?.intro?.title ?? HOME_DEFAULTS.intro.title))
 const homeIntroSubtitle = computed(() => String(homeCfg.value?.intro?.subtitle ?? HOME_DEFAULTS.intro.subtitle))
 
-const homeLocationAddress = computed(() => String(homeCfg.value?.location?.address ?? HOME_DEFAULTS.location.address))
-const homeLocationInstagram = computed(() => String(homeCfg.value?.location?.instagram ?? HOME_DEFAULTS.location.instagram))
-const homeLocationCopyright = computed(() => String(homeCfg.value?.location?.copyright ?? HOME_DEFAULTS.location.copyright))
-
 /* ===================== MAPA ===================== */
 const mapsShortUrl = 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9'
 const mapsLat = 19.4820973
 const mapsLng = -99.2446694
 const mapsEmbedSrc = computed(() => `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`)
 const mapsOpenUrl = computed(() => String(homeCfg.value?.location?.mapsUrl || mapsShortUrl))
+const homeLocationAddress = computed(() => String(homeCfg.value?.location?.address ?? HOME_DEFAULTS.location.address))
+const homeLocationInstagram = computed(() => String(homeCfg.value?.location?.instagram ?? HOME_DEFAULTS.location.instagram))
+const homeLocationCopyright = computed(() => String(homeCfg.value?.location?.copyright ?? HOME_DEFAULTS.location.copyright))
 
 /* ===================== HELPERS ===================== */
 function toNum(v) {
@@ -1413,11 +1480,6 @@ function pickArrayFromResponse(res) {
   return []
 }
 
-/**
- * ✅ FIX: merge + dedupe (/games + /gamesFinal)
- * - Si /games viene vacío (común), /gamesFinal suele traer data.
- * - Filtra por seasonId cuando el objeto lo trae.
- */
 async function fetchGamesAny(seasonId) {
   const sid = Number(seasonId || 0) || 0
 
@@ -1438,7 +1500,6 @@ async function fetchGamesAny(seasonId) {
 
   if (!merged.length) return []
 
-  // dedupe por id si existe
   const map = new Map()
   for (const g of merged) {
     const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
@@ -1448,7 +1509,6 @@ async function fetchGamesAny(seasonId) {
 
   let out = Array.from(map.values())
 
-  // si hay seasonId, filtra por season cuando el objeto lo trae
   if (sid) {
     out = out.filter((g) => {
       const s = pickSeasonId(g)
@@ -1736,7 +1796,7 @@ const onUpcomingPointerLeave = () => {
   startUpcomingAuto()
 }
 
-/* ===================== PATROCINADORES (desde backend config) ===================== */
+/* ===================== PATROCINADORES ===================== */
 const sponsors = ref(clone(HOME_DEFAULTS.sponsors))
 
 const FALLBACK_SPONSOR = {
@@ -1856,7 +1916,6 @@ onBeforeUnmount(() => {
   transform: scale(1.12);
 }
 
-/* ✅ Swipe UX */
 .hero-swipe {
   touch-action: pan-y;
   user-select: none;
@@ -1866,7 +1925,6 @@ onBeforeUnmount(() => {
 }
 .hero-swipe:active { cursor: grabbing; }
 
-/* Tap zones for mobile */
 .tapzone {
   position: absolute;
   top: 0;
@@ -1881,14 +1939,12 @@ onBeforeUnmount(() => {
   .tapzone { display: none; }
 }
 
-/* Upcoming swipe zone */
 .upcoming-swipe {
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* Smooth transitions */
 .fade-enter-active, .fade-leave-active { transition: opacity .28s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 

@@ -1,0 +1,95 @@
+:root{
+  --background: 5 8 22;
+  --foreground: 248 250 252;
+  --muted: 148 163 184;
+  --border: 148 163 184;
+  --accent: 249 115 22;
+  --accent-foreground: 0 0 0;
+}
+
+.bg-background { background-color: rgb(var(--background)); }
+.text-foreground { color: rgb(var(--foreground)); }
+.text-muted-foreground { color: rgb(var(--muted)); }
+.border-border\/30 { border-color: rgba(var(--border), .16); }
+.bg-accent { background-color: rgb(var(--accent)); }
+.text-accent { color: rgb(var(--accent)); }
+.text-accent-foreground { color: rgb(var(--accent-foreground)); }
+
+.section-container{
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.pill-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(249,115,22,.22);
+  background: rgba(5,8,22,.48);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 10px 16px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(226,232,240,0.90);
+}
+
+.eyebrow{
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(148,163,184,0.95);
+  font-size: 12px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+.eyebrow::before{
+  content: "";
+  width: 44px;
+  height: 2px;
+  border-radius: 9999px;
+  background: rgba(16,185,129,0.8);
+}
+
+.match-row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(148,163,184,.12);
+  background: rgba(8,12,32,.34);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.btn-hero-secondary{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: 16px;
+  border: 1px solid rgba(148,163,184,.16);
+  background: rgba(255,255,255,.04);
+  color: rgb(var(--foreground));
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  min-height: 52px;
+  transition: background 160ms ease, transform 160ms ease;
+}
+.btn-hero-secondary:hover{
+  background: rgba(255,255,255,.07);
+}
+
+.btn-hero{
+  box-shadow: 0 10px 30px rgba(249,115,22,.20);
+}
