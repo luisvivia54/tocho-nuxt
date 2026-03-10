@@ -755,14 +755,16 @@
 <script setup lang="ts">
 import { computed, ref, watch, shallowRef, onMounted, onBeforeUnmount } from 'vue'
 import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from '#imports'
-import { useAuthz } from '~/composables/useAuthz'
+import { $fetch } from 'ofetch'
+import { useAuthz } from '@/composables/useAuthz'
 
 /** =========================
- *  PERF: quitar blur ANTES del scroll (evita el “lag” del arranque)
+ *  PERF: quitar blur ANTES del scroll
  *  ========================= */
 const isScrolling = ref(false)
 let scrollTO: ReturnType<typeof setTimeout> | null = null
 let rafId = 0
+
 function kickNoBlur() {
   if (rafId) return
   rafId = requestAnimationFrame(() => {
@@ -772,10 +774,12 @@ function kickNoBlur() {
     scrollTO = setTimeout(() => (isScrolling.value = false), 140)
   })
 }
+
 function onKeyKick(e: KeyboardEvent) {
   const keys = ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']
   if (keys.includes(e.key)) kickNoBlur()
 }
+
 onMounted(() => {
   window.addEventListener('wheel', kickNoBlur, { passive: true })
   window.addEventListener('pointerdown', kickNoBlur, { passive: true })
@@ -784,6 +788,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKeyKick)
   window.addEventListener('scroll', kickNoBlur, { passive: true })
 })
+
 onBeforeUnmount(() => {
   window.removeEventListener('wheel', kickNoBlur)
   window.removeEventListener('pointerdown', kickNoBlur)
@@ -812,24 +817,41 @@ const isAdmin = computed<boolean>(() => {
     kc?.tokenParsed?.realm_access?.roles ||
     kc?.tokenParsed?.resource_access?.['nuxt-app']?.roles ||
     []
+
   return roles.map((r) => String(r).toLowerCase()).includes('admin')
 })
 
-async function authHeaders() {
+async function authHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {}
   const kc = (nuxtApp as any).$kc
+
   try {
-    // intenta refrescar token si existe
     await kc?.updateToken?.(30)
   } catch {}
+
   const token = kc?.token
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  return headers
 }
 
 /** =========================
- *  API
+ *  API BASE NORMALIZADA
  *  ========================= */
+function normalizeApiBase(raw: string) {
+  const fallback = 'https://tocho5-api.tochero5.mx/api'
+  const s = String(raw || '').trim()
+  if (!s) return fallback
+
+  const clean = s.replace(/\/+$/, '')
+  return clean.endsWith('/api') ? clean : `${clean}/api`
+}
+
 const config = useRuntimeConfig()
-const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
+const API_BASE = normalizeApiBase(
+  ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx'
+)
+
 const DEFAULT_SEASON_ID = Number((config.public as any)?.seasonId ?? 2)
 
 const API_GAMES = `${API_BASE}/games`
@@ -840,14 +862,18 @@ const API_CATEGORIES = `${API_BASE}/categories`
 const API_PARTIDO_UPDATE = `${API_BASE}/partido/update`
 const API_TEAM_PLAYERS = (teamId: number) => `${API_BASE}/teams/${teamId}/players`
 const PLAYER_STATS_URL = (gameId: number) => `${API_BASE}/games/${gameId}/player-stats`
-
-/** ✅ HARD DELETE endpoint */
 const API_GAME_DELETE = (gameId: number) => `${API_GAMES}/${gameId}`
 
 /** =========================
  *  TYPES
  *  ========================= */
-type Category = { id: number; name: string; code: string; gender: string }
+type Category = {
+  id: number
+  name: string
+  code: string
+  gender: string
+}
+
 type Team = {
   teamId: number
   name: string
@@ -857,6 +883,7 @@ type Team = {
   category?: Category | null
   _search?: string
 }
+
 type GameVM = {
   id: number
   status: string
@@ -876,10 +903,17 @@ type GameVM = {
   awayScore?: number | null
   _search?: string
 }
-type Player = { id: number; fullName: string; jerseyNumber: number | null; photoUrl?: string | null }
+
+type Player = {
+  id: number
+  fullName: string
+  jerseyNumber: number | null
+  photoUrl?: string | null
+}
 
 type StatKind = 'TD' | 'PASS_TD' | 'INT' | 'SACK'
 type StatSide = 'HOME' | 'AWAY'
+
 type StatEntry = {
   id: string
   kind: StatKind
@@ -897,17 +931,28 @@ function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
   if (x && Array.isArray(x.items)) return x.items
+  if (x && Array.isArray(x.data)) return x.data
   return []
 }
+
 function upper(v: any) {
   return String(v ?? '').trim().toUpperCase()
 }
+
 function initials(text: string) {
   const s = String(text || '').trim()
   if (!s) return 'T5'
   const parts = s.split(/\s+/).slice(0, 2)
   return parts.map((p) => p[0]?.toUpperCase()).join('')
 }
+
+function ensureUtc(iso: string) {
+  const s = String(iso ?? '').trim()
+  if (!s) return s
+  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
+  return `${s}Z`
+}
+
 function toLocalDateTime(iso: string) {
   const d = new Date(ensureUtc(iso))
   const yyyy = d.getFullYear()
@@ -917,10 +962,12 @@ function toLocalDateTime(iso: string) {
   const mi = String(d.getMinutes()).padStart(2, '0')
   return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${mi}` }
 }
+
 function localToUtcIso(date: string, time: string) {
   const d = new Date(`${date}T${time}:00`)
   return d.toISOString()
 }
+
 function niceGender(g: string) {
   const x = String(g || '').toUpperCase()
   if (x === 'VARONIL') return 'Varonil'
@@ -928,12 +975,15 @@ function niceGender(g: string) {
   if (x === 'MIXTO') return 'Mixto'
   return g
 }
+
 function categoryLabel(c: Category) {
   return `${c.name} · ${niceGender(c.gender)} · ${String(c.code).toUpperCase()}`
 }
+
 function debounceLowerRef(src: any, ms: number) {
   const out = ref('')
   let t: ReturnType<typeof setTimeout> | null = null
+
   watch(
     src,
     (v) => {
@@ -944,6 +994,7 @@ function debounceLowerRef(src: any, ms: number) {
     },
     { immediate: true }
   )
+
   return out
 }
 
@@ -952,9 +1003,11 @@ function debounceLowerRef(src: any, ms: number) {
  *  ========================= */
 const dateEl = ref<HTMLInputElement | null>(null)
 const timeEl = ref<HTMLInputElement | null>(null)
+
 function openNativePicker(elOrRef: any) {
   const el: HTMLInputElement | null =
     elOrRef && typeof elOrRef === 'object' && 'value' in elOrRef ? elOrRef.value : elOrRef
+
   if (!el) return
   ;(el as any).showPicker?.()
   el.focus()
@@ -982,13 +1035,14 @@ const { data: catData } = useAsyncData(
       return []
     }
   },
-  { server: false }
+  { server: false, default: () => [] }
 )
 
 watch(
   catData,
   () => {
     const list = unwrapList<any>(catData.value)
+
     const arr: Category[] = list
       .map((x) => ({
         id: Number(x.id ?? x.categoryId ?? x.category_id),
@@ -1015,11 +1069,17 @@ async function fetchTeamsSmart() {
     return unwrapList<any>(await $fetch(API_TEAMS))
   }
 }
-const { data: teamsRaw, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
-  'admin-teams-lite-fast',
-  fetchTeamsSmart,
-  { server: false }
-)
+
+const {
+  data: teamsRaw,
+  pending: teamsPending,
+  error: teamsErr,
+  refresh: refreshTeams,
+} = useAsyncData('admin-teams-lite-fast', fetchTeamsSmart, {
+  server: false,
+  default: () => [],
+})
+
 const teamsError = computed(() => !!teamsErr.value)
 
 watch(
@@ -1065,6 +1125,7 @@ watch(
 
     const byId = new Map<number, Team>()
     const byCat = new Map<number, Team[]>()
+
     for (const t of arr) {
       byId.set(t.teamId, t)
       const c = Number(t.categoryId || 0)
@@ -1073,6 +1134,7 @@ watch(
         byCat.get(c)!.push(t)
       }
     }
+
     teamsById.value = byId
     teamsByCategory.value = byCat
   },
@@ -1080,24 +1142,33 @@ watch(
 )
 
 /** --- fetch games --- */
-const { data: gamesRaw, pending: gamesPending, error: gamesErr, refresh: refreshGames } = useAsyncData(
+const {
+  data: gamesRaw,
+  pending: gamesPending,
+  error: gamesErr,
+  refresh: refreshGames,
+} = useAsyncData(
   'admin-games-lite-fast',
   async () => {
     const [scheduled, finals] = await Promise.all([
       $fetch<any>(API_GAMES).catch(() => []),
       $fetch<any>(API_GAMES_FINAL).catch(() => []),
     ])
+
     const all = [...unwrapList<any>(scheduled), ...unwrapList<any>(finals)]
     const map = new Map<number, any>()
+
     for (const g of all) {
       const id = Number(g.game_id ?? g.gameId ?? g.id)
       if (!id) continue
       map.set(id, g)
     }
+
     return Array.from(map.values())
   },
-  { server: false }
+  { server: false, default: () => [] }
 )
+
 const gamesError = computed(() => !!gamesErr.value)
 
 watch(
@@ -1120,18 +1191,22 @@ watch(
 
       const categoryId = Number(g.category_id ?? g.categoryId ?? g.category?.id ?? 0) || undefined
       const cat = categoryId ? catMap.get(categoryId) : null
+
       const catName = g.category?.name ?? cat?.name
       const catGender = g.category?.gender ?? cat?.gender
       const catCode = g.category?.code ?? cat?.code
 
-      const categoryLabelStr = [catName, catGender ? niceGender(catGender) : null, catCode ? String(catCode).toUpperCase() : null]
+      const categoryLabelStr = [
+        catName,
+        catGender ? niceGender(catGender) : null,
+        catCode ? String(catCode).toUpperCase() : null,
+      ]
         .filter(Boolean)
         .join(' · ')
 
       const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? 0) || undefined
       const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined
       const field = String(g.field ?? g.location ?? '')
-
       const jornada = Number(g.jornada ?? g.matchday ?? g.round ?? g.week ?? 0) || undefined
 
       return {
@@ -1173,8 +1248,12 @@ const editingId = ref<number | null>(null)
 const homeTeamId = ref<number | null>(null)
 const awayTeamId = ref<number | null>(null)
 
-const homeTeam = computed(() => (homeTeamId.value ? teamsById.value.get(homeTeamId.value) || null : null))
-const awayTeam = computed(() => (awayTeamId.value ? teamsById.value.get(awayTeamId.value) || null : null))
+const homeTeam = computed(() =>
+  homeTeamId.value ? teamsById.value.get(homeTeamId.value) || null : null
+)
+const awayTeam = computed(() =>
+  awayTeamId.value ? teamsById.value.get(awayTeamId.value) || null : null
+)
 
 const form = ref({
   seasonId: DEFAULT_SEASON_ID,
@@ -1202,16 +1281,16 @@ function clearForm() {
   awayInput.value = ''
   homeOpen.value = false
   awayOpen.value = false
-  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: '', time: '', jornada: 0, field: '' }
+  form.value = {
+    seasonId: DEFAULT_SEASON_ID,
+    categoryId: 0,
+    date: '',
+    time: '',
+    jornada: 0,
+    field: '',
+  }
   formError.value = ''
   formOk.value = ''
-}
-
-function ensureUtc(iso: string) {
-  const s = String(iso ?? '').trim()
-  if (!s) return s
-  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
-  return `${s}Z`
 }
 
 function loadForEdit(g: GameVM) {
@@ -1253,10 +1332,15 @@ function validateForm() {
 async function saveGame() {
   formError.value = ''
   formOk.value = ''
+
   const msg = validateForm()
-  if (msg) return (formError.value = msg)
+  if (msg) {
+    formError.value = msg
+    return
+  }
 
   saving.value = true
+
   try {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
     const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
@@ -1265,56 +1349,53 @@ async function saveGame() {
     const payloadCreate: any = {
       season_id: seasonId,
       seasonId,
-
       category_id: form.value.categoryId,
       categoryId: form.value.categoryId,
-
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
-
       away_team_id: awayTeamId.value,
       awayTeamId: awayTeamId.value,
-
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
-
       round_label: `J${Number(form.value.jornada)}`,
       roundLabel: `J${Number(form.value.jornada)}`,
+      field: form.value.field,
+      location: form.value.field,
+      jornada: Number(form.value.jornada),
     }
 
     const payloadEdit: any = {
       game_id: editingId.value,
       gameId: editingId.value,
       id: editingId.value,
-
       season_id: seasonId,
       seasonId,
-
       category_id: form.value.categoryId,
       categoryId: form.value.categoryId,
-
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
-
       status: 'SCHEDULED',
-
       field: form.value.field,
       location: form.value.field,
       jornada: Number(form.value.jornada),
-
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
-
       away_team_id: awayTeamId.value,
       awayTeamId: awayTeamId.value,
     }
 
     if (!isEdit) {
-      const resp: any = await $fetch(API_GAMES, { method: 'POST', body: payloadCreate })
+      const resp: any = await $fetch(API_GAMES, {
+        method: 'POST',
+        body: payloadCreate,
+      })
       const newId = Number(resp?.gameId ?? resp?.game_id ?? resp?.id ?? 0) || null
       formOk.value = newId ? `Partido creado (ID ${newId}).` : 'Partido creado.'
     } else {
-      await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payloadEdit })
+      await $fetch(API_PARTIDO_UPDATE, {
+        method: 'POST',
+        body: payloadEdit,
+      })
       formOk.value = `Partido actualizado (ID ${editingId.value}).`
     }
 
@@ -1335,6 +1416,7 @@ function swapTeams() {
   const a = homeTeamId.value
   homeTeamId.value = awayTeamId.value
   awayTeamId.value = a
+
   const tmp = homeInput.value
   homeInput.value = awayInput.value
   awayInput.value = tmp
@@ -1379,6 +1461,7 @@ function suggest(q: string, excludeId: number | null) {
     if ((t._search || '').includes(query)) out.push(t)
     if (out.length >= LIMIT) break
   }
+
   return out
 }
 
@@ -1390,22 +1473,27 @@ function pickHome(t: Team) {
   homeInput.value = t.name
   homeOpen.value = false
 }
+
 function pickAway(t: Team) {
   awayTeamId.value = t.teamId
   awayInput.value = t.name
   awayOpen.value = false
 }
+
 function clearHome() {
   homeTeamId.value = null
   homeInput.value = ''
 }
+
 function clearAway() {
   awayTeamId.value = null
   awayInput.value = ''
 }
+
 function closeHomeLater() {
   setTimeout(() => (homeOpen.value = false), 80)
 }
+
 function closeAwayLater() {
   setTimeout(() => (awayOpen.value = false), 80)
 }
@@ -1472,7 +1560,7 @@ const pageTabs = computed(() => {
 })
 
 /** =========================
- *  ✅ HARD DELETE UI STATE + ACTION
+ *  HARD DELETE
  *  ========================= */
 const deletingId = ref<number | null>(null)
 const deleteError = ref('')
@@ -1488,7 +1576,6 @@ async function deleteGame(g: GameVM) {
     return
   }
 
-  // UI only (backend también valida)
   if (upper(g.status) !== 'SCHEDULED') {
     deleteError.value = 'Solo puedes borrar partidos SCHEDULED.'
     return
@@ -1500,12 +1587,17 @@ async function deleteGame(g: GameVM) {
   if (!ok) return
 
   deletingId.value = gid
+
   try {
     const headers = await authHeaders()
-    await $fetch(API_GAME_DELETE(gid), { method: 'DELETE', headers })
 
-    // optimista: quítalo de la lista ya
+    await $fetch(API_GAME_DELETE(gid), {
+      method: 'DELETE',
+      headers,
+    })
+
     gamesVm.value = gamesVm.value.filter((x) => x.id !== gid)
+
     if (finishPanelId.value === gid) closeFinish()
     if (editingId.value === gid) clearForm()
 
@@ -1537,19 +1629,19 @@ const statsWarn = ref('')
 const statsOk = ref('')
 const rosterHint = ref('')
 
-/** --- stats cache (Map + tick) --- */
 const statsMap = shallowRef<Map<number, StatEntry[]>>(new Map())
 const statsTick = ref(0)
+
 function getStats(gameId: number) {
   statsTick.value
   return statsMap.value.get(gameId) || []
 }
+
 function setStats(gameId: number, entries: StatEntry[]) {
   statsMap.value.set(gameId, entries)
   statsTick.value++
 }
 
-/** --- roster cache (Map + tick) --- */
 const rosterMap = shallowRef<Map<number, Player[]>>(new Map())
 const rosterTick = ref(0)
 const rosterLoading = ref<Set<number>>(new Set())
@@ -1565,9 +1657,11 @@ async function ensureRoster(teamId: number) {
   if (rosterLoading.value.has(teamId)) return
 
   rosterLoading.value.add(teamId)
+
   try {
     const players = await $fetch<any>(API_TEAM_PLAYERS(teamId))
     const arr = Array.isArray(players) ? players : []
+
     rosterMap.value.set(
       teamId,
       arr.map((p: any) => ({
@@ -1585,7 +1679,6 @@ async function ensureRoster(teamId: number) {
   }
 }
 
-/** --- draft --- */
 const statDraft = ref<{ kind: StatKind; side: StatSide; playerId: number; qty: number }>({
   kind: 'TD',
   side: 'HOME',
@@ -1602,7 +1695,7 @@ const currentGame = computed(() => {
 const currentSideTeamId = computed(() => {
   const g = currentGame.value
   if (!g) return 0
-  return statDraft.value.side === 'HOME' ? (g.homeTeamId || 0) : (g.awayTeamId || 0)
+  return statDraft.value.side === 'HOME' ? g.homeTeamId || 0 : g.awayTeamId || 0
 })
 
 const currentRosterOptions = computed(() => {
@@ -1610,7 +1703,6 @@ const currentRosterOptions = computed(() => {
   return teamId ? getRoster(teamId) : []
 })
 
-/** key que cambia al cambiar de equipo/side/roster */
 const rosterSelectKey = computed(() => {
   const gid = finishPanelId.value || 0
   const side = statDraft.value.side
@@ -1625,6 +1717,7 @@ watch([finishPanelId, () => statDraft.value.side], async () => {
 
   const g = currentGame.value
   if (!g) return
+
   const teamId = currentSideTeamId.value
   if (teamId) await ensureRoster(teamId)
 
@@ -1642,7 +1735,9 @@ const finishStats = computed<StatEntry[]>(() => {
 
 function countKind(kind: StatKind) {
   let total = 0
-  for (const s of finishStats.value) if (s.kind === kind) total += Number(s.qty || 0)
+  for (const s of finishStats.value) {
+    if (s.kind === kind) total += Number(s.qty || 0)
+  }
   return total
 }
 
@@ -1714,7 +1809,11 @@ async function openFinish(g: GameVM) {
 
   const h = g.homeTeamId || 0
   const a = g.awayTeamId || 0
-  await Promise.all([h ? ensureRoster(h) : Promise.resolve(), a ? ensureRoster(a) : Promise.resolve()])
+
+  await Promise.all([
+    h ? ensureRoster(h) : Promise.resolve(),
+    a ? ensureRoster(a) : Promise.resolve(),
+  ])
 
   statDraft.value.side = 'HOME'
   statDraft.value.playerId = 0
@@ -1740,26 +1839,43 @@ async function tryPostPlayerStats(gameId: number) {
   if (!entries.length) return
 
   try {
-    const payload = entries.map((e) => ({ kind: e.kind, side: e.side, playerId: e.playerId, qty: e.qty }))
+    const payload = entries.map((e) => ({
+      kind: e.kind,
+      side: e.side,
+      playerId: e.playerId,
+      qty: e.qty,
+    }))
+
     const headers = await authHeaders()
-    // ✅ tu Controller es PUT /games/{gameId}/player-stats
-    await $fetch(PLAYER_STATS_URL(gameId), { method: 'PUT', body: payload, headers })
+
+    await $fetch(PLAYER_STATS_URL(gameId), {
+      method: 'PUT',
+      body: payload,
+      headers,
+    })
+
     statsOk.value = 'Stats individuales guardadas.'
     statsWarn.value = ''
   } catch {
-    statsWarn.value = 'No se pudieron guardar stats (endpoint no existe o backend aún no soporta). El FINAL sí se guardó.'
+    statsWarn.value =
+      'No se pudieron guardar stats (endpoint no existe o backend aún no soporta). El FINAL sí se guardó.'
   }
 }
 
-/** ✅ FINALIZAR: body mínimo EXACTO a /partido/update */
 async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: number) {
   const body = {
     game_id: String(gameId),
     home_score: Number(homeScore),
     away_score: Number(awayScore),
   }
+
   const headers = await authHeaders()
-  return await $fetch<any>(API_PARTIDO_UPDATE, { method: 'POST', body, headers })
+
+  return await $fetch<any>(API_PARTIDO_UPDATE, {
+    method: 'POST',
+    body,
+    headers,
+  })
 }
 
 async function finishGame(g: GameVM) {
@@ -1775,19 +1891,19 @@ async function finishGame(g: GameVM) {
 
   const hs = Number(finishHomeScore.value ?? 0)
   const as = Number(finishAwayScore.value ?? 0)
+
   if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
     finishError.value = 'Scores inválidos.'
     return
   }
 
   finishing.value = true
+
   try {
     await postFinalizeOnly(g.id, hs, as)
 
     finishOk.value = `Partido ${g.id} finalizado (${hs} - ${as}).`
     await refreshGames()
-
-    // stats opcionales
     await tryPostPlayerStats(g.id)
 
     setTimeout(() => (finishOk.value = ''), 2000)
@@ -1811,6 +1927,7 @@ async function hardRefresh() {
   statsWarn.value = ''
   statsOk.value = ''
   rosterHint.value = ''
+
   await Promise.all([refreshTeams(), refreshGames()])
 }
 </script>

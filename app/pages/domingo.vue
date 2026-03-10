@@ -860,20 +860,54 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRuntimeConfig, useAsyncData } from '#imports'
+import { $fetch } from 'ofetch'
+import { normalizeApiBase } from '../composables/useApiBase'
 
 /* ===================== API_BASE ===================== */
 const config = useRuntimeConfig()
-const API_BASE = (config.public && config.public.apiBase) ? String(config.public.apiBase) : 'https://tocho5-api.tochero5.mx/api'
+const API_BASE = normalizeApiBase((config.public && config.public.apiBase) ? String(config.public.apiBase) : '')
 const HOME_CFG_ENDPOINT = `${API_BASE}/site-configs/home`
 
-/* ===================== HOME CONFIG (desde backend) ===================== */
+/* ===================== HELPERS BASE ===================== */
 function uid(prefix) {
   return `${prefix}-${Math.random().toString(16).slice(2, 8)}-${Date.now().toString(16).slice(2)}`
 }
 function clone(x) {
   return JSON.parse(JSON.stringify(x))
 }
+function pickArrayFromResponse(res) {
+  if (Array.isArray(res)) return res
+  if (res && Array.isArray(res.content)) return res.content
+  if (res && Array.isArray(res.items)) return res.items
+  if (res && Array.isArray(res.data)) return res.data
+  return []
+}
+function toNum(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0
+}
+function upper(v) {
+  return String(v ?? '').trim().toUpperCase()
+}
+function initials(text) {
+  const s = String(text || '').trim()
+  if (!s) return 'T5'
+  const parts = s.split(/\s+/).slice(0, 2)
+  return parts.map((p) => p[0]?.toUpperCase()).join('')
+}
+const formatDiff = (n) => {
+  const x = Number(n) || 0
+  return x > 0 ? `+${x}` : `${x}`
+}
+const formatPct = (pct) => {
+  const x = Number(pct)
+  if (!Number.isFinite(x) || x <= 0) return '0.000'
+  return x.toFixed(3)
+}
+const clamp01 = (n) => Math.min(1, Math.max(0, Number(n) || 0))
+const pctToLabel = (pct) => `${(clamp01(pct) * 100).toFixed(1)}%`
+const pctWidth = (pct) => `${Math.round(clamp01(pct) * 100)}%`
 
+/* ===================== HOME CONFIG (desde backend) ===================== */
 const HOME_DEFAULTS = {
   schemaVersion: 1,
   hero: {
@@ -1040,6 +1074,7 @@ function normalizeHomeData(data) {
   if (!Array.isArray(merged.sponsors) || merged.sponsors.length === 0) {
     merged.sponsors = clone(SPONSOR_FALLBACKS)
   }
+
   return merged
 }
 
@@ -1069,14 +1104,13 @@ async function loadHomeConfig() {
   }
 }
 
+const onVisibilityChange = () => {
+  if (document.visibilityState === 'visible') loadHomeConfig()
+}
+
 onMounted(() => {
   loadHomeConfig()
-
-  const onVis = () => {
-    if (document.visibilityState === 'visible') loadHomeConfig()
-  }
-  document.addEventListener('visibilitychange', onVis)
-  onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVis))
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 const homeHeroTitle = computed(() => String(homeCfg.value?.hero?.title ?? HOME_DEFAULTS.hero.title))
@@ -1094,32 +1128,6 @@ const homeLocationAddress = computed(() => String(homeCfg.value?.location?.addre
 const homeLocationInstagram = computed(() => String(homeCfg.value?.location?.instagram ?? HOME_DEFAULTS.location.instagram))
 const homeLocationCopyright = computed(() => String(homeCfg.value?.location?.copyright ?? HOME_DEFAULTS.location.copyright))
 
-/* ===================== HELPERS ===================== */
-function toNum(v) {
-  return typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0
-}
-function upper(v) {
-  return String(v ?? '').trim().toUpperCase()
-}
-function initials(text) {
-  const s = String(text || '').trim()
-  if (!s) return 'T5'
-  const parts = s.split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase()).join('')
-}
-const formatDiff = (n) => {
-  const x = Number(n) || 0
-  return x > 0 ? `+${x}` : `${x}`
-}
-const formatPct = (pct) => {
-  const x = Number(pct)
-  if (!Number.isFinite(x) || x <= 0) return '0.000'
-  return x.toFixed(3)
-}
-const clamp01 = (n) => Math.min(1, Math.max(0, Number(n) || 0))
-const pctToLabel = (pct) => `${(clamp01(pct) * 100).toFixed(1)}%`
-const pctWidth = (pct) => `${Math.round(clamp01(pct) * 100)}%`
-
 /* ===================== SEASONS DINÁMICAS ===================== */
 const DEFAULT_SEASON_ID = 2
 const selectedSeasonId = ref(DEFAULT_SEASON_ID)
@@ -1128,9 +1136,11 @@ const { data: seasonsRaw } = useAsyncData(
   'seasons-home-lite',
   async () => {
     const try1 = await $fetch(`${API_BASE}/seasons/list`).catch(() => null)
-    if (Array.isArray(try1)) return try1
+    const list1 = pickArrayFromResponse(try1)
+    if (list1.length) return list1
+
     const try2 = await $fetch(`${API_BASE}/seasons`).catch(() => [])
-    return Array.isArray(try2) ? try2 : []
+    return pickArrayFromResponse(try2)
   },
   { server: false, default: () => [] }
 )
@@ -1153,13 +1163,18 @@ const seasonOptions = computed(() => {
   }
 
   tmp.sort((a, b) => b.value - a.value)
+
   const seen = new Set()
   const out = []
   for (const o of tmp) {
     if (seen.has(o.value)) continue
     seen.add(o.value)
-    out.push({ value: o.value, label: o.value === DEFAULT_SEASON_ID ? `${o.label} (Actual)` : o.label })
+    out.push({
+      value: o.value,
+      label: o.value === DEFAULT_SEASON_ID ? `${o.label} (Actual)` : o.label
+    })
   }
+
   return out
 })
 
@@ -1232,30 +1247,30 @@ async function tryFetchPoints(params) {
   const qs = new URLSearchParams(params).toString()
   const url = `${API_BASE}/points?${qs}`
   const res = await $fetch(url).catch(() => null)
-  return Array.isArray(res) ? res : null
+  return pickArrayFromResponse(res)
 }
 async function tryFetchPointsRaw(paramsQS) {
   const url = `${API_BASE}/points?${paramsQS}`
   const res = await $fetch(url).catch(() => null)
-  return Array.isArray(res) ? res : null
+  return pickArrayFromResponse(res)
 }
 async function fetchStandingsWithFallback() {
   const baseParams = { ...pointsParams.value }
   let data = await tryFetchPoints(baseParams)
 
   const cat = baseParams.categoryCode
-  if (data && data.length === 0 && cat === '35+') {
+  if (data.length === 0 && cat === '35+') {
     const alt = { ...baseParams, categoryCode: '+35' }
     const altData = await tryFetchPoints(alt)
-    if (altData && altData.length > 0) data = altData
+    if (altData.length > 0) data = altData
   }
-  if (data && data.length === 0 && cat === '+35') {
+  if (data.length === 0 && cat === '+35') {
     const alt = { ...baseParams, categoryCode: '35+' }
     const altData = await tryFetchPoints(alt)
-    if (altData && altData.length > 0) data = altData
+    if (altData.length > 0) data = altData
   }
 
-  if (data && data.length === 0 && (cat === '35+' || cat === '+35')) {
+  if (data.length === 0 && (cat === '35+' || cat === '+35')) {
     const seasonId = encodeURIComponent(String(baseParams.seasonId || ''))
     const genderQS = baseParams.gender ? `&gender=${encodeURIComponent(baseParams.gender)}` : ''
 
@@ -1270,7 +1285,7 @@ async function fetchStandingsWithFallback() {
 
     for (const qs of tries) {
       const altData = await tryFetchPointsRaw(qs)
-      if (altData && altData.length > 0) {
+      if (altData.length > 0) {
         data = altData
         break
       }
@@ -1278,13 +1293,11 @@ async function fetchStandingsWithFallback() {
   }
 
   const sidWanted = Number(baseParams.seasonId || 0) || 0
-  const filtered = (data ?? []).filter((r) => {
+  return data.filter((r) => {
     const sid = rowSeasonId(r)
     if (!sid) return true
     return sid === sidWanted
   })
-
-  return filtered
 }
 
 const refreshStandings = async () => {
@@ -1312,7 +1325,7 @@ const clearFilters = () => {
   const ids = seasonOptions.value.map((x) => x.value)
   selectedSeasonId.value = ids.includes(DEFAULT_SEASON_ID) ? DEFAULT_SEASON_ID : (ids[0] ?? DEFAULT_SEASON_ID)
   selectedCategoryCode.value = 'all'
-  selectedGender.value = 'MIXTO'
+  selectedGender.value = 'all'
   scheduleStandingsReload()
 }
 
@@ -1330,7 +1343,6 @@ const topPositions = computed(() => {
     const pf = toNum(row?.points_for ?? row?.pointsFor)
     const pa = toNum(row?.points_against ?? row?.pointsAgainst)
     const pts = toNum(row?.table_points ?? row?.tablePoints)
-
     const diff = pf - pa
     const pct = gp > 0 ? wins / gp : 0
 
@@ -1394,9 +1406,12 @@ const startHeroAuto = () => {
   stopHeroAuto()
   if (heroSlides.value.length > 1) intervalId = setInterval(nextSlide, HERO_AUTOPLAY_MS)
 }
-onMounted(() => startHeroAuto())
 
-/* ✅ SWIPE HERO */
+onMounted(() => {
+  startHeroAuto()
+})
+
+/* ===================== SWIPE HERO ===================== */
 let heroPointerId = null
 let heroStartX = 0
 let heroStartY = 0
@@ -1472,14 +1487,6 @@ const onHeroPointerLeave = () => {
 }
 
 /* ===================== PRÓXIMOS JUEGOS ===================== */
-function pickArrayFromResponse(res) {
-  if (Array.isArray(res)) return res
-  if (res && Array.isArray(res.content)) return res.content
-  if (res && Array.isArray(res.items)) return res.items
-  if (res && Array.isArray(res.data)) return res.data
-  return []
-}
-
 async function fetchGamesAny(seasonId) {
   const sid = Number(seasonId || 0) || 0
 
@@ -1495,7 +1502,7 @@ async function fetchGamesAny(seasonId) {
   for (const url of urls) {
     const res = await $fetch(url).catch(() => null)
     const arr = pickArrayFromResponse(res)
-    if (Array.isArray(arr) && arr.length) merged.push(...arr)
+    if (arr.length) merged.push(...arr)
   }
 
   if (!merged.length) return []
@@ -1547,7 +1554,9 @@ const gameDateFmt = new Intl.DateTimeFormat('es-MX', {
 
 onMounted(() => {
   nowMs.value = Date.now()
-  nowTimer = setInterval(() => (nowMs.value = Date.now()), 60_000)
+  nowTimer = setInterval(() => {
+    nowMs.value = Date.now()
+  }, 60_000)
 })
 
 function toUtcMs(matchUtc) {
@@ -1620,7 +1629,6 @@ const upcomingGames = computed(() => {
 
   const cutoff = (nowMs.value || Date.now()) - 20 * 60_000
   const seasonFilter = Number(selectedSeasonId.value || 0) || 0
-
   const out = []
 
   for (const g of raw) {
@@ -1716,12 +1724,15 @@ const UPCOMING_AUTOPLAY_MS = 6500
 const startUpcomingAuto = () => {
   if (upcomingInterval) clearInterval(upcomingInterval)
   upcomingInterval = null
-  if (upcomingTotal.value > 1) upcomingInterval = setInterval(() => nextUpcoming(), UPCOMING_AUTOPLAY_MS)
+  if (upcomingTotal.value > 1) {
+    upcomingInterval = setInterval(() => nextUpcoming(), UPCOMING_AUTOPLAY_MS)
+  }
 }
 const stopUpcomingAuto = () => {
   if (upcomingInterval) clearInterval(upcomingInterval)
   upcomingInterval = null
 }
+
 watch(upcomingTotal, () => startUpcomingAuto(), { immediate: true })
 
 let upPointerId = null
@@ -1814,7 +1825,10 @@ const activeSponsorIndex = ref(0)
 watch(
   () => sponsors.value.length,
   (len) => {
-    if (len <= 0) { activeSponsorIndex.value = 0; return }
+    if (len <= 0) {
+      activeSponsorIndex.value = 0
+      return
+    }
     if (activeSponsorIndex.value < 0) activeSponsorIndex.value = 0
     if (activeSponsorIndex.value >= len) activeSponsorIndex.value = 0
   },
@@ -1846,7 +1860,9 @@ const prevSponsor = () => {
 
 let sponsorsIntervalId = null
 onMounted(() => {
-  if (sponsors.value.length > 1) sponsorsIntervalId = setInterval(() => nextSponsor(), 9000)
+  if (sponsors.value.length > 1) {
+    sponsorsIntervalId = setInterval(() => nextSponsor(), 9000)
+  }
 })
 
 /* ===================== REGLAMENTOS ===================== */
@@ -1895,6 +1911,7 @@ onBeforeUnmount(() => {
   if (standingsTO) clearTimeout(standingsTO)
   if (nowTimer) clearInterval(nowTimer)
   if (sponsorsIntervalId) clearInterval(sponsorsIntervalId)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 

@@ -1,4 +1,4 @@
-<!-- app/pages/admin/partidos.vue -->
+<!-- app/pages/partidos.vue -->
 <template>
   <main class="bg-slate-950 min-h-screen text-slate-50 overflow-x-hidden">
     <section class="pt-24 md:pt-28 lg:pt-32">
@@ -43,11 +43,8 @@
         <section
           class="mb-6 rounded-3xl border border-slate-800/70 bg-slate-900/45 p-4 md:p-6 shadow-[0_18px_45px_rgba(0,0,0,0.30)] overflow-hidden"
         >
-          <!-- mini-stepper mobile -->
-          
-
           <div class="grid gap-4 md:grid-cols-12 min-w-0">
-            <!-- Temporada (SIN "Todas", default ID 2) -->
+            <!-- Temporada -->
             <div class="md:col-span-4 min-w-0">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Temporada</p>
@@ -65,7 +62,7 @@
               <p class="mt-2 text-[11px] text-slate-500">Nota: se quitó “Todas las temporadas”.</p>
             </div>
 
-            <!-- Categoría (PASO 1) -->
+            <!-- Categoría -->
             <div class="md:col-span-4 min-w-0">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Categoría</p>
@@ -98,7 +95,7 @@
               </div>
             </div>
 
-            <!-- Rama (PASO 2) -->
+            <!-- Rama -->
             <div class="md:col-span-4 min-w-0">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Rama</p>
@@ -147,7 +144,7 @@
               </p>
             </div>
 
-            <!-- Jornada (PASO 3 - AL FINAL) -->
+            <!-- Jornada -->
             <div class="md:col-span-12 min-w-0">
               <div class="flex items-center justify-between gap-3 mb-2">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Jornada</p>
@@ -320,7 +317,7 @@
                 </div>
               </div>
 
-              <!-- Main (mejor mobile) -->
+              <!-- Main -->
               <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center gap-3">
                 <!-- Local -->
                 <div class="flex items-center gap-3 min-w-0">
@@ -480,6 +477,9 @@
 
 <script setup lang="ts">
 import { markRaw, shallowRef, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useRuntimeConfig, useAsyncData } from '#imports'
+import { $fetch } from 'ofetch'
+import { normalizeApiBase } from '../composables/useApiBase'
 
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO' | string
 
@@ -527,7 +527,6 @@ type Game = {
   home_team?: string | null
   away_team?: string | null
 
-  // viene en /gamesFinal
   homeScore?: number | null
   awayScore?: number | null
   home_score?: number | null
@@ -553,7 +552,6 @@ type VMGame = {
   awayShort: string
   homeLogo: string | null
   awayLogo: string | null
-
   isFinal: boolean
   homeScore: number | null
   awayScore: number | null
@@ -561,14 +559,22 @@ type VMGame = {
 
 type Group = { key: string; label: string; items: VMGame[] }
 
-const config = useRuntimeConfig()
-const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
+function unwrapList<T>(x: any): T[] {
+  if (Array.isArray(x)) return x
+  if (x && Array.isArray(x.content)) return x.content
+  if (x && Array.isArray(x.items)) return x.items
+  if (x && Array.isArray(x.data)) return x.data
+  return []
+}
 
-/** ✅ temporada default fija */
+const config = useRuntimeConfig()
+const API_BASE = normalizeApiBase((config.public as any)?.apiBase)
+
+/** temporada default fija */
 const DEFAULT_SEASON_ID = 2
 
 /** filtros */
-const seasonPick = ref<string>(String(DEFAULT_SEASON_ID)) // ✅ ya no existe "ALL" para temporada
+const seasonPick = ref<string>(String(DEFAULT_SEASON_ID))
 const roundPick = ref<'ALL' | string>('ALL')
 const roundInput = ref('')
 const categoria = ref<'ALL' | Gender>('ALL')
@@ -578,26 +584,18 @@ const canPickRama = computed(() => categoria.value !== 'ALL')
 const needsRama = computed(() => categoria.value !== 'ALL' && rama.value === 'ALL')
 const canPickRound = computed(() => categoria.value !== 'ALL' && rama.value !== 'ALL' && !needsRama.value)
 
-const stepState = computed(() => {
-  if (categoria.value === 'ALL') return 1
-  if (rama.value === 'ALL') return 2
-  return 3
-})
-
 watch(categoria, () => {
   rama.value = 'ALL'
-  // ✅ si cambias categoría, resetea jornada
   roundPick.value = 'ALL'
   roundInput.value = ''
 })
 
 watch(rama, () => {
-  // ✅ si cambias rama, resetea jornada
   roundPick.value = 'ALL'
   roundInput.value = ''
 })
 
-/** paginación (5 por página) */
+/** paginación */
 const pageSize = ref(5)
 const page = ref(1)
 const pageInput = ref('1')
@@ -607,13 +605,17 @@ watch([seasonPick, roundPick, categoria, rama], () => {
   pageInput.value = '1'
 })
 
-/** “ahora” controlado */
+/** ahora */
 const nowMs = ref(0)
-let tmr: any = null
+let tmr: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   nowMs.value = Date.now()
-  tmr = setInterval(() => (nowMs.value = Date.now()), 60_000)
+  tmr = setInterval(() => {
+    nowMs.value = Date.now()
+  }, 60_000)
 })
+
 onBeforeUnmount(() => {
   if (tmr) clearInterval(tmr)
 })
@@ -635,16 +637,18 @@ const dateFmt = new Intl.DateTimeFormat('es-MX', {
   year: 'numeric',
 })
 
-/** 🔥 fetch seasons */
+/** fetch seasons */
 const { data: seasonsRaw } = useAsyncData<any[]>(
-  'seasons-admin-lite',
+  'seasons-public-lite',
   async () => {
     const try1 = await $fetch<any>(`${API_BASE}/seasons/list`).catch(() => null)
-    if (Array.isArray(try1)) return try1
+    const list1 = unwrapList<any>(try1)
+    if (list1.length) return list1
+
     const try2 = await $fetch<any>(`${API_BASE}/seasons`).catch(() => [])
-    return Array.isArray(try2) ? try2 : []
+    return unwrapList<any>(try2)
   },
-  { server: false }
+  { server: false, default: () => [] }
 )
 
 const seasonsMap = computed<Record<number, string>>(() => {
@@ -681,28 +685,35 @@ const seasonNameToId = computed<Record<string, number>>(() => {
   return out
 })
 
-/** 🔥 fetch games */
+/** fetch games */
 const { data, pending, error, refresh } = useAsyncData<Game[]>(
-  'games-calendar-admin-paged-5',
+  'games-calendar-public-paged-5',
   async () => {
-    const [scheduled, finals] = await Promise.all([
+    const [scheduledRaw, finalsRaw] = await Promise.all([
       $fetch<any>(`${API_BASE}/games`).catch(() => []),
       $fetch<any>(`${API_BASE}/gamesFinal`).catch(() => []),
     ])
 
-    const all = [...(Array.isArray(scheduled) ? scheduled : []), ...(Array.isArray(finals) ? finals : [])]
+    const scheduled = unwrapList<any>(scheduledRaw)
+    const finals = unwrapList<any>(finalsRaw)
+
+    const all = [...scheduled, ...finals]
     const map = new Map<number, any>()
+
     for (const g of all) {
       const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
       if (!id) continue
       map.set(id, g)
     }
+
     return Array.from(map.values())
   },
-  { server: false }
+  { server: false, default: () => [] }
 )
 
-const errorMsg = computed(() => (error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''))
+const errorMsg = computed(() =>
+  error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''
+)
 
 /** VM */
 const vmAll = shallowRef<VMGame[]>(markRaw([]))
@@ -710,7 +721,7 @@ const vmAll = shallowRef<VMGame[]>(markRaw([]))
 watch(
   [data, seasonsMap, seasonNameToId],
   ([raw]) => {
-    const list = raw ?? []
+    const list = Array.isArray(raw) ? raw : []
     const out: VMGame[] = []
     const dayLabelCache = new Map<string, string>()
 
@@ -727,6 +738,7 @@ watch(
         const guess = seasonNameToId.value[seasonKey(seasonName)] || 0
         if (guess) seasonId = guess
       }
+
       if (!seasonName && seasonId) {
         seasonName = seasonsMap.value[seasonId] || `Temporada #${seasonId}`
       }
@@ -751,7 +763,9 @@ watch(
       const awayName = String(g.away_team ?? g.awayTeam?.name ?? 'Visitante').trim()
 
       const rawStatus = String(g?.status ?? '').trim()
-      const hasScore = g?.homeScore != null || g?.awayScore != null || g?.home_score != null || g?.away_score != null
+      const hasScore =
+        g?.homeScore != null || g?.awayScore != null || g?.home_score != null || g?.away_score != null
+
       const status = upper(rawStatus) || (hasScore ? 'FINAL' : 'SCHEDULED')
       const isFinal = status === 'FINAL'
 
@@ -783,7 +797,6 @@ watch(
       })
     }
 
-    // orden: scheduled arriba, final abajo
     out.sort((a, b) => {
       const ra = statusRank(a.status)
       const rb = statusRank(b.status)
@@ -793,16 +806,15 @@ watch(
     })
 
     vmAll.value = markRaw(out)
-
     page.value = 1
     pageInput.value = '1'
   },
   { immediate: true }
 )
 
-/** temporada options (sin ALL) + asegura default season 2 */
 const seasonOptions = computed<Season[]>(() => {
   const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
+
   const fromApi: Season[] = list
     .map((s: any) => {
       const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
@@ -819,16 +831,16 @@ const seasonOptions = computed<Season[]>(() => {
 
   const merged = new Map<number, string>()
   for (const s of fromApi) merged.set(s.id, s.name)
-  for (const [id, name] of derived.entries()) if (!merged.has(id)) merged.set(id, name)
+  derived.forEach((name, id) => {
+    if (!merged.has(id)) merged.set(id, name)
+  })
 
-  // ✅ asegura default season 2
   if (!merged.has(DEFAULT_SEASON_ID)) {
     merged.set(DEFAULT_SEASON_ID, seasonsMap.value[DEFAULT_SEASON_ID] || `Temporada #${DEFAULT_SEASON_ID}`)
   }
 
   const arr = Array.from(merged.entries()).map(([id, name]) => ({ id, name }))
 
-  // default primero
   arr.sort((a, b) => {
     if (a.id === DEFAULT_SEASON_ID) return -1
     if (b.id === DEFAULT_SEASON_ID) return 1
@@ -838,7 +850,6 @@ const seasonOptions = computed<Season[]>(() => {
   return arr
 })
 
-// si por alguna razón la temporada seleccionada no existe, vuelve a default
 watch(
   seasonOptions,
   (opts) => {
@@ -853,7 +864,6 @@ const currentSeasonLabel = computed(() => {
   return seasonsMap.value[sp] || seasonOptions.value.find((x) => x.id === sp)?.name || `Temporada #${sp}`
 })
 
-/** counts scoped por season (mejor UX) */
 const seasonScopedGames = computed(() => {
   const sp = safeSeasonId()
   const selectedSeasonName =
@@ -870,36 +880,41 @@ const seasonScopedGames = computed(() => {
 const categoriaOptions = computed(() => {
   const base: Gender[] = ['VARONIL', 'FEMENIL', 'MIXTO']
   const gc: Record<string, number> = {}
+
   for (const g of seasonScopedGames.value) {
     const gen = upper(g.gender ?? '')
     if (!gen) continue
     gc[gen] = (gc[gen] ?? 0) + 1
   }
+
   return base.map((v) => ({ value: v, count: gc[upper(v)] ?? 0 }))
 })
 
 const ramaOptions = computed(() => {
   if (categoria.value === 'ALL') return []
+
   const gen = upper(categoria.value)
   const map: Record<string, number> = {}
+
   for (const g of seasonScopedGames.value) {
     if (upper(g.gender ?? '') !== gen) continue
     const code = upper(g.code ?? '')
     if (!code) continue
     map[code] = (map[code] ?? 0) + 1
   }
+
   return Object.entries(map)
     .map(([value, count]) => ({ value, count }))
     .sort((a, b) => a.value.localeCompare(b.value))
 })
 
-/** ✅ round options SOLO cuando ya hay categoría + rama (paso final) */
 const roundOptions = computed(() => {
   if (!canPickRound.value) return []
+
   const gen = upper(categoria.value)
   const code = upper(rama.value)
-
   const rc: Record<string, number> = {}
+
   for (const g of seasonScopedGames.value) {
     if (upper(g.gender ?? '') !== gen) continue
     if (upper(g.code ?? '') !== code) continue
@@ -913,7 +928,6 @@ const roundOptions = computed(() => {
     .sort((a, b) => Number(a.round) - Number(b.round))
 })
 
-/** filtros -> lista plana */
 const filteredAll = computed(() => {
   const sp = safeSeasonId()
   const selectedSeasonName =
@@ -927,8 +941,8 @@ const filteredAll = computed(() => {
   if (needsRama.value) return [] as VMGame[]
 
   const out: VMGame[] = []
+
   for (const g of vmAll.value) {
-    // season (siempre aplica)
     const gid = Number(g.seasonId || 0)
     if (gid) {
       if (gid !== sp) continue
@@ -939,13 +953,13 @@ const filteredAll = computed(() => {
     if (cg && upper(g.gender ?? '') !== cg) continue
     if (cg && rc && upper(g.code ?? '') !== rc) continue
 
-    // ✅ jornada solo si ya eligieron categoría+rama
     if (rp && canPickRound.value) {
       if (normalizeRound(g.round ?? '') !== rp) continue
     }
 
     out.push(g)
   }
+
   return out
 })
 
@@ -964,7 +978,6 @@ const pageSlice = computed(() => {
   return filteredAll.value.slice(start, end)
 })
 
-/** agrupar SOLO lo de la página actual */
 const grouped = computed(() => {
   const groups: Group[] = []
   const byKey: Record<string, Group> = {}
@@ -991,9 +1004,8 @@ const pageRangeLabel = computed(() => {
   return `${start}–${end}`
 })
 
-/** acciones */
 function resetFilters() {
-  seasonPick.value = String(DEFAULT_SEASON_ID) // ✅ siempre vuelve a season 2
+  seasonPick.value = String(DEFAULT_SEASON_ID)
   roundPick.value = 'ALL'
   roundInput.value = ''
   categoria.value = 'ALL'
@@ -1018,10 +1030,12 @@ function prevPage() {
   page.value = Math.max(1, page.value - 1)
   pageInput.value = String(page.value)
 }
+
 function nextPage() {
   page.value = Math.min(totalPages.value, page.value + 1)
   pageInput.value = String(page.value)
 }
+
 function applyPageInput() {
   const raw = (pageInput.value ?? '').trim()
   const digits = raw.replace(/\D+/g, '')
@@ -1039,20 +1053,15 @@ function segBtn(active: boolean, tone: 'base' | 'blue' | 'emerald' | 'amber' = '
   const dis = 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-slate-300'
   if (disabled) return `${base} ${off} ${dis}`
   if (!active) return `${base} ${off}`
+
   const tones: Record<string, string> = {
     base: 'border-slate-600/70 bg-slate-900 text-white',
     blue: 'border-blue-400/50 bg-blue-500/15 text-blue-100',
     emerald: 'border-emerald-400/50 bg-emerald-500/15 text-emerald-100',
     amber: 'border-amber-400/50 bg-amber-500/15 text-amber-100',
   }
-  return `${base} ${tones[tone]}`
-}
 
-function stepPillClass(active: boolean) {
-  const base = 'rounded-2xl border px-3 py-2 text-[11px] font-semibold'
-  return active
-    ? `${base} border-slate-600/70 bg-slate-900/70 text-slate-100`
-    : `${base} border-slate-800/70 bg-slate-950/40 text-slate-400`
+  return `${base} ${tones[tone]}`
 }
 
 function badgeClass(st: string) {
@@ -1104,15 +1113,18 @@ function normalize(v: string) {
   const x = (v ?? '').trim()
   return x.length ? x : ''
 }
+
 function upper(v: any) {
   return String(v ?? '').toUpperCase()
 }
+
 function toUtcMs(matchUtc: string) {
   const s = String(matchUtc || '').trim()
   if (!s) return 0
   const hasTZ = s.endsWith('Z') || /[+-]\d\d:\d\d$/.test(s)
   return new Date(hasTZ ? s : `${s}Z`).getTime()
 }
+
 function normalizeRound(v: any) {
   const raw = String(v ?? '').trim()
   if (!raw) return ''
@@ -1120,6 +1132,7 @@ function normalizeRound(v: any) {
   if (!digits) return raw
   return String(parseInt(digits, 10))
 }
+
 function roundNumber(g: any): string | null {
   const raw = String(g?.roundLabel ?? g?.round_la ?? '').trim()
   if (!raw) return null
@@ -1127,11 +1140,11 @@ function roundNumber(g: any): string | null {
   if (!digits) return null
   return String(parseInt(digits, 10))
 }
+
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }
 
-/** rank para ordenar */
 function statusRank(st: string) {
   const s = upper(st)
   if (s === 'SCHEDULED') return 0
@@ -1147,25 +1160,21 @@ function safeSeasonId() {
 </script>
 
 <style scoped>
-/* ✅ mobile-first: chips scroll horizontal, desktop wrap (SIN desbordar) */
 .seg-wrap {
   display: flex;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-
   align-items: center;
   gap: 0.35rem;
   border-radius: 1rem;
   border: 1px solid rgba(51, 65, 85, 0.7);
   background: rgba(2, 6, 23, 0.55);
   padding: 0.35rem;
-
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-
   flex-wrap: nowrap;
 }
 
