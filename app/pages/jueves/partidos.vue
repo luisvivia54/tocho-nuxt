@@ -199,7 +199,7 @@
       <div class="mx-auto max-w-7xl px-4 sm:px-6 py-10">
         <div class="grid grid-cols-1 gap-4">
           <div
-            v-for="m in filteredMatches"
+            v-for="m in paginatedMatches"
             :key="m.id"
             class="rounded-[24px] border border-white/8 bg-white/[0.03] px-6 py-5"
           >
@@ -224,6 +224,60 @@
           <div v-else-if="gamesError" class="text-sm text-rose-300">No se pudieron cargar partidos.</div>
           <div v-else-if="filteredMatches.length === 0" class="text-sm text-slate-400">No hay resultados.</div>
         </div>
+
+        <div
+          v-if="!pendingGames && !gamesError && filteredMatches.length > 0"
+          class="mt-8 flex flex-col gap-4 border-t border-white/8 pt-6 md:flex-row md:items-center md:justify-between"
+        >
+          <div class="text-sm text-slate-400">
+            Mostrando
+            <span class="font-semibold text-white">{{ matchRangeStart }}</span>
+            -
+            <span class="font-semibold text-white">{{ matchRangeEnd }}</span>
+            de
+            <span class="font-semibold text-white">{{ filteredMatches.length }}</span>
+            partidos
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
+              :class="currentPage === 1
+                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
+              :disabled="currentPage === 1"
+              @click="goToMatchPage(currentPage - 1)"
+            >
+              Anterior
+            </button>
+
+            <button
+              v-for="page in visibleMatchPages"
+              :key="page"
+              type="button"
+              class="h-10 min-w-10 rounded-full border px-3 text-sm font-extrabold transition"
+              :class="page === currentPage
+                ? 'border-orange-400/40 bg-orange-400/15 text-orange-200'
+                : 'border-white/10 bg-white/5 text-slate-300 hover:border-orange-400/30 hover:bg-orange-400/10 hover:text-slate-100'"
+              @click="goToMatchPage(page)"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
+              :class="currentPage === totalMatchPages
+                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
+              :disabled="currentPage === totalMatchPages"
+              @click="goToMatchPage(currentPage + 1)"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -233,6 +287,8 @@
 import { Facebook, Instagram } from "lucide-vue-next"
 import { useJuevesData, type UiMatch } from "~/composables/useJuevesData"
 
+const ITEMS_PER_PAGE = 10
+
 const route = useRoute()
 const mobileOpen = ref(false)
 
@@ -240,6 +296,7 @@ const { leagueKey, toList, toUiMatch } = useJuevesData()
 
 const matchStatus = ref<"SCHEDULED" | "FINISHED" | "ALL">("SCHEDULED")
 const search = ref("")
+const currentPage = ref(1)
 
 const { data: gamesData, pending: pendingGames, error: gamesError } =
   await useAsyncData("jueves-partidos-page", async () => {
@@ -249,12 +306,23 @@ const { data: gamesData, pending: pendingGames, error: gamesError } =
     const [scheduled, finished] = await Promise.all([
       wantScheduled
         ? $fetch<any>("/api/t5/games", {
-            query: { league: leagueKey, leagueKey, status: "SCHEDULED", sort: "startTime,asc", limit: 80 },
+            query: {
+              league: leagueKey,
+              leagueKey,
+              status: "SCHEDULED",
+              sort: "startTime,asc",
+              limit: 80,
+            },
           }).catch(() => [])
         : [],
       wantFinished
         ? $fetch<any>("/api/t5/gamesFinal", {
-            query: { league: leagueKey, leagueKey, sort: "startTime,desc", limit: 80 },
+            query: {
+              league: leagueKey,
+              leagueKey,
+              sort: "startTime,desc",
+              limit: 80,
+            },
           }).catch(() => [])
         : [],
     ])
@@ -265,9 +333,66 @@ const { data: gamesData, pending: pendingGames, error: gamesError } =
 
 const matches = computed<UiMatch[]>(() => gamesData.value ?? [])
 
-const filteredMatches = computed(() => {
+const filteredMatches = computed<UiMatch[]>(() => {
   const q = search.value.toLowerCase()
   if (!q) return matches.value
   return matches.value.filter((m) => `${m.home} ${m.away}`.toLowerCase().includes(q))
 })
+
+const totalMatchPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredMatches.value.length / ITEMS_PER_PAGE))
+})
+
+const paginatedMatches = computed<UiMatch[]>(() => {
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
+  const end = start + ITEMS_PER_PAGE
+  return filteredMatches.value.slice(start, end)
+})
+
+const matchRangeStart = computed(() => {
+  if (!filteredMatches.value.length) return 0
+  return (currentPage.value - 1) * ITEMS_PER_PAGE + 1
+})
+
+const matchRangeEnd = computed(() => {
+  return Math.min(currentPage.value * ITEMS_PER_PAGE, filteredMatches.value.length)
+})
+
+const visibleMatchPages = computed<number[]>(() => {
+  const total = totalMatchPages.value
+  const current = currentPage.value
+
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+
+  let start = Math.max(1, current - 2)
+  let end = Math.min(total, current + 2)
+
+  if (current <= 3) {
+    start = 1
+    end = 5
+  }
+
+  if (current >= total - 2) {
+    start = total - 4
+    end = total
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
+watch([search, matchStatus], () => {
+  currentPage.value = 1
+})
+
+watch(totalMatchPages, (pages) => {
+  if (currentPage.value > pages) {
+    currentPage.value = pages
+  }
+})
+
+function goToMatchPage(page: number) {
+  currentPage.value = Math.min(Math.max(page, 1), totalMatchPages.value)
+}
 </script>

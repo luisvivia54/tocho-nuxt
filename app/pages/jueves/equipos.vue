@@ -191,7 +191,7 @@
       <div class="mx-auto max-w-7xl px-4 sm:px-6 py-10">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div
-            v-for="team in filteredTeams"
+            v-for="team in paginatedTeams"
             :key="team.id"
             class="rounded-[24px] border border-white/8 bg-white/[0.03] p-6"
           >
@@ -203,6 +203,60 @@
         <div v-if="pendingTeams" class="mt-6 text-sm text-slate-400">Cargando equipos...</div>
         <div v-else-if="teamsError" class="mt-6 text-sm text-rose-300">No se pudieron cargar equipos.</div>
         <div v-else-if="filteredTeams.length === 0" class="mt-6 text-sm text-slate-400">No hay equipos.</div>
+
+        <div
+          v-if="!pendingTeams && !teamsError && filteredTeams.length > 0"
+          class="mt-8 flex flex-col gap-4 border-t border-white/8 pt-6 md:flex-row md:items-center md:justify-between"
+        >
+          <div class="text-sm text-slate-400">
+            Mostrando
+            <span class="font-semibold text-white">{{ teamRangeStart }}</span>
+            -
+            <span class="font-semibold text-white">{{ teamRangeEnd }}</span>
+            de
+            <span class="font-semibold text-white">{{ filteredTeams.length }}</span>
+            equipos
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
+              :class="currentPage === 1
+                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
+              :disabled="currentPage === 1"
+              @click="goToTeamPage(currentPage - 1)"
+            >
+              Anterior
+            </button>
+
+            <button
+              v-for="page in visibleTeamPages"
+              :key="page"
+              type="button"
+              class="h-10 min-w-10 rounded-full border px-3 text-sm font-extrabold transition"
+              :class="page === currentPage
+                ? 'border-orange-400/40 bg-orange-400/15 text-orange-200'
+                : 'border-white/10 bg-white/5 text-slate-300 hover:border-orange-400/30 hover:bg-orange-400/10 hover:text-slate-100'"
+              @click="goToTeamPage(page)"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
+              :class="currentPage === totalTeamPages
+                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
+              :disabled="currentPage === totalTeamPages"
+              @click="goToTeamPage(currentPage + 1)"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -212,6 +266,8 @@
 import { Facebook, Instagram } from "lucide-vue-next"
 import { useJuevesData, type UiTeam } from "~/composables/useJuevesData"
 
+const ITEMS_PER_PAGE = 10
+
 const route = useRoute()
 const mobileOpen = ref(false)
 
@@ -219,6 +275,7 @@ const { leagueKey, toList, pick } = useJuevesData()
 
 const activeOnly = ref(true)
 const search = ref("")
+const currentPage = ref(1)
 
 const { data: teamsData, pending: pendingTeams, error: teamsError } =
   await useAsyncData("jueves-equipos-page", async () => {
@@ -230,6 +287,7 @@ const { data: teamsData, pending: pendingTeams, error: teamsError } =
           ...(activeOnly.value ? { isActive: true } : {}),
         },
       })
+
       const list = toList(raw)
 
       return list.map((t: any) => ({
@@ -242,9 +300,66 @@ const { data: teamsData, pending: pendingTeams, error: teamsError } =
     }
   }, { watch: [activeOnly] })
 
-const filteredTeams = computed(() => {
+const filteredTeams = computed<UiTeam[]>(() => {
   const q = search.value.toLowerCase()
   if (!q) return teamsData.value ?? []
   return (teamsData.value ?? []).filter((t) => t.name.toLowerCase().includes(q))
 })
+
+const totalTeamPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredTeams.value.length / ITEMS_PER_PAGE))
+})
+
+const paginatedTeams = computed<UiTeam[]>(() => {
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
+  const end = start + ITEMS_PER_PAGE
+  return filteredTeams.value.slice(start, end)
+})
+
+const teamRangeStart = computed(() => {
+  if (!filteredTeams.value.length) return 0
+  return (currentPage.value - 1) * ITEMS_PER_PAGE + 1
+})
+
+const teamRangeEnd = computed(() => {
+  return Math.min(currentPage.value * ITEMS_PER_PAGE, filteredTeams.value.length)
+})
+
+const visibleTeamPages = computed<number[]>(() => {
+  const total = totalTeamPages.value
+  const current = currentPage.value
+
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+
+  let start = Math.max(1, current - 2)
+  let end = Math.min(total, current + 2)
+
+  if (current <= 3) {
+    start = 1
+    end = 5
+  }
+
+  if (current >= total - 2) {
+    start = total - 4
+    end = total
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
+watch([search, activeOnly], () => {
+  currentPage.value = 1
+})
+
+watch(totalTeamPages, (pages) => {
+  if (currentPage.value > pages) {
+    currentPage.value = pages
+  }
+})
+
+function goToTeamPage(page: number) {
+  currentPage.value = Math.min(Math.max(page, 1), totalTeamPages.value)
+}
 </script>
