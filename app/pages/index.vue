@@ -191,7 +191,7 @@
               class="group inline-flex items-center justify-center gap-3 rounded-full border border-white/12 bg-black/25 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-white hover:bg-black/35 transition"
             >
               <span class="h-2 w-2 rounded-full bg-amber-300" />
-              LIGA NOCTUNRA (JUEVES)
+              LIGA NOCTURNA (JUEVES)
               <span class="transition-transform group-hover:translate-x-0.5">→</span>
             </NuxtLink>
           </div>
