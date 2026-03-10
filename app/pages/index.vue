@@ -326,7 +326,6 @@
               <div class="h-[2px] w-10 rounded-full bg-emerald-300/70" />
               <p class="text-xs uppercase tracking-[0.22em] text-slate-400">PRÓXIMOS ENCUENTROS</p>
             </div>
-            <p class="mt-2 text-sm text-slate-400">Ahora sí conectado al backend.</p>
           </div>
 
           <div class="flex items-center gap-2">
