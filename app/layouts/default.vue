@@ -4,6 +4,7 @@
     class="min-h-screen text-foreground font-body"
     :class="[
       isLightPage ? 'bg-[#F3F4FF]' : 'bg-background',
+      isDomingoSite ? 'domingo-ui' : '',
       { 'pb-24 sm:pb-0': isAdmin }
     ]"
   >
@@ -28,7 +29,7 @@
               />
             </span>
 
-            <span class="font-display text-[1.8rem] font-extrabold tracking-tight text-white whitespace-nowrap sm:text-[2.1rem]">
+            <span class="font-display whitespace-nowrap text-[1.8rem] font-extrabold tracking-tight text-white sm:text-[2.1rem]">
               tochero<span class="text-[#60A5FA]">5</span>liga
             </span>
           </NuxtLink>
@@ -517,6 +518,18 @@ const route = useRoute()
 
 const isLightPage = computed(() => {
   return route.path === '/mi-equipo' || route.path === '/domingo' || route.path === '/'
+})
+
+const isDomingoSite = computed(() => {
+  return (
+    route.path === '/' ||
+    route.path === '/domingo' ||
+    route.path.startsWith('/partidos') ||
+    route.path.startsWith('/equipos') ||
+    route.path.startsWith('/estadisticas') ||
+    route.path.startsWith('/registro') ||
+    route.path.startsWith('/mi-equipo')
+  )
 })
 
 function isPublicActive(path: string) {

@@ -1,5 +1,5 @@
 <template>
-  <main class="bg-[#F3F4FF] text-slate-900 min-h-screen pt-24 md:pt-28 lg:pt-32">
+  <main class="bg-[#F3F4FF] text-slate-900 min-h-screen pt-12 md:pt-14 lg:pt-16">
     <div class="max-w-5xl mx-auto container-pad px-6 pb-16">
       <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2">
         Registro de equipo

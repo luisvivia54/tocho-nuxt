@@ -1,14 +1,14 @@
+<!-- app/pages/domingo.vue -->
 <template>
-  <main class="bg-[#F3F4FF] text-slate-900 min-h-[100dvh] w-full overflow-x-hidden">
+  <main class="bg-[#F3F4FF] text-slate-900 min-h-screen overflow-x-hidden">
     <!-- ========== HERO + CARRUSEL ========== -->
     <section class="pt-24 md:pt-28 lg:pt-32">
-      <!-- ✅ FIX: sin container-pad (evita padding doble) + padding mobile más pequeño -->
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 w-full min-w-0">
+      <div class="max-w-6xl mx-auto container-pad px-6">
         <!-- Carrusel con IMG real -->
-        <div class="w-full max-w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900">
+        <div class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900">
           <!-- ✅ SWIPE AREA -->
           <div
-            class="relative w-full max-w-full hero-swipe aspect-[16/9] sm:aspect-[16/6] lg:aspect-[16/5]"
+            class="relative w-full hero-swipe aspect-[16/9] sm:aspect-[16/6] lg:aspect-[16/5]"
             @pointerdown="onHeroPointerDown"
             @pointermove="onHeroPointerMove"
             @pointerup="onHeroPointerUp"
@@ -28,24 +28,21 @@
 
             <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/0"></div>
 
-            <!-- Tap zones (mobile) -->
             <button type="button" class="tapzone left" aria-label="Anterior" @click="prevSlide" />
             <button type="button" class="tapzone right" aria-label="Siguiente" @click="nextSlide" />
           </div>
         </div>
 
-        <!-- Controles del carrusel -->
-        <div class="mt-3 flex items-center justify-center gap-3 sm:gap-4 max-w-full">
+        <div class="mt-3 flex items-center justify-center gap-3 sm:gap-4">
           <button class="carousel-arrow bg-white shadow hidden sm:inline-flex" @click="prevSlide" aria-label="Anterior">
             <span class="text-xs text-slate-700">&larr;</span>
           </button>
 
-          <!-- ✅ FIX: wrap para evitar overflow raro -->
-          <div class="flex flex-wrap items-center justify-center gap-2 max-w-full">
+          <div class="flex items-center gap-2">
             <button
               v-for="(slide, idx) in heroSlides"
               :key="slide.id"
-              class="carousel-dot border border-slate-300 shrink-0"
+              class="carousel-dot border border-slate-300"
               :class="idx === currentSlide ? 'carousel-dot--active bg-blue-600 border-blue-600' : 'bg-white'"
               @click="goToSlide(idx)"
               :aria-label="`Ir a slide ${idx + 1}`"
@@ -57,17 +54,14 @@
           </button>
         </div>
 
-        <!-- Overlay card -->
-        <!-- ✅ FIX: menos negativo en móvil + overflow hidden -->
-        <div class="relative -mt-16 sm:-mt-24 w-full max-w-full">
-          <div class="w-full max-w-full overflow-hidden p-5 sm:p-6 md:p-8 bg-blue-50 text-slate-900 border border-blue-100 rounded-[26px] shadow-[0_18px_40px_rgba(37,99,235,0.25)]">
-            <!-- ✅ FIX: min-w-0 para que nada empuje -->
-            <div class="grid md:grid-cols-5 gap-6 items-start min-w-0">
-              <div class="md:col-span-3 min-w-0">
-                <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900 break-words">
+        <div class="relative -mt-20 sm:-mt-24">
+          <div class="p-6 md:p-8 bg-blue-50 text-slate-900 border border-blue-100 rounded-[26px] shadow-[0_18px_40px_rgba(37,99,235,0.25)]">
+            <div class="grid md:grid-cols-5 gap-6 items-start">
+              <div class="md:col-span-3">
+                <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-900">
                   {{ homeHeroTitle }}
                 </h1>
-                <p class="mt-2 text-slate-700 break-words">{{ homeHeroSubtitle }}</p>
+                <p class="mt-2 text-slate-700">{{ homeHeroSubtitle }}</p>
 
                 <div class="mt-4 flex flex-wrap gap-3">
                   <NuxtLink
@@ -84,18 +78,16 @@
                   </NuxtLink>
                 </div>
 
-                <p v-if="homeCfgError" class="mt-3 text-[11px] text-rose-700 break-words">
+                <p v-if="homeCfgError" class="mt-3 text-[11px] text-rose-700">
                   {{ homeCfgError }}
                 </p>
               </div>
 
-              <!-- PRÓXIMOS JUEGOS -->
-              <div class="md:col-span-2 min-w-0 w-full">
-                <div class="rounded-2xl border border-blue-100 bg-white p-4 md:p-5 shadow-[0_10px_22px_rgba(15,23,42,0.08)] overflow-hidden w-full max-w-full">
-                  <!-- Header -->
-                  <div class="flex items-center justify-between gap-3 min-w-0">
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-center gap-2 min-w-0 flex-wrap">
+              <div class="md:col-span-2">
+                <div class="rounded-2xl border border-blue-100 bg-white p-4 md:p-5 shadow-[0_10px_22px_rgba(15,23,42,0.08)] overflow-hidden max-w-full">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2 min-w-0">
                         <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 shrink-0">
                           Próximo juego
                         </p>
@@ -152,7 +144,7 @@
 
                   <div
                     v-else
-                    class="mt-4 upcoming-swipe w-full max-w-full"
+                    class="mt-4 upcoming-swipe"
                     @pointerdown="onUpcomingPointerDown"
                     @pointermove="onUpcomingPointerMove"
                     @pointerup="onUpcomingPointerUp"
@@ -162,14 +154,14 @@
                     <Transition name="lift" mode="out-in">
                       <article
                         :key="activeUpcoming?.id"
-                        class="relative w-full max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_26px_rgba(15,23,42,0.08)]"
+                        class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_12px_26px_rgba(15,23,42,0.08)] max-w-full"
                       >
                         <div class="px-4 py-3 border-b border-slate-200">
-                          <div class="flex items-start justify-between gap-3 min-w-0">
-                            <div class="min-w-0 flex-1">
+                          <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
                               <p
                                 class="text-[11px] font-semibold text-slate-500 break-words"
-                                style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
+                                style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;"
                               >
                                 {{ activeUpcoming.categoryName }}
                                 <template v-if="activeUpcoming.code"> · {{ activeUpcoming.code }}</template>
@@ -186,17 +178,17 @@
                               <p class="text-xl md:text-[22px] font-extrabold text-slate-900 tabular-nums leading-none whitespace-nowrap">
                                 {{ activeUpcoming.timeLabel }}
                               </p>
-                              <p class="mt-1 text-[11px] font-semibold text-slate-500 whitespace-nowrap">
+                              <p class="mt-1 text-[11px] font-semibold text-slate-500">
                                 {{ String(activeUpcoming.status).toUpperCase() === 'LIVE' ? 'EN JUEGO' : 'PROGRAMADO' }}
                               </p>
                             </div>
                           </div>
                         </div>
 
-                        <div class="px-4 py-3 min-w-0">
-                          <div class="space-y-3 min-w-0">
+                        <div class="px-4 py-3">
+                          <div class="space-y-3">
                             <div class="grid grid-cols-[44px_1fr] gap-3 items-start min-w-0">
-                              <div class="h-11 w-11 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center shrink-0">
+                              <div class="h-11 w-11 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center">
                                 <img
                                   v-if="activeUpcoming.homeLogo"
                                   :src="activeUpcoming.homeLogo"
@@ -214,7 +206,7 @@
                                 <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Local</p>
                                 <p
                                   class="mt-0.5 text-[13px] font-extrabold text-slate-900 leading-snug break-words"
-                                  style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
+                                  style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;"
                                 >
                                   {{ activeUpcoming.homeName }}
                                 </p>
@@ -224,7 +216,7 @@
                             <div class="h-px bg-slate-200"></div>
 
                             <div class="grid grid-cols-[44px_1fr] gap-3 items-start min-w-0">
-                              <div class="h-11 w-11 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center shrink-0">
+                              <div class="h-11 w-11 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center">
                                 <img
                                   v-if="activeUpcoming.awayLogo"
                                   :src="activeUpcoming.awayLogo"
@@ -242,7 +234,7 @@
                                 <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Visitante</p>
                                 <p
                                   class="mt-0.5 text-[13px] font-extrabold text-slate-900 leading-snug break-words"
-                                  style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
+                                  style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;"
                                 >
                                   {{ activeUpcoming.awayName }}
                                 </p>
@@ -250,7 +242,7 @@
                             </div>
                           </div>
 
-                          <div class="mt-3 flex items-center justify-between gap-2 min-w-0">
+                          <div class="mt-3 flex items-center justify-between gap-2">
                             <p class="text-[11px] text-slate-500 min-w-0 truncate">
                               {{ activeUpcoming.seasonName || selectedSeasonLabel }} · ID {{ activeUpcoming.id }}
                             </p>
@@ -266,13 +258,12 @@
                             </NuxtLink>
                           </div>
 
-                          <!-- ✅ FIX: dots con wrap para que NUNCA desborden -->
-                          <div v-if="upcomingTotal > 1" class="mt-3 flex max-w-full flex-wrap items-center justify-center gap-1.5">
+                          <div v-if="upcomingTotal > 1" class="mt-3 flex items-center justify-center gap-1.5">
                             <button
                               v-for="(_, i) in upcomingTotal"
                               :key="i"
                               type="button"
-                              class="h-2 w-2 rounded-full border border-slate-300 shrink-0"
+                              class="h-2 w-2 rounded-full border border-slate-300"
                               :class="i === upcomingIndex ? 'bg-slate-900 border-slate-900' : 'bg-white hover:bg-slate-50'"
                               @click="goToUpcoming(i)"
                               @pointerdown.stop
@@ -285,30 +276,27 @@
                   </div>
                 </div>
               </div>
-              <!-- /PRÓXIMOS JUEGOS -->
             </div>
           </div>
         </div>
 
-        <!-- Texto introductorio -->
-        <div class="mt-10 w-full max-w-full">
-          <h2 class="font-display text-2xl font-extrabold mb-1 text-slate-900 break-words">{{ homeIntroTitle }}</h2>
-          <p class="text-slate-600 break-words">{{ homeIntroSubtitle }}</p>
+        <div class="mt-10">
+          <h2 class="font-display text-2xl font-extrabold mb-1 text-slate-900">{{ homeIntroTitle }}</h2>
+          <p class="text-slate-600">{{ homeIntroSubtitle }}</p>
         </div>
 
-        <!-- ========== TOP 5 POSICIONES ========== -->
-        <div class="mt-8 w-full max-w-full rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
-          <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] min-w-0">
+        <div class="mt-8 rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
             <div class="flex items-center gap-3 min-w-0">
               <h3 class="font-display font-extrabold text-white truncate">Top 5 · Posiciones</h3>
-              <span class="inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-[11px] font-extrabold text-white shrink-0" title="Temporada seleccionada">
+              <span class="inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-[11px] font-extrabold text-white" title="Temporada seleccionada">
                 {{ selectedSeasonLabel }}
               </span>
             </div>
 
             <button
               type="button"
-              class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15 shrink-0"
+              class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15"
               @click="refreshStandings()"
             >
               Refrescar
@@ -316,14 +304,14 @@
           </div>
 
           <div class="px-5 py-4 bg-white border-b border-slate-200/70">
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end min-w-0">
-              <div class="min-w-0">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                   Temporada (season)
                 </label>
                 <select
                   v-model.number="selectedSeasonId"
-                  class="w-full max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option v-for="s in seasonOptions" :key="s.value" :value="s.value">
                     {{ s.label }}
@@ -331,13 +319,13 @@
                 </select>
               </div>
 
-              <div class="min-w-0">
+              <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                   Categoría (code)
                 </label>
                 <select
                   v-model="selectedCategoryCode"
-                  class="w-full max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">Todas</option>
                   <option v-for="cat in categoryOptions" :key="cat.value" :value="cat.value">
@@ -346,13 +334,13 @@
                 </select>
               </div>
 
-              <div class="min-w-0">
+              <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                   Rama (gender)
                 </label>
                 <select
                   v-model="selectedGender"
-                  class="w-full max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">Todas</option>
                   <option value="VARONIL">Varonil</option>
@@ -361,7 +349,7 @@
                 </select>
               </div>
 
-              <div class="flex gap-2 sm:justify-end flex-wrap">
+              <div class="flex gap-2 sm:justify-end">
                 <button
                   type="button"
                   class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
@@ -381,25 +369,25 @@
             </div>
           </div>
 
-          <div class="bg-white w-full max-w-full">
+          <div class="bg-white">
             <div v-if="standingsPending" class="px-5 py-4 text-sm text-slate-500">
               Cargando posiciones...
             </div>
 
-            <div v-else-if="standingsError" class="px-5 py-4 text-sm text-red-600 break-words">
+            <div v-else-if="standingsError" class="px-5 py-4 text-sm text-red-600">
               Error al cargar las posiciones: {{ standingsError }}
             </div>
 
             <template v-else>
               <ul v-if="topPositions.length" class="sm:hidden divide-y divide-slate-100">
                 <li v-for="row in topPositions" :key="row.rank" class="p-4">
-                  <div class="flex items-start justify-between gap-3 min-w-0">
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-center gap-2 min-w-0">
-                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-extrabold text-slate-700 shrink-0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-extrabold text-slate-700">
                           #{{ row.rank }}
                         </span>
-                        <p class="font-extrabold text-slate-900 truncate min-w-0">{{ row.teamName }}</p>
+                        <p class="font-extrabold text-slate-900 truncate">{{ row.teamName }}</p>
                       </div>
 
                       <div class="mt-2 grid grid-cols-4 gap-2">
@@ -487,7 +475,7 @@
                           <div class="h-9 w-9 rounded-xl border border-slate-200 bg-slate-50 grid place-items-center shrink-0">
                             <span class="text-[11px] font-extrabold text-blue-700">{{ initials(row.teamName) }}</span>
                           </div>
-                          <span class="font-semibold text-slate-900 truncate min-w-0">{{ row.teamName }}</span>
+                          <span class="font-semibold text-slate-900 truncate">{{ row.teamName }}</span>
                         </div>
                       </td>
 
@@ -537,16 +525,15 @@
           </div>
         </div>
 
-        <!-- ========== REGLAMENTOS (3) ========== -->
         <section id="reglamentos" class="mt-12">
-          <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden w-full max-w-full">
-            <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] min-w-0">
-              <div class="min-w-0">
+          <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
+              <div>
                 <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">reglamentos oficiales</p>
-                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1 break-words">Reglas y normativa de la liga</h2>
+                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">Reglas y normativa de la liga</h2>
               </div>
 
-              <div class="hidden sm:flex items-center gap-2 shrink-0">
+              <div class="hidden sm:flex items-center gap-2">
                 <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white">3 documentos</span>
                 <a href="#patrocinadores" class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15">
                   Ver patrocinadores →
@@ -554,27 +541,25 @@
               </div>
             </div>
 
-            <div class="px-4 sm:px-6 py-8">
+            <div class="px-6 py-8">
               <div class="grid gap-4 md:grid-cols-3">
                 <article
                   v-for="doc in reglamentos"
                   :key="doc.id"
-                  class="group relative rounded-2xl border border-slate-200 bg-white overflow-hidden
-                         shadow-[0_14px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)]
-                         transition-shadow"
+                  class="group relative rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-[0_14px_35px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)] transition-shadow"
                 >
                   <div class="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500"></div>
 
-                  <div class="p-5 min-w-0">
-                    <div class="flex items-start justify-between gap-3 min-w-0">
+                  <div class="p-5">
+                    <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0">
                         <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 font-semibold">
                           {{ doc.category }}
                         </p>
-                        <h3 class="mt-1 font-display text-lg font-extrabold text-slate-900 leading-tight break-words">
+                        <h3 class="mt-1 font-display text-lg font-extrabold text-slate-900 leading-tight">
                           {{ doc.title }}
                         </h3>
-                        <p class="mt-2 text-sm text-slate-600 break-words">{{ doc.subtitle }}</p>
+                        <p class="mt-2 text-sm text-slate-600">{{ doc.subtitle }}</p>
                       </div>
 
                       <div class="shrink-0 flex flex-col items-end gap-2">
@@ -621,7 +606,7 @@
                       <ul class="mt-3 space-y-2 text-sm text-slate-600">
                         <li v-for="b in doc.bullets" :key="b" class="flex gap-2">
                           <span class="mt-1.5 inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                          <span class="break-words">{{ b }}</span>
+                          <span>{{ b }}</span>
                         </li>
                       </ul>
                     </details>
@@ -631,10 +616,7 @@
                         :href="doc.href"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold
-                               bg-blue-600 hover:bg-blue-500 text-white
-                               shadow-[0_10px_25px_rgba(37,99,235,0.35)]
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        class="inline-flex flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       >
                         Ver reglamento <span class="ml-1 text-xs">↗</span>
                       </a>
@@ -642,9 +624,7 @@
                       <a
                         :href="doc.href"
                         :download="doc.downloadName"
-                        class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold
-                               bg-white border border-slate-200 text-slate-800 hover:bg-slate-50
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold bg-white border border-slate-200 text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         title="Descargar"
                       >
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
@@ -672,36 +652,34 @@
           </p>
         </section>
 
-        <!-- ========== PATROCINADORES ========== -->
         <section id="patrocinadores" class="mt-12">
-          <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden w-full max-w-full">
-            <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] min-w-0">
-              <div class="min-w-0">
+          <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB]">
+              <div>
                 <p class="text-[11px] font-semibold tracking-[0.25em] text-blue-100 uppercase">aliados de la liga</p>
-                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1 break-words">Patrocinadores oficiales</h2>
+                <h2 class="font-display text-xl sm:text-2xl font-extrabold text-white mt-1">Patrocinadores oficiales</h2>
               </div>
 
-              <div class="hidden sm:flex items-center gap-2 shrink-0">
+              <div class="hidden sm:flex items-center gap-2">
                 <button type="button" class="inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15" @click="prevSponsor">←</button>
                 <button type="button" class="inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15" @click="nextSponsor">→</button>
               </div>
             </div>
 
-            <div class="px-4 sm:px-6 py-8 bg-white">
-              <!-- Destacado -->
-              <div class="rounded-3xl border border-slate-200 bg-slate-50 shadow-[0_14px_35px_rgba(15,23,42,0.08)] overflow-hidden w-full max-w-full">
+            <div class="px-6 py-8 bg-white">
+              <div class="rounded-3xl border border-slate-200 bg-slate-50 shadow-[0_14px_35px_rgba(15,23,42,0.08)] overflow-hidden">
                 <div class="p-5 sm:p-6 md:p-7">
                   <p class="text-[11px] uppercase tracking-[0.22em] font-semibold text-slate-500">
                     patrocinador destacado
                   </p>
 
-                  <div class="mt-2 grid md:grid-cols-12 gap-6 items-center min-w-0">
-                    <div class="md:col-span-7 min-w-0">
-                      <h3 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight break-words">
+                  <div class="mt-2 grid md:grid-cols-12 gap-6 items-center">
+                    <div class="md:col-span-7">
+                      <h3 class="font-display text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
                         {{ activeSponsor.name }}
                       </h3>
 
-                      <p class="mt-2 text-slate-700 max-w-xl break-words">
+                      <p class="mt-2 text-slate-700 max-w-xl">
                         {{ activeSponsor.description }}
                       </p>
 
@@ -736,9 +714,8 @@
                       </div>
                     </div>
 
-                    <!-- ✅ FIX: overflow-hidden para que el blur NO genere scroll horizontal en mobile -->
                     <div class="md:col-span-5 flex md:justify-end justify-center">
-                      <div class="relative overflow-hidden">
+                      <div class="relative">
                         <div class="h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-full bg-blue-500/10 blur-2xl absolute -inset-6"></div>
 
                         <div class="h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-full bg-white border border-slate-200 shadow-[0_18px_45px_rgba(15,23,42,0.12)] overflow-hidden grid place-items-center relative">
@@ -760,29 +737,28 @@
 
               <div class="mt-6">
                 <div class="flex items-end justify-between gap-3">
-                  <div class="min-w-0">
+                  <div>
                     <p class="text-[11px] uppercase tracking-[0.22em] font-semibold text-slate-500">patrocinadores actuales</p>
                     <p class="mt-1 text-sm text-slate-600">Desliza (mobile) o haz clic para destacar.</p>
                   </div>
 
                   <a href="https://www.instagram.com/tochero5liga/" target="_blank" rel="noopener"
-                    class="hidden sm:inline-flex items-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 shrink-0">
+                    class="hidden sm:inline-flex items-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
                     ¿Quieres patrocinar? ↗
                   </a>
                 </div>
 
-                <!-- ✅ FIX: quitamos -mx-1 en móvil (eso suele provocar overflow en algunos devices) -->
-                <div class="mt-4 flex gap-3 overflow-x-auto pb-2 px-1 max-w-full">
+                <div class="mt-4 flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
                   <button
                     v-for="sp in sponsors"
                     :key="sp.id"
                     type="button"
-                    class="min-w-[220px] sm:min-w-[260px] rounded-2xl border bg-white p-4 text-left shadow-[0_10px_25px_rgba(15,23,42,0.06)] hover:shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-shadow"
+                    class="min-w-[240px] sm:min-w-[260px] rounded-2xl border bg-white p-4 text-left shadow-[0_10px_25px_rgba(15,23,42,0.06)] hover:shadow-[0_14px_35px_rgba(15,23,42,0.10)] transition-shadow"
                     :class="sp.id === activeSponsor.id ? 'border-blue-300 ring-2 ring-blue-200/60' : 'border-slate-200'"
                     @click="setActiveSponsorById(sp.id)"
                   >
-                    <div class="flex items-center gap-3 min-w-0">
-                      <div class="h-12 w-12 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center shrink-0">
+                    <div class="flex items-center gap-3">
+                      <div class="h-12 w-12 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center">
                         <img v-if="sp.logo" :src="sp.logo" :alt="sp.name" class="h-[70%] w-[70%] object-contain" loading="lazy" />
                         <span v-else class="text-[11px] font-extrabold text-slate-600">{{ sp.name.slice(0, 2).toUpperCase() }}</span>
                       </div>
@@ -814,14 +790,12 @@
         </section>
       </div>
 
-      <!-- FOOTER / UBICACIÓN -->
       <div class="mt-14 bg-[#E0E7FF]">
-        <!-- ✅ FIX: padding mobile más pequeño -->
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 w-full min-w-0">
-          <div class="grid md:grid-cols-5 gap-6 items-start min-w-0">
-            <div class="md:col-span-2 space-y-2 min-w-0">
+        <div class="max-w-6xl mx-auto container-pad px-6 py-10">
+          <div class="grid md:grid-cols-5 gap-6 items-start">
+            <div class="md:col-span-2 space-y-2">
               <h2 class="font-display text-2xl font-extrabold text-slate-900">Ubicación</h2>
-              <p class="opacity-95 text-slate-800 break-words">{{ homeLocationAddress }}</p>
+              <p class="opacity-95 text-slate-800">{{ homeLocationAddress }}</p>
               <p class="text-sm opacity-90 text-slate-700">Abre el mapa para ver la ruta exacta.</p>
 
               <a
@@ -834,8 +808,8 @@
               </a>
             </div>
 
-            <div class="md:col-span-3 min-w-0">
-              <div class="aspect-video rounded-[26px] overflow-hidden border border-white/70 shadow-lg bg-black/10 w-full max-w-full">
+            <div class="md:col-span-3">
+              <div class="aspect-video rounded-[26px] overflow-hidden border border-white/70 shadow-lg bg-black/10">
                 <iframe
                   class="w-full h-full"
                   :src="mapsEmbedSrc"
@@ -850,49 +824,71 @@
 
           <hr class="mt-8 mb-4 border-slate-300/70" />
 
-          <div class="flex items-center justify-between text-sm text-slate-600 gap-3 min-w-0">
-            <span class="min-w-0 break-words">{{ homeLocationCopyright }}</span>
+          <div class="flex items-center justify-between text-sm text-slate-600">
+            <span>{{ homeLocationCopyright }}</span>
 
-            <span class="inline-flex items-center gap-2 opacity-90 hover:opacity-100 shrink-0">
+            <span class="inline-flex items-center gap-2 opacity-90 hover:opacity-100">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
                 <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="1.6" />
                 <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6" />
                 <circle cx="17.5" cy="6.5" r="1.3" fill="currentColor" />
               </svg>
-              <span class="whitespace-nowrap">{{ homeLocationInstagram }}</span>
+              <span>{{ homeLocationInstagram }}</span>
             </span>
           </div>
         </div>
       </div>
     </section>
   </main>
-
-  <!-- <ChatWidget /> -->
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRuntimeConfig, useAsyncData } from '#imports'
-useHead({
-  htmlAttrs: {
-    class: 'page-home',
-  },
-  bodyAttrs: {
-    class: 'page-home',
-  },
-})
-/* ===================== API_BASE ===================== */
+import { $fetch } from 'ofetch'
+import { normalizeApiBase } from '../composables/useApiBase'
+
 const config = useRuntimeConfig()
-const API_BASE = (config.public && config.public.apiBase) ? String(config.public.apiBase) : 'https://tocho5-api.tochero5.mx/api'
+const API_BASE = normalizeApiBase((config.public && config.public.apiBase) ? String(config.public.apiBase) : '')
 const HOME_CFG_ENDPOINT = `${API_BASE}/site-configs/home`
 
-/* ===================== HOME CONFIG (desde backend) ===================== */
 function uid(prefix) {
   return `${prefix}-${Math.random().toString(16).slice(2, 8)}-${Date.now().toString(16).slice(2)}`
 }
 function clone(x) {
   return JSON.parse(JSON.stringify(x))
 }
+function pickArrayFromResponse(res) {
+  if (Array.isArray(res)) return res
+  if (res && Array.isArray(res.content)) return res.content
+  if (res && Array.isArray(res.items)) return res.items
+  if (res && Array.isArray(res.data)) return res.data
+  return []
+}
+function toNum(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0
+}
+function upper(v) {
+  return String(v ?? '').trim().toUpperCase()
+}
+function initials(text) {
+  const s = String(text || '').trim()
+  if (!s) return 'T5'
+  const parts = s.split(/\s+/).slice(0, 2)
+  return parts.map((p) => p[0]?.toUpperCase()).join('')
+}
+const formatDiff = (n) => {
+  const x = Number(n) || 0
+  return x > 0 ? `+${x}` : `${x}`
+}
+const formatPct = (pct) => {
+  const x = Number(pct)
+  if (!Number.isFinite(x) || x <= 0) return '0.000'
+  return x.toFixed(3)
+}
+const clamp01 = (n) => Math.min(1, Math.max(0, Number(n) || 0))
+const pctToLabel = (pct) => `${(clamp01(pct) * 100).toFixed(1)}%`
+const pctWidth = (pct) => `${Math.round(clamp01(pct) * 100)}%`
 
 const HOME_DEFAULTS = {
   schemaVersion: 1,
@@ -918,6 +914,33 @@ const HOME_DEFAULTS = {
       tagline: 'Innovación para el juego y el bienestar.',
       description: 'Dicass acompaña a jugadores y familias con activaciones, alimentos y experiencias dentro del deportivo.',
       label: 'Patrocinador principal'
+    },
+    {
+      id: 'blitzflag',
+      name: 'BlitzFlag',
+      logo: '/img/sponsors/blitzflag-logo.png',
+      url: '',
+      tagline: 'Impulsando el flag football.',
+      description: 'BlitzFlag fortalece la experiencia competitiva de la liga con presencia de marca, comunidad y pasión por el juego.',
+      label: 'Patrocinador oficial'
+    },
+    {
+      id: 'underarmour',
+      name: 'Under Armour',
+      logo: '/img/sponsors/underarmour-logo.png',
+      url: '',
+      tagline: 'Rendimiento dentro y fuera del campo.',
+      description: 'Under Armour se suma como aliado de la liga con imagen, energía competitiva y respaldo a los jugadores.',
+      label: 'Patrocinador oficial'
+    },
+    {
+      id: 'medimex',
+      name: 'Fundación Medimex',
+      logo: '/img/sponsors/medimex-logo.png',
+      url: '',
+      tagline: 'Bienestar y comunidad.',
+      description: 'Fundación Medimex participa como aliado estratégico apoyando el crecimiento del torneo y su comunidad.',
+      label: 'Patrocinador oficial'
     }
   ],
   location: {
@@ -926,6 +949,57 @@ const HOME_DEFAULTS = {
     instagram: '@tochero5liga',
     copyright: '© 2026 tochero5liga'
   }
+}
+
+const SPONSOR_FALLBACKS = clone(HOME_DEFAULTS.sponsors)
+
+function normalizeSponsorId(nameOrId) {
+  return String(nameOrId || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+}
+
+function mergeSponsorsWithFallbacks(inputSponsors) {
+  const map = new Map()
+
+  for (const sp of SPONSOR_FALLBACKS) {
+    map.set(normalizeSponsorId(sp.id || sp.name), clone(sp))
+  }
+
+  for (const raw of Array.isArray(inputSponsors) ? inputSponsors : []) {
+    const normalized = {
+      id: String(raw.id ?? uid('sp')),
+      name: String(raw.name ?? ''),
+      logo: String(raw.logo ?? ''),
+      url: String(raw.url ?? ''),
+      tagline: String(raw.tagline ?? ''),
+      description: String(raw.description ?? ''),
+      label: String(raw.label ?? '')
+    }
+
+    const key = normalizeSponsorId(normalized.id || normalized.name)
+
+    if (!map.has(key)) {
+      map.set(key, normalized)
+      continue
+    }
+
+    const base = map.get(key)
+    map.set(key, {
+      ...base,
+      ...normalized,
+      id: normalized.id || base.id,
+      name: normalized.name || base.name,
+      logo: normalized.logo || base.logo,
+      url: normalized.url || base.url,
+      tagline: normalized.tagline || base.tagline,
+      description: normalized.description || base.description,
+      label: normalized.label || base.label
+    })
+  }
+
+  return Array.from(map.values())
 }
 
 function normalizeHomeData(data) {
@@ -953,17 +1027,19 @@ function normalizeHomeData(data) {
     }
 
     if (Array.isArray(data.sponsors)) {
-      merged.sponsors = data.sponsors
-        .filter((x) => x && typeof x === 'object')
-        .map((x) => ({
-          id: String(x.id ?? uid('sp')),
-          name: String(x.name ?? ''),
-          logo: String(x.logo ?? ''),
-          url: String(x.url ?? ''),
-          tagline: String(x.tagline ?? ''),
-          description: String(x.description ?? ''),
-          label: String(x.label ?? '')
-        }))
+      merged.sponsors = mergeSponsorsWithFallbacks(
+        data.sponsors
+          .filter((x) => x && typeof x === 'object')
+          .map((x) => ({
+            id: String(x.id ?? uid('sp')),
+            name: String(x.name ?? ''),
+            logo: String(x.logo ?? ''),
+            url: String(x.url ?? ''),
+            tagline: String(x.tagline ?? ''),
+            description: String(x.description ?? ''),
+            label: String(x.label ?? '')
+          }))
+      )
     }
 
     if (data.location && typeof data.location === 'object') {
@@ -977,7 +1053,10 @@ function normalizeHomeData(data) {
   if (!Array.isArray(merged.hero.images) || merged.hero.images.length === 0) {
     merged.hero.images = clone(HOME_DEFAULTS.hero.images)
   }
-  if (!Array.isArray(merged.sponsors)) merged.sponsors = []
+  if (!Array.isArray(merged.sponsors) || merged.sponsors.length === 0) {
+    merged.sponsors = clone(SPONSOR_FALLBACKS)
+  }
+
   return merged
 }
 
@@ -988,14 +1067,10 @@ async function loadHomeConfig() {
   homeCfgError.value = ''
   try {
     const res = await $fetch(HOME_CFG_ENDPOINT).catch(() => null)
-
-    // Tu DTO normalmente regresa { key, schemaVersion, data, updatedAt }
     const payload = (res && typeof res === 'object' && 'data' in res) ? res.data : res
     const merged = normalizeHomeData(payload)
 
     homeCfg.value = merged
-
-    // aplicar a refs que usa el UI
     heroSlides.value = merged.hero.images.map((x) => ({ id: x.id, src: x.src }))
     if (heroSlides.value.length === 0) heroSlides.value = clone(HOME_DEFAULTS.hero.images)
     currentSlide.value = 0
@@ -1003,8 +1078,7 @@ async function loadHomeConfig() {
     sponsors.value = Array.isArray(merged.sponsors) ? merged.sponsors : []
     if (!sponsors.value.length) sponsors.value = clone(HOME_DEFAULTS.sponsors)
     activeSponsorIndex.value = 0
-  } catch (e) {
-    // si falla, no truena la home: se queda con defaults
+  } catch {
     homeCfg.value = clone(HOME_DEFAULTS)
     heroSlides.value = clone(HOME_DEFAULTS.hero.images)
     sponsors.value = clone(HOME_DEFAULTS.sponsors)
@@ -1012,15 +1086,13 @@ async function loadHomeConfig() {
   }
 }
 
+const onVisibilityChange = () => {
+  if (document.visibilityState === 'visible') loadHomeConfig()
+}
+
 onMounted(() => {
   loadHomeConfig()
-
-  // opcional: refresca cuando vuelves a la pestaña (para ver cambios del admin sin hard refresh)
-  const onVis = () => {
-    if (document.visibilityState === 'visible') loadHomeConfig()
-  }
-  document.addEventListener('visibilitychange', onVis)
-  onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVis))
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 const homeHeroTitle = computed(() => String(homeCfg.value?.hero?.title ?? HOME_DEFAULTS.hero.title))
@@ -1028,44 +1100,15 @@ const homeHeroSubtitle = computed(() => String(homeCfg.value?.hero?.subtitle ?? 
 const homeIntroTitle = computed(() => String(homeCfg.value?.intro?.title ?? HOME_DEFAULTS.intro.title))
 const homeIntroSubtitle = computed(() => String(homeCfg.value?.intro?.subtitle ?? HOME_DEFAULTS.intro.subtitle))
 
-const homeLocationAddress = computed(() => String(homeCfg.value?.location?.address ?? HOME_DEFAULTS.location.address))
-const homeLocationInstagram = computed(() => String(homeCfg.value?.location?.instagram ?? HOME_DEFAULTS.location.instagram))
-const homeLocationCopyright = computed(() => String(homeCfg.value?.location?.copyright ?? HOME_DEFAULTS.location.copyright))
-
-/* ===================== MAPA ===================== */
 const mapsShortUrl = 'https://maps.app.goo.gl/zKNYRashoqHAMJwP9'
 const mapsLat = 19.4820973
 const mapsLng = -99.2446694
 const mapsEmbedSrc = computed(() => `https://www.google.com/maps?q=${mapsLat},${mapsLng}&z=17&output=embed`)
 const mapsOpenUrl = computed(() => String(homeCfg.value?.location?.mapsUrl || mapsShortUrl))
+const homeLocationAddress = computed(() => String(homeCfg.value?.location?.address ?? HOME_DEFAULTS.location.address))
+const homeLocationInstagram = computed(() => String(homeCfg.value?.location?.instagram ?? HOME_DEFAULTS.location.instagram))
+const homeLocationCopyright = computed(() => String(homeCfg.value?.location?.copyright ?? HOME_DEFAULTS.location.copyright))
 
-/* ===================== HELPERS ===================== */
-function toNum(v) {
-  return typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0
-}
-function upper(v) {
-  return String(v ?? '').trim().toUpperCase()
-}
-function initials(text) {
-  const s = String(text || '').trim()
-  if (!s) return 'T5'
-  const parts = s.split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase()).join('')
-}
-const formatDiff = (n) => {
-  const x = Number(n) || 0
-  return x > 0 ? `+${x}` : `${x}`
-}
-const formatPct = (pct) => {
-  const x = Number(pct)
-  if (!Number.isFinite(x) || x <= 0) return '0.000'
-  return x.toFixed(3)
-}
-const clamp01 = (n) => Math.min(1, Math.max(0, Number(n) || 0))
-const pctToLabel = (pct) => `${(clamp01(pct) * 100).toFixed(1)}%`
-const pctWidth = (pct) => `${Math.round(clamp01(pct) * 100)}%`
-
-/* ===================== SEASONS DINÁMICAS ===================== */
 const DEFAULT_SEASON_ID = 2
 const selectedSeasonId = ref(DEFAULT_SEASON_ID)
 
@@ -1073,9 +1116,11 @@ const { data: seasonsRaw } = useAsyncData(
   'seasons-home-lite',
   async () => {
     const try1 = await $fetch(`${API_BASE}/seasons/list`).catch(() => null)
-    if (Array.isArray(try1)) return try1
+    const list1 = pickArrayFromResponse(try1)
+    if (list1.length) return list1
+
     const try2 = await $fetch(`${API_BASE}/seasons`).catch(() => [])
-    return Array.isArray(try2) ? try2 : []
+    return pickArrayFromResponse(try2)
   },
   { server: false, default: () => [] }
 )
@@ -1098,13 +1143,18 @@ const seasonOptions = computed(() => {
   }
 
   tmp.sort((a, b) => b.value - a.value)
+
   const seen = new Set()
   const out = []
   for (const o of tmp) {
     if (seen.has(o.value)) continue
     seen.add(o.value)
-    out.push({ value: o.value, label: o.value === DEFAULT_SEASON_ID ? `${o.label} (Actual)` : o.label })
+    out.push({
+      value: o.value,
+      label: o.value === DEFAULT_SEASON_ID ? `${o.label} (Actual)` : o.label
+    })
   }
+
   return out
 })
 
@@ -1127,7 +1177,6 @@ const seasonsMap = computed(() => {
 
 const selectedSeasonLabel = computed(() => seasonsMap.value[selectedSeasonId.value] || `Temporada ${selectedSeasonId.value}`)
 
-/* ===================== TOP 5 POSICIONES ===================== */
 const categoryOptions = [
   { label: 'Libre', value: 'Libre' },
   { label: '35+', value: '35+' },
@@ -1177,30 +1226,30 @@ async function tryFetchPoints(params) {
   const qs = new URLSearchParams(params).toString()
   const url = `${API_BASE}/points?${qs}`
   const res = await $fetch(url).catch(() => null)
-  return Array.isArray(res) ? res : null
+  return pickArrayFromResponse(res)
 }
 async function tryFetchPointsRaw(paramsQS) {
   const url = `${API_BASE}/points?${paramsQS}`
   const res = await $fetch(url).catch(() => null)
-  return Array.isArray(res) ? res : null
+  return pickArrayFromResponse(res)
 }
 async function fetchStandingsWithFallback() {
   const baseParams = { ...pointsParams.value }
   let data = await tryFetchPoints(baseParams)
 
   const cat = baseParams.categoryCode
-  if (data && data.length === 0 && cat === '35+') {
+  if (data.length === 0 && cat === '35+') {
     const alt = { ...baseParams, categoryCode: '+35' }
     const altData = await tryFetchPoints(alt)
-    if (altData && altData.length > 0) data = altData
+    if (altData.length > 0) data = altData
   }
-  if (data && data.length === 0 && cat === '+35') {
+  if (data.length === 0 && cat === '+35') {
     const alt = { ...baseParams, categoryCode: '35+' }
     const altData = await tryFetchPoints(alt)
-    if (altData && altData.length > 0) data = altData
+    if (altData.length > 0) data = altData
   }
 
-  if (data && data.length === 0 && (cat === '35+' || cat === '+35')) {
+  if (data.length === 0 && (cat === '35+' || cat === '+35')) {
     const seasonId = encodeURIComponent(String(baseParams.seasonId || ''))
     const genderQS = baseParams.gender ? `&gender=${encodeURIComponent(baseParams.gender)}` : ''
 
@@ -1215,7 +1264,7 @@ async function fetchStandingsWithFallback() {
 
     for (const qs of tries) {
       const altData = await tryFetchPointsRaw(qs)
-      if (altData && altData.length > 0) {
+      if (altData.length > 0) {
         data = altData
         break
       }
@@ -1223,13 +1272,11 @@ async function fetchStandingsWithFallback() {
   }
 
   const sidWanted = Number(baseParams.seasonId || 0) || 0
-  const filtered = (data ?? []).filter((r) => {
+  return data.filter((r) => {
     const sid = rowSeasonId(r)
     if (!sid) return true
     return sid === sidWanted
   })
-
-  return filtered
 }
 
 const refreshStandings = async () => {
@@ -1257,7 +1304,7 @@ const clearFilters = () => {
   const ids = seasonOptions.value.map((x) => x.value)
   selectedSeasonId.value = ids.includes(DEFAULT_SEASON_ID) ? DEFAULT_SEASON_ID : (ids[0] ?? DEFAULT_SEASON_ID)
   selectedCategoryCode.value = 'all'
-  selectedGender.value = 'MIXTO'
+  selectedGender.value = 'all'
   scheduleStandingsReload()
 }
 
@@ -1275,7 +1322,6 @@ const topPositions = computed(() => {
     const pf = toNum(row?.points_for ?? row?.pointsFor)
     const pa = toNum(row?.points_against ?? row?.pointsAgainst)
     const pts = toNum(row?.table_points ?? row?.tablePoints)
-
     const diff = pf - pa
     const pct = gp > 0 ? wins / gp : 0
 
@@ -1312,7 +1358,6 @@ const topPositions = computed(() => {
   return mapped.slice(0, 5).map((r, idx) => ({ ...r, rank: idx + 1 }))
 })
 
-/* ===================== HERO CARRUSEL ===================== */
 const heroSlides = ref(clone(HOME_DEFAULTS.hero.images))
 const currentSlide = ref(0)
 const currentSlideSrc = computed(() => heroSlides.value[currentSlide.value]?.src ?? '')
@@ -1339,9 +1384,11 @@ const startHeroAuto = () => {
   stopHeroAuto()
   if (heroSlides.value.length > 1) intervalId = setInterval(nextSlide, HERO_AUTOPLAY_MS)
 }
-onMounted(() => startHeroAuto())
 
-/* ✅ SWIPE HERO */
+onMounted(() => {
+  startHeroAuto()
+})
+
 let heroPointerId = null
 let heroStartX = 0
 let heroStartY = 0
@@ -1416,29 +1463,43 @@ const onHeroPointerLeave = () => {
   startHeroAuto()
 }
 
-/* ===================== PRÓXIMOS JUEGOS ===================== */
-function pickArrayFromResponse(res) {
-  if (Array.isArray(res)) return res
-  if (res && Array.isArray(res.content)) return res.content
-  if (res && Array.isArray(res.items)) return res.items
-  if (res && Array.isArray(res.data)) return res.data
-  return []
-}
-
 async function fetchGamesAny(seasonId) {
   const sid = Number(seasonId || 0) || 0
-  const tries = [
+
+  const urls = [
     `${API_BASE}/games/upcoming?seasonId=${encodeURIComponent(String(sid))}`,
     `${API_BASE}/games?seasonId=${encodeURIComponent(String(sid))}`,
+    `${API_BASE}/gamesFinal?seasonId=${encodeURIComponent(String(sid))}`,
+    `${API_BASE}/gamesFinal`,
     `${API_BASE}/games`
   ]
 
-  for (const url of tries) {
+  const merged = []
+  for (const url of urls) {
     const res = await $fetch(url).catch(() => null)
     const arr = pickArrayFromResponse(res)
-    if (Array.isArray(arr) && arr.length) return arr
+    if (arr.length) merged.push(...arr)
   }
-  return []
+
+  if (!merged.length) return []
+
+  const map = new Map()
+  for (const g of merged) {
+    const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
+    const key = id ? `id:${id}` : `k:${pickIso(g) || Math.random()}`
+    map.set(key, g)
+  }
+
+  let out = Array.from(map.values())
+
+  if (sid) {
+    out = out.filter((g) => {
+      const s = pickSeasonId(g)
+      return !s || s === sid
+    })
+  }
+
+  return out
 }
 
 const { data: gamesRaw, pending: gamesPending, refresh: refreshGames } = useAsyncData(
@@ -1469,7 +1530,9 @@ const gameDateFmt = new Intl.DateTimeFormat('es-MX', {
 
 onMounted(() => {
   nowMs.value = Date.now()
-  nowTimer = setInterval(() => (nowMs.value = Date.now()), 60_000)
+  nowTimer = setInterval(() => {
+    nowMs.value = Date.now()
+  }, 60_000)
 })
 
 function toUtcMs(matchUtc) {
@@ -1542,7 +1605,6 @@ const upcomingGames = computed(() => {
 
   const cutoff = (nowMs.value || Date.now()) - 20 * 60_000
   const seasonFilter = Number(selectedSeasonId.value || 0) || 0
-
   const out = []
 
   for (const g of raw) {
@@ -1638,12 +1700,15 @@ const UPCOMING_AUTOPLAY_MS = 6500
 const startUpcomingAuto = () => {
   if (upcomingInterval) clearInterval(upcomingInterval)
   upcomingInterval = null
-  if (upcomingTotal.value > 1) upcomingInterval = setInterval(() => nextUpcoming(), UPCOMING_AUTOPLAY_MS)
+  if (upcomingTotal.value > 1) {
+    upcomingInterval = setInterval(() => nextUpcoming(), UPCOMING_AUTOPLAY_MS)
+  }
 }
 const stopUpcomingAuto = () => {
   if (upcomingInterval) clearInterval(upcomingInterval)
   upcomingInterval = null
 }
+
 watch(upcomingTotal, () => startUpcomingAuto(), { immediate: true })
 
 let upPointerId = null
@@ -1718,7 +1783,6 @@ const onUpcomingPointerLeave = () => {
   startUpcomingAuto()
 }
 
-/* ===================== PATROCINADORES (desde backend config) ===================== */
 const sponsors = ref(clone(HOME_DEFAULTS.sponsors))
 
 const FALLBACK_SPONSOR = {
@@ -1736,7 +1800,10 @@ const activeSponsorIndex = ref(0)
 watch(
   () => sponsors.value.length,
   (len) => {
-    if (len <= 0) { activeSponsorIndex.value = 0; return }
+    if (len <= 0) {
+      activeSponsorIndex.value = 0
+      return
+    }
     if (activeSponsorIndex.value < 0) activeSponsorIndex.value = 0
     if (activeSponsorIndex.value >= len) activeSponsorIndex.value = 0
   },
@@ -1768,10 +1835,11 @@ const prevSponsor = () => {
 
 let sponsorsIntervalId = null
 onMounted(() => {
-  if (sponsors.value.length > 1) sponsorsIntervalId = setInterval(() => nextSponsor(), 9000)
+  if (sponsors.value.length > 1) {
+    sponsorsIntervalId = setInterval(() => nextSponsor(), 9000)
+  }
 })
 
-/* ===================== REGLAMENTOS ===================== */
 const reglamentos = ref([
   {
     id: 'flag-2023',
@@ -1817,6 +1885,7 @@ onBeforeUnmount(() => {
   if (standingsTO) clearTimeout(standingsTO)
   if (nowTimer) clearInterval(nowTimer)
   if (sponsorsIntervalId) clearInterval(sponsorsIntervalId)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 
@@ -1838,7 +1907,6 @@ onBeforeUnmount(() => {
   transform: scale(1.12);
 }
 
-/* ✅ Swipe UX */
 .hero-swipe {
   touch-action: pan-y;
   user-select: none;
@@ -1848,7 +1916,6 @@ onBeforeUnmount(() => {
 }
 .hero-swipe:active { cursor: grabbing; }
 
-/* Tap zones for mobile */
 .tapzone {
   position: absolute;
   top: 0;
@@ -1863,14 +1930,12 @@ onBeforeUnmount(() => {
   .tapzone { display: none; }
 }
 
-/* Upcoming swipe zone */
 .upcoming-swipe {
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
 }
 
-/* Smooth transitions */
 .fade-enter-active, .fade-leave-active { transition: opacity .28s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 

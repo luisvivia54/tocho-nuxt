@@ -1,6 +1,6 @@
 <!-- app/pages/mi-equipo.vue -->
 <template>
-  <section class="pt-24 md:pt-28 lg:pt-32">
+  <section class="pt-12 md:pt-14 lg:pt-16">
     <div class="max-w-5xl mx-auto container-pad px-6">
       <!-- Header -->
       <div class="flex items-center justify-between gap-4 mb-6">

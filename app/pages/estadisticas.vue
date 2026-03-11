@@ -1,7 +1,7 @@
 <!-- app/pages/estadisticas.vue -->
 <template>
   <main class="min-h-screen bg-[#F3F4FF] text-slate-900">
-    <section class="pt-24 md:pt-28 lg:pt-32">
+    <section class="pt-12 md:pt-14 lg:pt-16">
       <div class="max-w-6xl mx-auto container-pad px-6 pb-10">
         <!-- Tabs internas -->
         <div class="mb-5 flex items-center gap-2">

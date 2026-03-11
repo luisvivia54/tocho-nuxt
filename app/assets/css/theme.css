@@ -180,3 +180,77 @@ body.page-home #__nuxt {
   transform: translateY(-1px);
   background: rgba(15, 23, 42, 1);
 }
+
+/* =========================================================
+   DOMINGO UI
+   Aplica look más redondeado solo al sitio de domingo
+========================================================= */
+
+.domingo-ui button,
+.domingo-ui input,
+.domingo-ui select,
+.domingo-ui textarea {
+  border-radius: 999px !important;
+}
+
+/* Links tipo botón / CTA */
+.domingo-ui a.rounded-lg,
+.domingo-ui a.rounded-xl,
+.domingo-ui a.rounded-2xl,
+.domingo-ui a.rounded-3xl,
+.domingo-ui .btn,
+.domingo-ui .pill {
+  border-radius: 999px !important;
+}
+
+/* Cards y paneles: más suaves pero no cápsula gigante */
+.domingo-ui .soft,
+.domingo-ui .team-card {
+  border-radius: 28px !important;
+}
+
+.domingo-ui .rounded-lg {
+  border-radius: 18px !important;
+}
+
+.domingo-ui .rounded-xl {
+  border-radius: 22px !important;
+}
+
+.domingo-ui .rounded-2xl {
+  border-radius: 28px !important;
+}
+
+.domingo-ui .rounded-3xl {
+  border-radius: 34px !important;
+}
+
+/* Valores arbitrarios comunes del sitio */
+.domingo-ui .rounded-\[26px\] {
+  border-radius: 30px !important;
+}
+
+.domingo-ui .rounded-\[28px\] {
+  border-radius: 34px !important;
+}
+
+/* Botones y chips más “pill” */
+.domingo-ui .inline-flex.rounded-xl,
+.domingo-ui .inline-flex.rounded-2xl,
+.domingo-ui .inline-flex.rounded-3xl,
+.domingo-ui .inline-flex.rounded-\[26px\],
+.domingo-ui .inline-flex.rounded-\[28px\] {
+  border-radius: 999px !important;
+}
+
+/* Inputs/selects del registro y filtros */
+.domingo-ui input,
+.domingo-ui select,
+.domingo-ui textarea {
+  min-height: 44px;
+}
+
+/* Tab pills y badges */
+.domingo-ui [class*="rounded-full"] {
+  border-radius: 999px !important;
+}

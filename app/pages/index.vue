@@ -1,29 +1,38 @@
 <template>
   <main class="min-h-screen text-slate-50">
-    <!-- BG stadium (Lovable-style) -->
-    <div class="fixed inset-0 -z-10">
-      <!-- Foto base -->
+    <!-- BG principal -->
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+      <!-- Base oscura -->
+      <div class="absolute inset-0 bg-[#050816]" />
+
+      <!-- Glow verde -->
       <div
-        class="absolute inset-0 bg-cover bg-center opacity-80"
-        :style="{ backgroundImage: `url(${stadiumBg})` }"
+        class="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_50%_28%,rgba(16,185,129,0.20),transparent_58%)]"
       />
-      <!-- Oscurecer suave -->
-      <div class="absolute inset-0 bg-black/35" />
-      <!-- Viñeta (bordes negros) -->
+
+      <!-- Glow naranja -->
+      <div
+        class="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_20%_85%,rgba(251,146,60,0.14),transparent_55%)]"
+      />
+
+      <!-- Logo Tochero5 de fondo -->
+      <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <img
+          :src="logoBg"
+          alt=""
+          aria-hidden="true"
+          class="h-[360px] w-[360px] object-contain opacity-[0.38] mix-blend-screen brightness-[1.6] contrast-[1.15] sm:h-[480px] sm:w-[480px] md:h-[620px] md:w-[620px] lg:h-[760px] lg:w-[760px]"
+        />
+      </div>
+
+      <!-- Viñeta más suave -->
       <div
         class="absolute inset-0"
-        style="background: radial-gradient(ellipse at center, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.55) 62%, rgba(0,0,0,0.92) 100%);"
+        style="background: radial-gradient(ellipse at center, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.22) 62%, rgba(0,0,0,0.72) 100%);"
       />
-      <!-- Gradiente vertical -->
-      <div class="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-[#050816]" />
-      <!-- Glow verde suave -->
-      <div
-        class="absolute inset-0 opacity-35 bg-[radial-gradient(circle_at_50%_28%,rgba(16,185,129,0.35),transparent_58%)]"
-      />
-      <!-- Glow naranja sutil -->
-      <div
-        class="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_20%_85%,rgba(251,146,60,0.28),transparent_55%)]"
-      />
+
+      <!-- Gradiente vertical suave -->
+      <div class="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-[#050816]" />
     </div>
 
     <!-- HEADER -->
@@ -239,7 +248,7 @@
       </div>
     </section>
 
-    <!-- NUESTRAS LIGAS (SIN RECORTAR + DOMINGO AZUL / JUEVES NARANJA) -->
+    <!-- NUESTRAS LIGAS -->
     <section id="ligas" class="py-14 md:py-16">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <div class="flex items-center gap-4">
@@ -248,7 +257,6 @@
         </div>
 
         <div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-          <!-- DOMINGO (toque azul) -->
           <NuxtLink
             to="/domingo"
             class="group relative overflow-hidden rounded-[28px] border bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.40)]"
@@ -281,7 +289,6 @@
             </div>
           </NuxtLink>
 
-          <!-- JUEVES (toque naranja) -->
           <NuxtLink
             to="/jueves"
             class="group relative overflow-hidden rounded-[28px] border bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.40)]"
@@ -345,7 +352,6 @@
         </div>
 
         <div class="mt-6 overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-          <!-- ✅ loading / error (sin romper diseño) -->
           <div v-if="matchesPending" class="px-6 py-6 text-sm text-slate-400">
             Cargando próximos encuentros...
           </div>
@@ -462,16 +468,15 @@ const teamsTotal = 26;
 const gamesSeason = 52;
 const rounds = 18;
 
-// Fondo estadio / ligas
-// ✅ CAMBIO ÚNICO: antes "/img/hero-stadium.jpg"
-const stadiumBg = "/img/sponsors/Tochero5.JPG";
+// Logo de fondo
+const logoBg = "/img/sponsors/Tochero5.JPG";
 
 const domingoBg = "/img/liga-domingo.png";
 const juevesBg = "/img/liga-jueves.png";
 
 const mobileOpen = ref(false);
 
-// Nav highlight por scroll (inicio/ligas/contacto)
+// Nav highlight por scroll
 const activeNav = ref<"inicio" | "ligas" | "contacto">("inicio");
 
 function scrollTo(id: "inicio" | "ligas" | "contacto") {
@@ -494,6 +499,7 @@ onMounted(() => {
   window.addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 });
+
 onBeforeUnmount(() => {
   window.removeEventListener("scroll", onScroll);
 });
@@ -517,7 +523,6 @@ const filters = [
 
 const matchFilter = ref<"all" | "domingo" | "jueves">("all");
 
-// fallback (por si backend falla)
 const fallbackMatches: Match[] = [
   { id: "m1", league: "domingo", leagueLabel: "DOMINGO", date: "20 Mar", time: "19:00", home: "Águilas Doradas", away: "Tigres del Norte" },
   { id: "m2", league: "jueves", leagueLabel: "JUEVES", date: "20 Mar", time: "16:00", home: "Guerreros Unidos", away: "Titanes del Sur" },
@@ -564,10 +569,9 @@ function toUiMatch(g: any): Match {
   const away = pick(g, ["awayTeam.name", "away_team.name", "awayName", "visitorTeam.name", "teamAway.name"]) || "Visitante";
   const dt = pick(g, ["startTime", "dateTime", "kickoff", "gameDate", "date"]) || new Date().toISOString();
 
-  // 👇 aquí detectamos liga por campo league / category / etc.
   const leagueRaw =
     pick(g, ["league", "leagueKey", "category.name", "category.slug", "categoryName", "division.name", "season.name"]) || "";
-  const league = normalizeLeague(leagueRaw) || "domingo"; // fallback
+  const league = normalizeLeague(leagueRaw) || "domingo";
 
   const { date, time } = fmtDateMX(dt);
 
@@ -582,23 +586,19 @@ function toUiMatch(g: any): Match {
   };
 }
 
-// ✅ BACKEND: trae próximos juegos desde el proxy Nuxt -> backend
 const { data: apiMatches, pending: matchesPending, error: matchesError } = await useAsyncData(
   "home-upcoming",
   async () => {
-    // Nota: si tu backend no usa "limit" o "sort", no pasa nada (Spring ignora params desconocidos)
     const raw = await $fetch<any>("/api/t5/games", {
       query: { status: "SCHEDULED", limit: 20, sort: "startTime,asc" },
     });
 
-    // soporta lista directa o paginada
     const list = Array.isArray(raw) ? raw : raw?.content || raw?.items || [];
     return (list || []).map(toUiMatch) as Match[];
   },
   { server: true }
 );
 
-// si backend falla, mostramos fallback
 const matches = computed<Match[]>(() => {
   if (matchesError.value) return fallbackMatches;
   return apiMatches.value ?? [];
