@@ -1,702 +1,3 @@
-<script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useNuxtApp, useRuntimeConfig, useRouter } from '#imports'
-import { useAuthz } from '@/composables/useAuthz'
-
-import type { CategoryDto } from '@/composables/useCategoryService'
-import { useCatalogService } from '@/composables/useCategoryService'
-
-/** =========================
- *  SOLO TEMPORADA ACTUAL (WT)
- *  ========================= */
-const CURRENT_SEASON_TAG = 'WT' // 👈 temporada actual (por nombre)
-const FALLBACK_SEASON_ID = 2    // 👈 si no encuentra WT, cae aquí (ajústalo si quieres)
-
-const authz = useAuthz()
-const rawIsAuthenticated = (authz as any).isAuthenticated
-
-// isAuthenticated SIEMPRE será un computed<boolean>
-const isAuthenticated = computed<boolean>(() => {
-  const v = rawIsAuthenticated
-  if (typeof v === 'boolean') return v
-  if (v && typeof v === 'object' && 'value' in v) return !!(v as any).value
-  return false
-})
-
-const nuxtApp = useNuxtApp()
-const config = useRuntimeConfig()
-const router = useRouter()
-
-// ================== TIPOS ==================
-interface MyTeamItem {
-  teamId: number
-  name: string
-  shortName: string | null
-  logoUrl: string | null
-}
-
-interface MyTeamsInfo {
-  userId: number
-  role: string
-  maxTeamsAllowed: number
-  currentTeams: number
-  hasCaptainPrivileges: boolean
-  canCreateTeam: boolean
-  teams: MyTeamItem[]
-}
-
-interface CreatedTeam {
-  teamId: number
-  name: string
-  shortName: string | null
-  logoUrl?: string | null
-}
-
-interface PlayerForm {
-  id: number
-  fullName: string
-  curp: string
-  jerseyNumber: number | null
-  photoFile: File | null
-  photoPreview: string | null
-}
-
-// ================== ESTADO BACK (teams/mine) ==================
-const myTeams = ref<MyTeamsInfo | null>(null)
-const captainLoading = ref(false)
-const captainError = ref<string | null>(null)
-
-const mainTeam = computed<MyTeamItem | null>(() => myTeams.value?.teams?.[0] ?? null)
-
-const mainTeamLink = computed(() => {
-  return mainTeam.value ? `/teams/${mainTeam.value.teamId}` : '/mi-equipo'
-})
-
-const canRegisterTeam = computed(() => {
-  if (!myTeams.value) return false
-  return myTeams.value.hasCaptainPrivileges && myTeams.value.canCreateTeam
-})
-
-const fetchMyTeams = async () => {
-  captainError.value = null
-  myTeams.value = null
-
-  if (!isAuthenticated.value) return
-
-  try {
-    captainLoading.value = true
-    const { $kcGetToken } = nuxtApp as any
-    const tokenFn: (() => Promise<string | undefined>) | undefined = $kcGetToken
-    const token = tokenFn ? ((await tokenFn()) ?? '') : ''
-
-    if (!token) {
-      captainError.value = 'No se encontró token de sesión. Vuelve a iniciar sesión.'
-      return
-    }
-
-    const resp = await $fetch<MyTeamsInfo>('/teams/mine', {
-      baseURL: config.public.apiBase,
-      headers: { Authorization: `Bearer ${token}` }
-    })
-
-    myTeams.value = resp
-  } catch (err) {
-    console.error('Error cargando /teams/mine', err)
-    captainError.value = 'No se pudo obtener la información de tus equipos.'
-  } finally {
-    captainLoading.value = false
-  }
-}
-
-// ================== LIGA / TEMPORADA / CATÁLOGO ==================
-const catalog = useCatalogService()
-
-interface LeagueOption {
-  id: number
-  name: string
-}
-interface SeasonOption {
-  id: number
-  name: string
-  leagueId: number
-}
-
-const leagues = ref<LeagueOption[]>([{ id: 1, name: 'Liga Tochero5' }])
-
-/** ✅ ahora seasons se carga desde API y se filtra a SOLO WT */
-const seasons = ref<SeasonOption[]>([])
-const currentSeason = ref<SeasonOption | null>(null)
-
-const selectedLeagueId = ref<number>(0)
-const selectedSeasonId = ref<number>(0)
-
-// catálogo real
-const categories = ref<CategoryDto[]>([])
-const categoriesLoading = ref(false)
-const categoriesError = ref<string | null>(null)
-
-// lo que se manda al back
-const selectedCategoryId = ref<number>(0)
-
-// selects que ve el usuario
-const selectedGender = ref<string>('') // FEMENIL | VARONIL | MIXTO
-const selectedRama = ref<string>('')   // U16 | SUB18 | etc
-
-const availableSeasons = computed(() =>
-  seasons.value.filter((s) => !selectedLeagueId.value || s.leagueId === selectedLeagueId.value)
-)
-
-const norm = (v?: string | null) => (v ?? '').trim().toUpperCase()
-
-function seasonKey(name: string) {
-  return String(name || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ')
-}
-
-function pickCurrentWT(list: SeasonOption[]): SeasonOption | null {
-  const tag = seasonKey(CURRENT_SEASON_TAG)
-  const matches = list.filter((s) => seasonKey(s.name).includes(tag))
-
-  if (matches.length > 0) {
-    // evita [0] porque TS lo puede considerar undefined
-    return matches
-      .slice()
-      .sort((a, b) => b.id - a.id)
-      .find(() => true) ?? null
-  }
-
-  const byFallback = list.find((s) => s.id === FALLBACK_SEASON_ID)
-  if (byFallback) return byFallback
-
-  if (list.length > 0) {
-    return list
-      .slice()
-      .sort((a, b) => b.id - a.id)
-      .find(() => true) ?? null
-  }
-
-  return null
-}
-
-const fetchSeasons = async () => {
-  try {
-    const baseURL = config.public.apiBase
-    const try1 = await $fetch<any>('/seasons/list', { baseURL }).catch(() => null)
-    const raw = Array.isArray(try1)
-      ? try1
-      : await $fetch<any>('/seasons', { baseURL }).catch(() => [])
-
-    const list = Array.isArray(raw) ? raw : []
-
-    const mapped: SeasonOption[] = list
-      .map((s: any) => {
-        const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
-        const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
-        const leagueId = Number(s?.leagueId ?? s?.league_id ?? s?.league?.id ?? 1) || 1
-        return { id, name, leagueId }
-      })
-      .filter((s) => s.id > 0 && !!s.name)
-
-    const wt = pickCurrentWT(mapped)
-    currentSeason.value = wt
-
-    // ✅ SOLO dejamos 1 temporada seleccionable
-    seasons.value = wt ? [wt] : []
-
-    // ✅ fuerza selección a la actual
-    selectedSeasonId.value = wt?.id ?? FALLBACK_SEASON_ID
-  } catch (e) {
-    console.error('Error cargando seasons', e)
-    // fallback duro
-    currentSeason.value = { id: FALLBACK_SEASON_ID, name: 'WT', leagueId: 1 }
-    seasons.value = [currentSeason.value]
-    selectedSeasonId.value = FALLBACK_SEASON_ID
-  }
-}
-
-const prettyGender = (g: string) => {
-  const key = norm(g)
-  if (key === 'FEMENIL') return 'Femenil'
-  if (key === 'VARONIL') return 'Varonil'
-  if (key === 'MIXTO') return 'Mixto'
-  return g
-}
-
-const genderOptions = computed(() => {
-  const set = new Map<string, string>()
-  for (const c of categories.value) {
-    const g = norm(c.gender)
-    if (g) set.set(g, prettyGender(g))
-  }
-  return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
-})
-
-const ramaOptions = computed(() => {
-  if (!selectedGender.value) return []
-  const set = new Map<string, string>()
-  for (const c of categories.value) {
-    if (norm(c.gender) !== selectedGender.value) continue
-    const codeKey = norm(c.code)
-    if (codeKey) set.set(codeKey, c.code)
-  }
-  return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
-})
-
-const selectedCategory = computed(() => {
-  if (!selectedGender.value || !selectedRama.value) return null
-  return (
-    categories.value.find(
-      (c) => norm(c.gender) === selectedGender.value && norm(c.code) === selectedRama.value
-    ) ?? null
-  )
-})
-
-watch(selectedCategory, (c) => {
-  selectedCategoryId.value = c?.id ?? 0
-})
-
-const fetchCategories = async () => {
-  categoriesError.value = null
-  try {
-    categoriesLoading.value = true
-    const leagueIdToUse = selectedLeagueId.value || 1
-    categories.value = await catalog.getCategories({ leagueId: leagueIdToUse })
-  } catch (e) {
-    console.error('Error cargando /categories', e)
-    categoriesError.value = 'No se pudieron cargar las categorías.'
-    categories.value = []
-  } finally {
-    categoriesLoading.value = false
-  }
-}
-
-watch(
-  () => selectedLeagueId.value,
-  async () => {
-    // ✅ temporada fija: siempre WT
-    selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
-
-    selectedGender.value = ''
-    selectedRama.value = ''
-    selectedCategoryId.value = 0
-    await fetchCategories()
-  }
-)
-
-watch(
-  () => selectedSeasonId.value,
-  () => {
-    // ✅ no debería cambiar (select disabled), pero por si manipulan state:
-    const must = currentSeason.value?.id ?? FALLBACK_SEASON_ID
-    if (selectedSeasonId.value !== must) selectedSeasonId.value = must
-
-    selectedGender.value = ''
-    selectedRama.value = ''
-    selectedCategoryId.value = 0
-  }
-)
-
-watch(
-  () => selectedGender.value,
-  () => {
-    selectedRama.value = ''
-    selectedCategoryId.value = 0
-  }
-)
-
-// ================== ESTADO FORM ==================
-const teamName = ref('')
-const teamShortName = ref('')
-const logoFile = ref<File | null>(null)
-const logoPreview = ref<string | null>(null)
-
-// Colores: adorno
-const colorPrimary = ref('#1D4ED8')
-const colorSecondary = ref('#FFFFFF')
-
-// ✅ AHORA puedes tener 0 jugadores
-const players = ref<PlayerForm[]>([])
-
-const createEmptyPlayer = (id: number): PlayerForm => ({
-  id,
-  fullName: '',
-  curp: '',
-  jerseyNumber: null,
-  photoFile: null,
-  photoPreview: null
-})
-
-const nextPlayerId = () => {
-  const maxId = players.value.reduce((mx, p) => Math.max(mx, p.id), 0)
-  return maxId + 1
-}
-
-const addPlayer = () => {
-  players.value.push(createEmptyPlayer(nextPlayerId()))
-}
-
-const removePlayer = (index: number) => {
-  if (index < 0 || index >= players.value.length) return
-  const p = players.value[index]
-  if (p?.photoPreview) URL.revokeObjectURL(p.photoPreview)
-  players.value.splice(index, 1)
-}
-
-// Logo
-const onLogoChange = (event: Event) => {
-  const target = event.target as HTMLInputElement | null
-  const file = target?.files?.[0] ?? null
-
-  if (!file) {
-    logoFile.value = null
-    if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
-    logoPreview.value = null
-    return
-  }
-
-  logoFile.value = file
-  if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
-  logoPreview.value = URL.createObjectURL(file)
-}
-
-// Foto jugador
-const onPlayerPhotoChange = (index: number, event: Event) => {
-  const player = players.value[index]
-  if (!player) return
-
-  const target = event.target as HTMLInputElement | null
-  const file = target?.files?.[0] ?? null
-
-  if (!file) {
-    player.photoFile = null
-    if (player.photoPreview) URL.revokeObjectURL(player.photoPreview)
-    player.photoPreview = null
-    return
-  }
-
-  player.photoFile = file
-  if (player.photoPreview) URL.revokeObjectURL(player.photoPreview)
-  player.photoPreview = URL.createObjectURL(file)
-}
-
-// ✅ Solo estos se mandan
-const sendablePlayers = computed(() =>
-  players.value.filter((p) => !!p.fullName.trim() && !!p.curp.trim() && !!p.photoFile)
-)
-
-// ================== BORRADOR LOCAL ==================
-const DRAFT_KEY = 'registroEquipoDraft'
-
-const successMessage = ref('')
-const errorMessage = ref('')
-
-interface DraftPlayer {
-  id: number
-  fullName?: string
-  curp?: string
-  jerseyNumber?: number
-}
-interface DraftData {
-  teamName?: string
-  teamShortName?: string
-  colorPrimary?: string
-  colorSecondary?: string
-  leagueId?: number
-  seasonId?: number
-  categoryId?: number
-  gender?: string
-  rama?: string
-  players?: DraftPlayer[]
-}
-
-const saveDraft = () => {
-  try {
-    const forcedSeasonId = currentSeason.value?.id ?? FALLBACK_SEASON_ID
-
-    const draft: DraftData = {
-      teamName: teamName.value,
-      teamShortName: teamShortName.value,
-      colorPrimary: colorPrimary.value,
-      colorSecondary: colorSecondary.value,
-      leagueId: selectedLeagueId.value,
-      seasonId: forcedSeasonId, // ✅ fijo WT
-      categoryId: selectedCategoryId.value,
-      gender: selectedGender.value,
-      rama: selectedRama.value,
-      players: players.value.map((p) => ({
-        id: p.id,
-        fullName: p.fullName,
-        curp: p.curp,
-        jerseyNumber: p.jerseyNumber === null ? undefined : p.jerseyNumber
-      }))
-    }
-
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
-      successMessage.value = 'Cambios guardados localmente. No se ha enviado aún a la liga.'
-      errorMessage.value = ''
-    }
-  } catch (e) {
-    console.error('Error guardando borrador:', e)
-    errorMessage.value = 'No se pudo guardar el borrador local.'
-  }
-}
-
-const loadDraft = () => {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return
-    const raw = window.localStorage.getItem(DRAFT_KEY)
-    if (!raw) return
-
-    const draft = JSON.parse(raw) as DraftData
-
-    teamName.value = draft.teamName ?? ''
-    teamShortName.value = draft.teamShortName ?? ''
-    if (draft.colorPrimary) colorPrimary.value = draft.colorPrimary
-    if (draft.colorSecondary) colorSecondary.value = draft.colorSecondary
-
-    selectedLeagueId.value = draft.leagueId ?? 0
-
-    // ✅ NO respetamos season del draft: siempre WT
-    selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
-
-    selectedGender.value = draft.gender ?? ''
-    selectedRama.value = draft.rama ?? ''
-    selectedCategoryId.value = draft.categoryId ?? 0
-
-    const playersDraft = draft.players ?? []
-    players.value = playersDraft.map((p, idx) => ({
-      id: p.id ?? idx + 1,
-      fullName: p.fullName ?? '',
-      curp: p.curp ?? '',
-      jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
-      photoFile: null, // ⚠️ archivos no se pueden restaurar desde localStorage
-      photoPreview: null
-    }))
-  } catch (e) {
-    console.error('Error cargando borrador:', e)
-  }
-}
-
-const clearProgress = () => {
-  teamName.value = ''
-  teamShortName.value = ''
-  colorPrimary.value = '#1D4ED8'
-  colorSecondary.value = '#FFFFFF'
-
-  logoFile.value = null
-  if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
-  logoPreview.value = null
-
-  selectedLeagueId.value = leagues.value[0]?.id ?? 1
-
-  // ✅ temporada fija
-  selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
-
-  selectedGender.value = ''
-  selectedRama.value = ''
-  selectedCategoryId.value = 0
-
-  for (const p of players.value) if (p.photoPreview) URL.revokeObjectURL(p.photoPreview)
-  players.value = []
-
-  if (typeof window !== 'undefined' && window.localStorage) {
-    window.localStorage.removeItem(DRAFT_KEY)
-  }
-
-  successMessage.value = ''
-  errorMessage.value = ''
-}
-
-// ================== LOGIN ==================
-const onLoginClick = () => {
-  const kc = (nuxtApp as any).$kc
-  if (typeof window === 'undefined' || !kc) return
-  kc.login({ redirectUri: window.location.href })
-}
-
-// ================== SUBMIT ==================
-const submitting = ref(false)
-
-const getStatusCode = (err: any): number | undefined =>
-  err?.statusCode ?? err?.response?.status ?? err?.response?._data?.status
-
-const onSubmit = async () => {
-  errorMessage.value = ''
-  successMessage.value = ''
-
-  if (!canRegisterTeam.value) {
-    errorMessage.value = 'Actualmente no puedes registrar más equipos.'
-    return
-  }
-
-  if (!teamName.value.trim()) {
-    errorMessage.value = 'Ingresa el nombre del equipo antes de subir la información.'
-    return
-  }
-
-  // ✅ season fijo, pero igual validamos
-  const forcedSeasonId = currentSeason.value?.id ?? FALLBACK_SEASON_ID
-  selectedSeasonId.value = forcedSeasonId
-
-  if (!selectedLeagueId.value || !selectedSeasonId.value || !selectedCategoryId.value) {
-    errorMessage.value = 'Selecciona liga, temporada, categoría y rama antes de registrar el equipo.'
-    return
-  }
-
-  let createdTeamId: number | null = null
-  let createdTeamName = ''
-
-  try {
-    submitting.value = true
-
-    const { $kcGetToken } = nuxtApp as any
-    const tokenFn: (() => Promise<string | undefined>) | undefined = $kcGetToken
-    const token = tokenFn ? ((await tokenFn()) ?? '') : ''
-
-    if (!token) {
-      errorMessage.value = 'No se encontró un token de sesión. Vuelve a iniciar sesión.'
-      return
-    }
-
-    // 1) Crear equipo
-    const createdTeam = await $fetch<CreatedTeam>('/teams/mine', {
-      baseURL: config.public.apiBase,
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: {
-        name: teamName.value.trim(),
-        leagueId: selectedLeagueId.value,
-        seasonId: forcedSeasonId, // ✅ fijo WT
-        categoryId: selectedCategoryId.value,
-        colorPrimary: colorPrimary.value,
-        colorSecondary: colorSecondary.value
-      }
-    })
-
-    createdTeamId = createdTeam.teamId
-    createdTeamName = createdTeam.name
-
-    // 2) Subir logo (si hay)
-    if (logoFile.value && createdTeamId) {
-      const formLogo = new FormData()
-      formLogo.append('logo', logoFile.value)
-
-      await $fetch(`/teams/${createdTeamId}/logo`, {
-        baseURL: config.public.apiBase,
-        method: 'POST',
-        body: formLogo,
-        headers: { Authorization: `Bearer ${token}` }
-      })
-    }
-
-    // 3) Crear jugadores: SOLO completos
-    if (createdTeamId && sendablePlayers.value.length > 0) {
-      for (const p of sendablePlayers.value) {
-        const formPlayer = new FormData()
-        formPlayer.append('fullName', p.fullName.trim())
-        formPlayer.append('curp', p.curp.trim())
-
-        if (typeof p.jerseyNumber === 'number' && Number.isFinite(p.jerseyNumber)) {
-          formPlayer.append('jerseyNumber', String(p.jerseyNumber))
-        }
-
-        formPlayer.append('photo', p.photoFile as File)
-
-        try {
-          await $fetch(`/teams/${createdTeamId}/players`, {
-            baseURL: config.public.apiBase,
-            method: 'POST',
-            body: formPlayer,
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        } catch (errPlayer: any) {
-          const status = getStatusCode(errPlayer)
-          if (status === 413) {
-            successMessage.value =
-              'El equipo se creó correctamente, pero una o más fotos pesan demasiado y no se pudieron subir. ' +
-              'Usa fotos más ligeras y súbelas después desde "Mi equipo".'
-            errorMessage.value = ''
-            break
-          } else {
-            console.error('Error creando jugador', errPlayer)
-          }
-        }
-      }
-    }
-
-    await fetchMyTeams()
-    clearProgress()
-
-    successMessage.value = `Equipo "${createdTeamName}" registrado correctamente.`
-    errorMessage.value = ''
-
-    if (createdTeamId) await router.push(`/teams/${createdTeamId}`)
-  } catch (err: any) {
-    console.error('Error al enviar registro:', err)
-    const status = getStatusCode(err)
-
-    const rawMessage: string | undefined =
-      err?.data?.message ?? err?.response?._data?.message ?? err?.message
-
-    if (rawMessage && rawMessage.includes('uq_team_league_name')) {
-      errorMessage.value =
-        'Ya existe un equipo con ese nombre en esta liga. Elige otro nombre o contacta al administrador.'
-    } else if (status === 413) {
-      errorMessage.value =
-        'La información enviada (logo o fotos) supera el tamaño máximo permitido. Intenta con archivos más ligeros.'
-    } else {
-      errorMessage.value =
-        'Ocurrió un error al subir la información. Si ves 500, revisa los logs del back/BD.'
-    }
-  } finally {
-    submitting.value = false
-  }
-}
-
-// ================== CICLO DE VIDA ==================
-onMounted(async () => {
-  // defaults liga
-  if (!selectedLeagueId.value) selectedLeagueId.value = leagues.value[0]?.id ?? 1
-
-  // 1) trae WT y deja solo esa
-  await fetchSeasons()
-
-  // 2) carga draft (pero temporada se fuerza a WT)
-  loadDraft()
-  selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
-
-  // 3) categorías
-  await fetchCategories()
-
-  // 4) permisos
-  if (isAuthenticated.value) {
-    fetchMyTeams()
-  }
-})
-
-watch(
-  () => isAuthenticated.value,
-  (value) => {
-    if (value) fetchMyTeams()
-    else myTeams.value = null
-  }
-)
-
-const currentSeasonLabel = computed(() => {
-  const s = currentSeason.value
-  if (s?.name) return s.name
-  return 'WT'
-})
-</script>
-
 <template>
   <main class="bg-[#F3F4FF] text-slate-900 min-h-screen pt-24 md:pt-28 lg:pt-32">
     <div class="max-w-5xl mx-auto container-pad px-6 pb-16">
@@ -720,6 +21,7 @@ const currentSeasonLabel = computed(() => {
             Necesitas entrar con tu cuenta para ligar el equipo a tu usuario de Keycloak.
           </p>
         </div>
+
         <button
           type="button"
           class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-sm"
@@ -768,6 +70,7 @@ const currentSeasonLabel = computed(() => {
               <strong>{{ myTeams.maxTeamsAllowed }}</strong> equipo(s) permitidos.
             </p>
           </div>
+
           <NuxtLink
             :to="mainTeamLink"
             class="inline-flex items-center rounded-xl border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100"
@@ -836,7 +139,7 @@ const currentSeasonLabel = computed(() => {
                   </select>
                 </div>
 
-                <!-- ✅ Temporada WT fija -->
+                <!-- Temporada fija -->
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 mb-1">Temporada (actual)</label>
                   <select
@@ -848,7 +151,9 @@ const currentSeasonLabel = computed(() => {
                       {{ season.name }}
                     </option>
                   </select>
-                  <p class="mt-1 text-[11px] text-slate-500">Temporada fija: <b>{{ currentSeasonLabel }}</b> (WT).</p>
+                  <p class="mt-1 text-[11px] text-slate-500">
+                    Temporada fija: <b>{{ currentSeasonLabel }}</b> (WT).
+                  </p>
                 </div>
 
                 <div>
@@ -865,6 +170,7 @@ const currentSeasonLabel = computed(() => {
                       {{ g.label }}
                     </option>
                   </select>
+
                   <p v-if="categoriesError" class="mt-1 text-[11px] text-red-600">
                     {{ categoriesError }}
                   </p>
@@ -895,7 +201,11 @@ const currentSeasonLabel = computed(() => {
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 mb-1">Color primario</label>
                   <div class="flex items-center gap-3">
-                    <input v-model="colorPrimary" type="color" class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer" />
+                    <input
+                      v-model="colorPrimary"
+                      type="color"
+                      class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer"
+                    />
                     <input
                       v-model="colorPrimary"
                       type="text"
@@ -908,7 +218,11 @@ const currentSeasonLabel = computed(() => {
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 mb-1">Color secundario</label>
                   <div class="flex items-center gap-3">
-                    <input v-model="colorSecondary" type="color" class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer" />
+                    <input
+                      v-model="colorSecondary"
+                      type="color"
+                      class="h-9 w-9 rounded-lg border border-slate-300 bg-white cursor-pointer"
+                    />
                     <input
                       v-model="colorSecondary"
                       type="text"
@@ -935,7 +249,12 @@ const currentSeasonLabel = computed(() => {
 
                 <div class="flex justify-center md:justify-end">
                   <div class="w-28 h-28 rounded-2xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden">
-                    <img v-if="logoPreview" :src="logoPreview" alt="Logo del equipo" class="w-full h-full object-contain" />
+                    <img
+                      v-if="logoPreview"
+                      :src="logoPreview"
+                      alt="Logo del equipo"
+                      class="w-full h-full object-contain"
+                    />
                     <span v-else class="text-[11px] text-slate-400 text-center px-2">Previsualización</span>
                   </div>
                 </div>
@@ -955,6 +274,7 @@ const currentSeasonLabel = computed(() => {
                     Se enviarán: <strong>{{ sendablePlayers.length }}</strong> / {{ players.length }}
                   </p>
                 </div>
+
                 <button
                   type="button"
                   class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
@@ -964,7 +284,10 @@ const currentSeasonLabel = computed(() => {
                 </button>
               </div>
 
-              <div v-if="players.length === 0" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+              <div
+                v-if="players.length === 0"
+                class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600"
+              >
                 No has agregado integrantes. Puedes registrar el equipo así y después subirlos en “Mi equipo”.
               </div>
 
@@ -981,6 +304,7 @@ const currentSeasonLabel = computed(() => {
                       </span>
                       <span>Integrante</span>
                     </div>
+
                     <button
                       type="button"
                       class="text-[11px] text-slate-500 hover:text-red-500"
@@ -1047,7 +371,12 @@ const currentSeasonLabel = computed(() => {
                       />
 
                       <div class="mt-2 w-full h-24 rounded-2xl border border-dashed border-slate-300 bg-white flex items-center justify-center overflow-hidden">
-                        <img v-if="player.photoPreview" :src="player.photoPreview" alt="Foto del jugador" class="w-full h-full object-cover" />
+                        <img
+                          v-if="player.photoPreview"
+                          :src="player.photoPreview"
+                          alt="Foto del jugador"
+                          class="w-full h-full object-cover"
+                        />
                         <span v-else class="text-[11px] text-slate-400 px-2 text-center">
                           Previsualización de la foto
                         </span>
@@ -1069,6 +398,7 @@ const currentSeasonLabel = computed(() => {
             >
               {{ successMessage }}
             </div>
+
             <div
               v-if="errorMessage"
               class="mt-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700"
@@ -1109,3 +439,772 @@ const currentSeasonLabel = computed(() => {
     </div>
   </main>
 </template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
+import { useNuxtApp, useRuntimeConfig, useRouter } from '#imports'
+import { $fetch } from 'ofetch'
+import { useAuthz } from '~/composables/useAuthz'
+
+/** =========================
+ *  SOLO TEMPORADA ACTUAL (WT)
+ *  ========================= */
+const CURRENT_SEASON_TAG = 'WT'
+const FALLBACK_SEASON_ID = 2
+
+function normalizeApiBase(raw?: string | null) {
+  const fallback = 'https://tocho5-api.tochero5.mx/api'
+  const s = String(raw || '').trim()
+  if (!s) return fallback
+  const clean = s.replace(/\/+$/, '')
+  return clean.endsWith('/api') ? clean : `${clean}/api`
+}
+
+const authz = useAuthz()
+const rawIsAuthenticated = (authz as any).isAuthenticated
+
+const isAuthenticated = computed<boolean>(() => {
+  const v = rawIsAuthenticated
+  if (typeof v === 'boolean') return v
+  if (v && typeof v === 'object' && 'value' in v) return !!(v as any).value
+  return false
+})
+
+const nuxtApp = useNuxtApp()
+const config = useRuntimeConfig()
+const router = useRouter()
+
+const API_BASE = normalizeApiBase(
+  ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx'
+)
+
+/* =========================
+   TIPOS
+========================= */
+interface CategoryDto {
+  id: number
+  leagueId?: number
+  name: string
+  code: string
+  gender: string
+}
+
+interface MyTeamItem {
+  teamId: number
+  name: string
+  shortName: string | null
+  logoUrl: string | null
+}
+
+interface MyTeamsInfo {
+  userId: number
+  role: string
+  maxTeamsAllowed: number
+  currentTeams: number
+  hasCaptainPrivileges: boolean
+  canCreateTeam: boolean
+  teams: MyTeamItem[]
+}
+
+interface CreatedTeam {
+  teamId: number
+  name: string
+  shortName: string | null
+  logoUrl?: string | null
+}
+
+interface PlayerForm {
+  id: number
+  fullName: string
+  curp: string
+  jerseyNumber: number | null
+  photoFile: File | null
+  photoPreview: string | null
+}
+
+interface LeagueOption {
+  id: number
+  name: string
+}
+
+interface SeasonOption {
+  id: number
+  name: string
+  leagueId: number
+}
+
+interface DraftPlayer {
+  id: number
+  fullName?: string
+  curp?: string
+  jerseyNumber?: number
+}
+
+interface DraftData {
+  teamName?: string
+  teamShortName?: string
+  colorPrimary?: string
+  colorSecondary?: string
+  leagueId?: number
+  seasonId?: number
+  categoryId?: number
+  gender?: string
+  rama?: string
+  players?: DraftPlayer[]
+}
+
+/* =========================
+   HELPERS
+========================= */
+const DRAFT_KEY = 'registroEquipoDraft'
+
+const norm = (v?: string | null) => (v ?? '').trim().toUpperCase()
+
+function seasonKey(name: string) {
+  return String(name || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+}
+
+function prettyGender(g: string) {
+  const key = norm(g)
+  if (key === 'FEMENIL') return 'Femenil'
+  if (key === 'VARONIL') return 'Varonil'
+  if (key === 'MIXTO') return 'Mixto'
+  return g
+}
+
+function pickCurrentWT(list: SeasonOption[]): SeasonOption | null {
+  const tag = seasonKey(CURRENT_SEASON_TAG)
+  const matches = list.filter((s) => seasonKey(s.name).includes(tag))
+
+  if (matches.length > 0) {
+    return (
+      matches
+        .slice()
+        .sort((a, b) => b.id - a.id)
+        .find(() => true) ?? null
+    )
+  }
+
+  const byFallback = list.find((s) => s.id === FALLBACK_SEASON_ID)
+  if (byFallback) return byFallback
+
+  if (list.length > 0) {
+    return (
+      list
+        .slice()
+        .sort((a, b) => b.id - a.id)
+        .find(() => true) ?? null
+    )
+  }
+
+  return null
+}
+
+function getStatusCode(err: any): number | undefined {
+  return err?.statusCode ?? err?.response?.status ?? err?.response?._data?.status
+}
+
+/* =========================
+   ESTADO BACK (teams/mine)
+========================= */
+const myTeams = ref<MyTeamsInfo | null>(null)
+const captainLoading = ref(false)
+const captainError = ref<string | null>(null)
+
+const mainTeam = computed<MyTeamItem | null>(() => myTeams.value?.teams?.[0] ?? null)
+
+const mainTeamLink = computed(() => {
+  return mainTeam.value ? `/teams/${mainTeam.value.teamId}` : '/mi-equipo'
+})
+
+const canRegisterTeam = computed(() => {
+  if (!myTeams.value) return false
+  return myTeams.value.hasCaptainPrivileges && myTeams.value.canCreateTeam
+})
+
+async function fetchMyTeams() {
+  captainError.value = null
+  myTeams.value = null
+
+  if (!isAuthenticated.value) return
+
+  try {
+    captainLoading.value = true
+
+    const { $kcGetToken } = nuxtApp as any
+    const tokenFn: (() => Promise<string | undefined>) | undefined = $kcGetToken
+    const token = tokenFn ? ((await tokenFn()) ?? '') : ''
+
+    if (!token) {
+      captainError.value = 'No se encontró token de sesión. Vuelve a iniciar sesión.'
+      return
+    }
+
+    const resp = await $fetch<MyTeamsInfo>('/teams/mine', {
+      baseURL: API_BASE,
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
+    myTeams.value = resp
+  } catch (err) {
+    console.error('Error cargando /teams/mine', err)
+    captainError.value = 'No se pudo obtener la información de tus equipos.'
+  } finally {
+    captainLoading.value = false
+  }
+}
+
+/* =========================
+   LIGA / TEMPORADA / CATÁLOGO
+========================= */
+const leagues = ref<LeagueOption[]>([{ id: 1, name: 'Liga Tochero5' }])
+
+const seasons = ref<SeasonOption[]>([])
+const currentSeason = ref<SeasonOption | null>(null)
+
+const selectedLeagueId = ref<number>(0)
+const selectedSeasonId = ref<number>(0)
+
+const categories = ref<CategoryDto[]>([])
+const categoriesLoading = ref(false)
+const categoriesError = ref<string | null>(null)
+
+const selectedCategoryId = ref<number>(0)
+const selectedGender = ref<string>('')
+const selectedRama = ref<string>('')
+
+const availableSeasons = computed(() =>
+  seasons.value.filter((s) => !selectedLeagueId.value || s.leagueId === selectedLeagueId.value)
+)
+
+const genderOptions = computed(() => {
+  const set = new Map<string, string>()
+  for (const c of categories.value) {
+    const g = norm(c.gender)
+    if (g) set.set(g, prettyGender(g))
+  }
+  return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
+})
+
+const ramaOptions = computed(() => {
+  if (!selectedGender.value) return []
+  const set = new Map<string, string>()
+  for (const c of categories.value) {
+    if (norm(c.gender) !== selectedGender.value) continue
+    const codeKey = norm(c.code)
+    if (codeKey) set.set(codeKey, c.code)
+  }
+  return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
+})
+
+const selectedCategory = computed(() => {
+  if (!selectedGender.value || !selectedRama.value) return null
+  return (
+    categories.value.find(
+      (c) => norm(c.gender) === selectedGender.value && norm(c.code) === selectedRama.value
+    ) ?? null
+  )
+})
+
+watch(selectedCategory, (c) => {
+  selectedCategoryId.value = c?.id ?? 0
+})
+
+async function fetchSeasons() {
+  try {
+    const try1 = await $fetch<any>('/seasons/list', { baseURL: API_BASE }).catch(() => null)
+    const raw = Array.isArray(try1)
+      ? try1
+      : await $fetch<any>('/seasons', { baseURL: API_BASE }).catch(() => [])
+
+    const list = Array.isArray(raw) ? raw : []
+
+    const mapped: SeasonOption[] = list
+      .map((s: any) => {
+        const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
+        const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
+        const leagueId = Number(s?.leagueId ?? s?.league_id ?? s?.league?.id ?? 1) || 1
+        return { id, name, leagueId }
+      })
+      .filter((s) => s.id > 0 && !!s.name)
+
+    const wt = pickCurrentWT(mapped)
+
+    if (wt) {
+      currentSeason.value = wt
+      seasons.value = [wt]
+      selectedSeasonId.value = wt.id
+      return
+    }
+
+    currentSeason.value = { id: FALLBACK_SEASON_ID, name: 'WT', leagueId: 1 }
+    seasons.value = [currentSeason.value]
+    selectedSeasonId.value = FALLBACK_SEASON_ID
+  } catch (e) {
+    console.error('Error cargando seasons', e)
+    currentSeason.value = { id: FALLBACK_SEASON_ID, name: 'WT', leagueId: 1 }
+    seasons.value = [currentSeason.value]
+    selectedSeasonId.value = FALLBACK_SEASON_ID
+  }
+}
+
+function normalizeCategories(raw: any): CategoryDto[] {
+  const arr = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw?.content)
+      ? raw.content
+      : Array.isArray(raw?.items)
+        ? raw.items
+        : Array.isArray(raw?.data)
+          ? raw.data
+          : []
+
+  return arr
+    .map((c: any) => ({
+      id: Number(c?.id ?? c?.categoryId ?? c?.category_id ?? 0) || 0,
+      leagueId: Number(c?.leagueId ?? c?.league_id ?? c?.league?.id ?? 0) || undefined,
+      name: String(c?.name ?? c?.categoryName ?? '').trim(),
+      code: String(c?.code ?? '').trim(),
+      gender: String(c?.gender ?? '').trim()
+    }))
+    .filter((c: CategoryDto) => c.id > 0 && !!c.name)
+}
+
+async function fetchCategories() {
+  categoriesError.value = null
+
+  try {
+    categoriesLoading.value = true
+
+    const leagueIdToUse = selectedLeagueId.value || 1
+
+    const withLeague = await $fetch<any>('/categories', {
+      baseURL: API_BASE,
+      query: { leagueId: leagueIdToUse }
+    }).catch(() => null)
+
+    let normalized = normalizeCategories(withLeague)
+
+    if (!normalized.length) {
+      const fallback = await $fetch<any>('/categories', {
+        baseURL: API_BASE
+      }).catch(() => [])
+
+      normalized = normalizeCategories(fallback)
+    }
+
+    categories.value = normalized
+  } catch (e) {
+    console.error('Error cargando /categories', e)
+    categoriesError.value = 'No se pudieron cargar las categorías.'
+    categories.value = []
+  } finally {
+    categoriesLoading.value = false
+  }
+}
+
+watch(
+  () => selectedLeagueId.value,
+  async () => {
+    selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
+    selectedGender.value = ''
+    selectedRama.value = ''
+    selectedCategoryId.value = 0
+    await fetchCategories()
+  }
+)
+
+watch(
+  () => selectedSeasonId.value,
+  () => {
+    const must = currentSeason.value?.id ?? FALLBACK_SEASON_ID
+    if (selectedSeasonId.value !== must) selectedSeasonId.value = must
+
+    selectedGender.value = ''
+    selectedRama.value = ''
+    selectedCategoryId.value = 0
+  }
+)
+
+watch(
+  () => selectedGender.value,
+  () => {
+    selectedRama.value = ''
+    selectedCategoryId.value = 0
+  }
+)
+
+/* =========================
+   ESTADO FORM
+========================= */
+const teamName = ref('')
+const teamShortName = ref('')
+const logoFile = ref<File | null>(null)
+const logoPreview = ref<string | null>(null)
+
+const colorPrimary = ref('#1D4ED8')
+const colorSecondary = ref('#FFFFFF')
+
+const players = ref<PlayerForm[]>([])
+
+function createEmptyPlayer(id: number): PlayerForm {
+  return {
+    id,
+    fullName: '',
+    curp: '',
+    jerseyNumber: null,
+    photoFile: null,
+    photoPreview: null
+  }
+}
+
+function nextPlayerId() {
+  const maxId = players.value.reduce((mx, p) => Math.max(mx, p.id), 0)
+  return maxId + 1
+}
+
+function addPlayer() {
+  players.value.push(createEmptyPlayer(nextPlayerId()))
+}
+
+function removePlayer(index: number) {
+  if (index < 0 || index >= players.value.length) return
+  const p = players.value[index]
+  if (p?.photoPreview) URL.revokeObjectURL(p.photoPreview)
+  players.value.splice(index, 1)
+}
+
+function onLogoChange(event: Event) {
+  const target = event.target as HTMLInputElement | null
+  const file = target?.files?.[0] ?? null
+
+  if (!file) {
+    logoFile.value = null
+    if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
+    logoPreview.value = null
+    return
+  }
+
+  logoFile.value = file
+  if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
+  logoPreview.value = URL.createObjectURL(file)
+}
+
+function onPlayerPhotoChange(index: number, event: Event) {
+  const player = players.value[index]
+  if (!player) return
+
+  const target = event.target as HTMLInputElement | null
+  const file = target?.files?.[0] ?? null
+
+  if (!file) {
+    player.photoFile = null
+    if (player.photoPreview) URL.revokeObjectURL(player.photoPreview)
+    player.photoPreview = null
+    return
+  }
+
+  player.photoFile = file
+  if (player.photoPreview) URL.revokeObjectURL(player.photoPreview)
+  player.photoPreview = URL.createObjectURL(file)
+}
+
+const sendablePlayers = computed(() =>
+  players.value.filter((p) => !!p.fullName.trim() && !!p.curp.trim() && !!p.photoFile)
+)
+
+/* =========================
+   BORRADOR LOCAL
+========================= */
+const successMessage = ref('')
+const errorMessage = ref('')
+
+function saveDraft() {
+  try {
+    const forcedSeasonId = currentSeason.value?.id ?? FALLBACK_SEASON_ID
+
+    const draft: DraftData = {
+      teamName: teamName.value,
+      teamShortName: teamShortName.value,
+      colorPrimary: colorPrimary.value,
+      colorSecondary: colorSecondary.value,
+      leagueId: selectedLeagueId.value,
+      seasonId: forcedSeasonId,
+      categoryId: selectedCategoryId.value,
+      gender: selectedGender.value,
+      rama: selectedRama.value,
+      players: players.value.map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        curp: p.curp,
+        jerseyNumber: p.jerseyNumber === null ? undefined : p.jerseyNumber
+      }))
+    }
+
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+      successMessage.value = 'Cambios guardados localmente. No se ha enviado aún a la liga.'
+      errorMessage.value = ''
+    }
+  } catch (e) {
+    console.error('Error guardando borrador:', e)
+    errorMessage.value = 'No se pudo guardar el borrador local.'
+  }
+}
+
+function loadDraft() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return
+    const raw = window.localStorage.getItem(DRAFT_KEY)
+    if (!raw) return
+
+    const draft = JSON.parse(raw) as DraftData
+
+    teamName.value = draft.teamName ?? ''
+    teamShortName.value = draft.teamShortName ?? ''
+
+    if (draft.colorPrimary) colorPrimary.value = draft.colorPrimary
+    if (draft.colorSecondary) colorSecondary.value = draft.colorSecondary
+
+    selectedLeagueId.value = draft.leagueId ?? 0
+    selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
+    selectedGender.value = draft.gender ?? ''
+    selectedRama.value = draft.rama ?? ''
+    selectedCategoryId.value = draft.categoryId ?? 0
+
+    const playersDraft = draft.players ?? []
+    players.value = playersDraft.map((p, idx) => ({
+      id: p.id ?? idx + 1,
+      fullName: p.fullName ?? '',
+      curp: p.curp ?? '',
+      jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
+      photoFile: null,
+      photoPreview: null
+    }))
+  } catch (e) {
+    console.error('Error cargando borrador:', e)
+  }
+}
+
+function clearProgress() {
+  teamName.value = ''
+  teamShortName.value = ''
+  colorPrimary.value = '#1D4ED8'
+  colorSecondary.value = '#FFFFFF'
+
+  logoFile.value = null
+  if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
+  logoPreview.value = null
+
+  selectedLeagueId.value = leagues.value[0]?.id ?? 1
+  selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
+  selectedGender.value = ''
+  selectedRama.value = ''
+  selectedCategoryId.value = 0
+
+  for (const p of players.value) {
+    if (p.photoPreview) URL.revokeObjectURL(p.photoPreview)
+  }
+  players.value = []
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.removeItem(DRAFT_KEY)
+  }
+
+  successMessage.value = ''
+  errorMessage.value = ''
+}
+
+/* =========================
+   LOGIN
+========================= */
+function onLoginClick() {
+  const kc = (nuxtApp as any).$kc
+  if (typeof window === 'undefined' || !kc) return
+  kc.login({ redirectUri: window.location.href })
+}
+
+/* =========================
+   SUBMIT
+========================= */
+const submitting = ref(false)
+
+async function onSubmit() {
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  if (!canRegisterTeam.value) {
+    errorMessage.value = 'Actualmente no puedes registrar más equipos.'
+    return
+  }
+
+  if (!teamName.value.trim()) {
+    errorMessage.value = 'Ingresa el nombre del equipo antes de subir la información.'
+    return
+  }
+
+  const forcedSeasonId = currentSeason.value?.id ?? FALLBACK_SEASON_ID
+  selectedSeasonId.value = forcedSeasonId
+
+  if (!selectedLeagueId.value || !selectedSeasonId.value || !selectedCategoryId.value) {
+    errorMessage.value = 'Selecciona liga, temporada, categoría y rama antes de registrar el equipo.'
+    return
+  }
+
+  let createdTeamId: number | null = null
+  let createdTeamName = ''
+
+  try {
+    submitting.value = true
+
+    const { $kcGetToken } = nuxtApp as any
+    const tokenFn: (() => Promise<string | undefined>) | undefined = $kcGetToken
+    const token = tokenFn ? ((await tokenFn()) ?? '') : ''
+
+    if (!token) {
+      errorMessage.value = 'No se encontró un token de sesión. Vuelve a iniciar sesión.'
+      return
+    }
+
+    const createdTeam = await $fetch<CreatedTeam>('/teams/mine', {
+      baseURL: API_BASE,
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: {
+        name: teamName.value.trim(),
+        shortName: teamShortName.value.trim() || null,
+        leagueId: selectedLeagueId.value,
+        seasonId: forcedSeasonId,
+        categoryId: selectedCategoryId.value,
+        colorPrimary: colorPrimary.value,
+        colorSecondary: colorSecondary.value
+      }
+    })
+
+    createdTeamId = createdTeam.teamId
+    createdTeamName = createdTeam.name
+
+    if (logoFile.value && createdTeamId) {
+      const formLogo = new FormData()
+      formLogo.append('logo', logoFile.value)
+
+      await $fetch(`/teams/${createdTeamId}/logo`, {
+        baseURL: API_BASE,
+        method: 'POST',
+        body: formLogo,
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    }
+
+    if (createdTeamId && sendablePlayers.value.length > 0) {
+      for (const p of sendablePlayers.value) {
+        const formPlayer = new FormData()
+        formPlayer.append('fullName', p.fullName.trim())
+        formPlayer.append('curp', p.curp.trim().toUpperCase())
+
+        if (typeof p.jerseyNumber === 'number' && Number.isFinite(p.jerseyNumber)) {
+          formPlayer.append('jerseyNumber', String(p.jerseyNumber))
+        }
+
+        formPlayer.append('photo', p.photoFile as File)
+
+        try {
+          await $fetch(`/teams/${createdTeamId}/players`, {
+            baseURL: API_BASE,
+            method: 'POST',
+            body: formPlayer,
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        } catch (errPlayer: any) {
+          const status = getStatusCode(errPlayer)
+
+          if (status === 413) {
+            successMessage.value =
+              'El equipo se creó correctamente, pero una o más fotos pesan demasiado y no se pudieron subir. Usa fotos más ligeras y súbelas después desde "Mi equipo".'
+            errorMessage.value = ''
+            break
+          } else {
+            console.error('Error creando jugador', errPlayer)
+          }
+        }
+      }
+    }
+
+    await fetchMyTeams()
+    clearProgress()
+
+    successMessage.value = `Equipo "${createdTeamName}" registrado correctamente.`
+    errorMessage.value = ''
+
+    if (createdTeamId) {
+      await router.push(`/teams/${createdTeamId}`)
+    }
+  } catch (err: any) {
+    console.error('Error al enviar registro:', err)
+    const status = getStatusCode(err)
+
+    const rawMessage: string | undefined =
+      err?.data?.message ?? err?.response?._data?.message ?? err?.message
+
+    if (rawMessage && rawMessage.includes('uq_team_league_name')) {
+      errorMessage.value =
+        'Ya existe un equipo con ese nombre en esta liga. Elige otro nombre o contacta al administrador.'
+    } else if (status === 413) {
+      errorMessage.value =
+        'La información enviada (logo o fotos) supera el tamaño máximo permitido. Intenta con archivos más ligeros.'
+    } else {
+      errorMessage.value =
+        'Ocurrió un error al subir la información. Si ves 500, revisa los logs del back/BD.'
+    }
+  } finally {
+    submitting.value = false
+  }
+}
+
+/* =========================
+   CICLO DE VIDA
+========================= */
+onMounted(async () => {
+  if (!selectedLeagueId.value) {
+    selectedLeagueId.value = leagues.value[0]?.id ?? 1
+  }
+
+  await fetchSeasons()
+  loadDraft()
+  selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
+  await fetchCategories()
+
+  if (isAuthenticated.value) {
+    await fetchMyTeams()
+  }
+})
+
+watch(
+  () => isAuthenticated.value,
+  async (value) => {
+    if (value) await fetchMyTeams()
+    else myTeams.value = null
+  }
+)
+
+const currentSeasonLabel = computed(() => {
+  const s = currentSeason.value
+  if (s?.name) return s.name
+  return 'WT'
+})
+
+onBeforeUnmount(() => {
+  if (logoPreview.value) URL.revokeObjectURL(logoPreview.value)
+  for (const p of players.value) {
+    if (p.photoPreview) URL.revokeObjectURL(p.photoPreview)
+  }
+})
+</script>

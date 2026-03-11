@@ -589,7 +589,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter, useRuntimeConfig, useAsyncData } from '#imports'
-import { useApi } from '@/composables/useApi'
+import { useApi } from '~/composables/useApi'
+import { normalizeApiBase } from '../composables/useApiBase'
 
 /* =========================
    Tabs / query param
@@ -616,10 +617,10 @@ function setView(v: View) {
 }
 
 /* =========================
-   API BASE (1 sola vez)
+   API BASE
 ========================= */
 const config = useRuntimeConfig()
-const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
+const API_BASE = normalizeApiBase((config.public as any)?.apiBase)
 
 /* =========================
    Helpers
@@ -628,6 +629,7 @@ function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
   if (x && Array.isArray(x.items)) return x.items
+  if (x && Array.isArray(x.data)) return x.data
   return []
 }
 
@@ -644,11 +646,15 @@ const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Num
 
 /* =========================
    TEAMS (FUENTE REAL para isActive)
-   - usando useApi para que viaje igual que /points
 ========================= */
 type TeamVM = { teamId: number; name: string; shortName?: string; isActive: boolean }
 
-const { data: teamsRaw, pending: pendingTeams, error: errorTeams, refresh: refreshTeams } = useApi<any[]>('/teams')
+const {
+  data: teamsRaw,
+  pending: pendingTeams,
+  error: errorTeams,
+  refresh: refreshTeams
+} = useApi<any[]>('/teams')
 
 const teamsVm = computed<TeamVM[]>(() => {
   const list = unwrapList<any>(teamsRaw.value)
@@ -658,7 +664,6 @@ const teamsVm = computed<TeamVM[]>(() => {
       const name = String(x.name ?? x.teamName ?? 'Equipo')
       const shortName = String(x.shortName ?? x.short_name ?? '').trim()
 
-      // flags directos
       const rawActive =
         x.isActive ??
         x.is_active ??
@@ -671,7 +676,6 @@ const teamsVm = computed<TeamVM[]>(() => {
         x.team?.active ??
         x.team?.enabled
 
-      // flags de "eliminado/archivado" (si existe, invertimos)
       const rawDeleted =
         x.deleted ??
         x.isDeleted ??
@@ -739,8 +743,6 @@ interface ApiStanding {
   seasonId: number
   categoryCode: string
   seasonName?: string
-
-  // por si el endpoint ya lo manda:
   isActive?: boolean | number | string
   teamIsActive?: boolean | number | string
   active?: boolean | number | string
@@ -774,16 +776,18 @@ const { data: seasonsRaw } = useAsyncData<any[]>(
   'seasons-stats-lite',
   async () => {
     const try1 = await $fetch<any>(`${API_BASE}/seasons/list`).catch(() => null)
-    if (Array.isArray(try1)) return try1
+    const list1 = unwrapList<any>(try1)
+    if (list1.length) return list1
+
     const try2 = await $fetch<any>(`${API_BASE}/seasons`).catch(() => [])
-    return Array.isArray(try2) ? try2 : []
+    return unwrapList<any>(try2)
   },
   { server: false, default: () => [] }
 )
 
 const seasonOptions = computed<SeasonOpt[]>(() => {
   const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
-  const out = list
+  return list
     .map((s: any) => {
       const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
       const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
@@ -791,7 +795,6 @@ const seasonOptions = computed<SeasonOpt[]>(() => {
     })
     .filter((s) => s.id > 0)
     .sort((a, b) => a.name.localeCompare(b.name, 'es'))
-  return out
 })
 
 const seasonsMap = computed<Record<number, string>>(() => {
@@ -832,17 +835,15 @@ const {
   refresh: refreshStandings
 } = useApi<ApiStanding[]>(pointsUrl)
 
-const standingsList = computed(() => (Array.isArray(standings.value) ? (standings.value as ApiStanding[]) : []))
+const standingsList = computed(() => unwrapList<ApiStanding>(standings.value))
 
 const standingsHaveActiveFlag = computed(() => {
-  // si el endpoint /points ya trae la bandera, no dependemos de /teams
   return standingsList.value.some(
     (s) => s.isActive != null || s.teamIsActive != null || s.active != null || (s as any).team_active != null
   )
 })
 
 const activeIndexReady = computed(() => {
-  // listo cuando /teams terminó sin error y tenemos al menos 1 equipo
   return !pendingTeams.value && !errorTeams.value && teamsVm.value.length > 0
 })
 
@@ -852,7 +853,6 @@ function standingActiveFlag(s: ApiStanding): boolean | null {
   return toBool(s.isActive ?? s.teamIsActive ?? s.active ?? (s as any).team_active)
 }
 
-// ✅ Solo equipos activos
 const allRows = computed<RowVM[]>(() => {
   const rows = standingsList.value
   const sp = seasonPick.value === 'ALL' ? 0 : Number(seasonPick.value || 0)
@@ -862,11 +862,9 @@ const allRows = computed<RowVM[]>(() => {
   return rows
     .filter((s) => (sp ? Number(s.seasonId || 0) === sp : true))
     .filter((s) => {
-      // 1) si /points trae bandera => úsala
       const flag = standingActiveFlag(s)
       if (flag !== null) return flag
 
-      // 2) si ya cargamos /teams => filtra por id o nombre
       if (activeIndexReady.value) {
         const tid = Number(s.teamId)
         if (Number.isFinite(tid) && activeIds.has(tid)) return true
@@ -875,8 +873,6 @@ const allRows = computed<RowVM[]>(() => {
         return false
       }
 
-      // 3) si no está listo /teams y /points no trae bandera,
-      //    no mostramos nada todavía (evita que se cuelen inactivos)
       return false
     })
     .slice()
@@ -945,10 +941,6 @@ const prettyDivision = (division: string | null | undefined): string => {
   return division
 }
 
-/* UI states equipos:
-   - si /points ya trae isActive => no necesitamos esperar /teams
-   - si no trae => esperamos a que /teams esté listo para filtrar bien
-*/
 const pendingEquiposUI = computed(() => {
   if (pendingStandings.value) return true
   if (standingsHaveActiveFlag.value) return false
@@ -1105,7 +1097,6 @@ const filteredPlayers = computed(() => {
   const activeIds = activeTeamIds.value
 
   return playersVm.value.filter((p) => {
-    // ✅ ocultar jugadores de equipos inactivos (si conocemos el catálogo)
     if (activeIndexReady.value && p.teamId && !activeIds.has(p.teamId)) return false
 
     if (tPick !== 'ALL') {

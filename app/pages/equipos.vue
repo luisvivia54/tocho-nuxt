@@ -203,7 +203,7 @@
                   <h2 class="font-display text-lg font-bold text-white truncate">{{ team.name }}</h2>
                   <p class="text-[11px] text-slate-200 truncate">{{ team.shortName || 'Sin abreviatura' }}</p>
 
-                  <!-- ✅ NUEVO: Rama + Categoría por equipo -->
+                  <!-- ✅ Rama + Categoría por equipo -->
                   <div class="mt-2 flex flex-wrap items-center gap-2 text-[10px]">
                     <span class="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/20 px-2 py-0.5 text-slate-100">
                       Rama:
@@ -308,6 +308,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRuntimeConfig, useFetch } from '#imports'
+import { normalizeApiBase } from '../composables/useApiBase'
 
 type Nullable<T> = T | null
 
@@ -322,12 +323,10 @@ interface ApiTeam {
   isActive: boolean
   createdAt?: string
   updatedAt?: string
-
-  // ✅ extra (viene de /teams/list si tu projection lo manda)
-  code?: Nullable<string>           // a veces viene como code
-  categoryCode?: Nullable<string>   // a veces viene como categoryCode
-  gender?: Nullable<string>         // gender (categoría)
-  categoryGender?: Nullable<string> // por si viene con otro nombre
+  code?: Nullable<string>
+  categoryCode?: Nullable<string>
+  gender?: Nullable<string>
+  categoryGender?: Nullable<string>
   category?: Nullable<{ code?: string; gender?: string; name?: string }>
 }
 
@@ -339,56 +338,77 @@ interface CategoryDto {
   gender: string
 }
 
+function unwrapList<T>(x: any): T[] {
+  if (Array.isArray(x)) return x
+  if (x && Array.isArray(x.content)) return x.content
+  if (x && Array.isArray(x.items)) return x.items
+  if (x && Array.isArray(x.data)) return x.data
+  return []
+}
+
 const config = useRuntimeConfig()
+const API_BASE = `${normalizeApiBase(config.public.apiBase)}/`
 
 // ================== FILTROS ==================
-const selectedRama = ref<string>('all')        // code
-const selectedCategoria = ref<string>('all')   // gender
+const selectedRama = ref<string>('all')
+const selectedCategoria = ref<string>('all')
 const searchQuery = ref('')
 
-// Cargar catálogo (solo opciones de select). ✅ sin leagueId
+// ================== CATEGORÍAS ==================
 const {
-  data: categoriesData,
+  data: categoriesRaw,
   pending: categoriesPending,
-  error: categoriesError
-} = useFetch<CategoryDto[]>('/categories', {
-  baseURL: config.public.apiBase,
-  default: () => []
+  error: categoriesError,
+} = useFetch<any>('categories', {
+  baseURL: API_BASE,
+  default: () => [],
 })
 
+const categoriesList = computed<CategoryDto[]>(() => unwrapList<CategoryDto>(categoriesRaw.value))
+
 const ramaOptions = computed(() => {
-  const arr = categoriesData.value || []
   const set = new Set<string>()
-  for (const c of arr) if (c?.code) set.add(String(c.code).toUpperCase())
+  for (const c of categoriesList.value) {
+    if (c?.code) set.add(String(c.code).toUpperCase())
+  }
   return Array.from(set).sort()
 })
 
 const categoriaOptions = computed(() => {
-  const arr = categoriesData.value || []
   const set = new Set<string>()
-  for (const c of arr) if (c?.gender) set.add(String(c.gender).toUpperCase())
+  for (const c of categoriesList.value) {
+    if (c?.gender) set.add(String(c.gender).toUpperCase())
+  }
   return Array.from(set).sort()
 })
 
-const selectedRamaLabel = computed(() => (selectedRama.value === 'all' ? 'Todas las ramas' : selectedRama.value))
+const selectedRamaLabel = computed(() =>
+  selectedRama.value === 'all' ? 'Todas las ramas' : selectedRama.value
+)
+
 const selectedCategoriaLabel = computed(() =>
   selectedCategoria.value === 'all' ? 'Todas las categorías' : niceGender(selectedCategoria.value)
 )
 
-// Query para el BACK: /teams/list?categoryCode=...&gender=...
+// Query para el BACK: teams/list?categoryCode=...&gender=...
 const teamsQuery = computed(() => ({
   categoryCode: selectedRama.value === 'all' ? undefined : selectedRama.value,
-  gender: selectedCategoria.value === 'all' ? undefined : selectedCategoria.value
+  gender: selectedCategoria.value === 'all' ? undefined : selectedCategoria.value,
 }))
 
 // ================== FETCH TEAMS ==================
-const { data: teamsData, pending, error, refresh } = useFetch<ApiTeam[]>('/teams/list', {
-  baseURL: config.public.apiBase,
+const {
+  data: teamsRaw,
+  pending,
+  error,
+  refresh,
+} = useFetch<any>('teams/list', {
+  baseURL: API_BASE,
   query: teamsQuery,
-  default: () => []
+  default: () => [],
 })
 
-const teamsList = computed<ApiTeam[]>(() => (Array.isArray(teamsData.value) ? (teamsData.value as ApiTeam[]) : []))
+const teamsList = computed<ApiTeam[]>(() => unwrapList<ApiTeam>(teamsRaw.value))
 
 // ================== FILTRO LOCAL (búsqueda) ==================
 const filteredTeams = computed<ApiTeam[]>(() => {
@@ -396,8 +416,8 @@ const filteredTeams = computed<ApiTeam[]>(() => {
   if (!query) return teamsList.value
 
   return teamsList.value.filter((team) => {
-    const name = (team.name || '').toLowerCase()
-    const short = (team.shortName || '').toLowerCase()
+    const name = String(team.name || '').toLowerCase()
+    const short = String(team.shortName || '').toLowerCase()
     return name.includes(query) || short.includes(query)
   })
 })
@@ -405,6 +425,7 @@ const filteredTeams = computed<ApiTeam[]>(() => {
 // ================== PAGINACIÓN ==================
 const pageSize = 8
 const currentPage = ref(1)
+
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredTeams.value.length / pageSize)))
 
 const paginatedTeams = computed<ApiTeam[]>(() => {
@@ -418,11 +439,6 @@ const pageEnd = computed(() => pageStart.value + paginatedTeams.value.length)
 // Reset page cuando cambian filtros o búsqueda
 watch([selectedRama, selectedCategoria, searchQuery], () => {
   currentPage.value = 1
-})
-
-// Re-fetch cuando cambian rama/categoría
-watch([selectedRama, selectedCategoria], async () => {
-  await refresh()
 })
 
 // Helpers UI
@@ -451,7 +467,7 @@ const clearFilters = async () => {
   await refresh()
 }
 
-// ✅ Link a detalle
+// Link a detalle
 const teamDetailHref = (id: number) => `/teams/${id}`
 
 // Degradado
@@ -460,26 +476,18 @@ const getCardGradientStyle = (team: ApiTeam) => {
   const secondary = team.colorSecondary || '#1E293B'
   return {
     backgroundImage: `linear-gradient(135deg, ${primary}, ${secondary})`,
-    backgroundBlendMode: 'soft-light'
+    backgroundBlendMode: 'soft-light',
   }
 }
 
-// ✅ tomar code/gender desde projection (cubre varios nombres posibles)
+// tomar code/gender desde projection
 const getTeamCode = (team: ApiTeam): string => {
-  const v =
-    team.category?.code ||
-    team.categoryCode ||
-    team.code ||
-    null
+  const v = team.category?.code || team.categoryCode || team.code || null
   return v ? String(v).toUpperCase() : ''
 }
 
 const getTeamGender = (team: ApiTeam): string => {
-  const v =
-    team.category?.gender ||
-    team.gender ||
-    team.categoryGender ||
-    null
+  const v = team.category?.gender || team.gender || team.categoryGender || null
   return v ? String(v).toUpperCase() : ''
 }
 

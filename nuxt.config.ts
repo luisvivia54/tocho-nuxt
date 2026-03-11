@@ -1,25 +1,27 @@
-// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxtjs/tailwindcss'],
+  modules: ["@nuxtjs/tailwindcss"],
 
-  css: ['@/assets/css/theme.css'],
+  css: [
+    "@/assets/css/theme.css",
+    "@/assets/css/liga-b.css",
+  ],
+
+  tailwindcss: {
+    configPath: "tailwind.config.ts",
+  },
 
   runtimeConfig: {
     public: {
-      // 🌐 Backend de la liga
-      apiBase: 'https://tocho5-api.tochero5.mx/api',
-
-      // 🔐 Config de Keycloak
-      keycloakUrl: 'https://auth.tochero5.mx',
-      keycloakRealm: 'tochero5',
-      keycloakClientId: 'nuxt-app',
+      apiBase: "https://tocho5-api.tochero5.mx/api",
+      keycloakUrl: "https://auth.tochero5.mx",
+      keycloakRealm: "tochero5",
+      keycloakClientId: "nuxt-app",
     },
   },
 
-  // 👇 IMPORTANTE: dile a Nuxt que auto-importe composables de app/composables
   imports: {
-    dirs: ['app/composables'],
+    dirs: ["app/composables"],
   },
 
-  compatibilityDate: '2025-11-22',
+  compatibilityDate: "2025-11-22",
 })

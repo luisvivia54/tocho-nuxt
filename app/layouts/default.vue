@@ -1,15 +1,13 @@
 <!-- app/layouts/default.vue -->
 <template>
-  <div class="bg-[#F3F4FF] text-slate-900 min-h-screen" :class="{ 'pb-24 sm:pb-0': isAdmin }">
+  <div class="min-h-screen bg-background text-foreground font-body" :class="{ 'pb-24 sm:pb-0': isAdmin }">
     <!-- HEADER GLOBAL -->
-    <header
-      class="navbar fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-[#111827] to-[#1F2937] text-white shadow-lg"
-    >
-      <nav class="max-w-6xl mx-auto container-pad px-6 py-4 flex items-center justify-between">
+    <header class="glass-header relative z-[80] overflow-visible">
+      <nav class="section-container relative overflow-visible flex items-center justify-between py-4">
         <!-- LOGO -->
         <NuxtLink to="/" class="flex items-center gap-3" @click="closeMobile">
           <span
-            class="w-9 h-9 rounded-xl overflow-hidden bg-[rgba(59,130,246,.25)] ring-1 ring-white/10 shadow-sm"
+            class="w-9 h-9 rounded-xl overflow-hidden bg-primary/15 ring-1 ring-primary/20 shadow-sm"
             aria-hidden="true"
           >
             <img
@@ -21,36 +19,49 @@
             />
           </span>
 
-          <span class="font-display text-xl sm:text-2xl font-extrabold tracking-wide text-white">
-            tochero<span class="text-blue-400">5</span>liga
+          <span class="font-display text-xl sm:text-2xl font-extrabold tracking-tight">
+            tochero<span class="text-primary">5</span>liga
           </span>
         </NuxtLink>
 
         <!-- NAV DESKTOP -->
-        <div class="hidden sm:flex items-center gap-5 text-sm text-slate-100">
-          <NuxtLink to="/partidos" class="hover:text-white transition">Partidos</NuxtLink>
-          <NuxtLink to="/equipos" class="hover:text-white transition">Equipos</NuxtLink>
-          <NuxtLink to="/estadisticas" class="hover:text-white transition">Estadísticas</NuxtLink>
+        <div class="hidden sm:flex items-center gap-6 text-sm">
+          <NuxtLink to="/partidos" class="text-muted-foreground hover:text-foreground transition">
+            Partidos
+          </NuxtLink>
+          <NuxtLink to="/equipos" class="text-muted-foreground hover:text-foreground transition">
+            Equipos
+          </NuxtLink>
+          <NuxtLink to="/estadisticas" class="text-muted-foreground hover:text-foreground transition">
+            Estadísticas
+          </NuxtLink>
 
-          <NuxtLink v-if="showRegistro" to="/registro" class="hover:text-white transition">
+          <NuxtLink
+            v-if="showRegistro"
+            to="/registro"
+            class="text-muted-foreground hover:text-foreground transition"
+          >
             Registro
           </NuxtLink>
 
-          <NuxtLink v-if="showMiEquipo" to="/mi-equipo" class="hover:text-white transition">
+          <NuxtLink
+            v-if="showMiEquipo"
+            to="/mi-equipo"
+            class="text-muted-foreground hover:text-foreground transition"
+          >
             Mi equipo
           </NuxtLink>
 
           <!-- ✅ Admin (dropdown) -->
-          <div v-if="isAdmin" class="relative" ref="adminWrap">
+          <div v-if="isAdmin" class="relative z-[90]" ref="adminWrap">
             <button
               type="button"
-              class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-semibold
-                     bg-white/10 border border-white/15 hover:bg-white/15 transition"
+              class="inline-flex items-center gap-2 rounded-full border border-fuchsia-500/70 bg-[#0A1022] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-100 shadow-[0_8px_24px_rgba(0,0,0,0.28)] hover:border-fuchsia-400 hover:bg-[#0E1630] transition"
               :aria-expanded="adminOpen ? 'true' : 'false'"
               aria-haspopup="menu"
               @click="toggleAdmin"
             >
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <svg class="w-4 h-4 text-slate-100" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M12 2l8 4v6c0 5-3.4 9.4-8 10-4.6-.6-8-5-8-10V6l8-4z"
                   stroke="currentColor"
@@ -66,7 +77,7 @@
                 />
               </svg>
               Admin
-              <svg class="w-4 h-4 opacity-80" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <svg class="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M7 10l5 5 5-5"
                   stroke="currentColor"
@@ -79,34 +90,31 @@
 
             <Transition
               enter-active-class="transition duration-150 ease-out"
-              enter-from-class="opacity-0 translate-y-1"
-              enter-to-class="opacity-100 translate-y-0"
+              enter-from-class="opacity-0 translate-y-1 scale-[0.98]"
+              enter-to-class="opacity-100 translate-y-0 scale-100"
               leave-active-class="transition duration-120 ease-in"
-              leave-from-class="opacity-100 translate-y-0"
-              leave-to-class="opacity-0 translate-y-1"
+              leave-from-class="opacity-100 translate-y-0 scale-100"
+              leave-to-class="opacity-0 translate-y-1 scale-[0.98]"
             >
               <div
                 v-if="adminOpen"
-                class="absolute right-0 mt-2 w-56 rounded-2xl overflow-hidden border border-white/10
-                       bg-[#0B1220]/95 backdrop-blur shadow-[0_18px_50px_rgba(0,0,0,0.35)]"
+                class="absolute right-0 top-full mt-3 z-[120] w-72 overflow-hidden rounded-2xl border border-fuchsia-500/70 bg-[#07101F] shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
                 role="menu"
-              >
-                <div class="px-4 py-3 border-b border-white/10">
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-slate-300/90">Panel Admin</p>
-                  <p class="text-xs text-slate-300/80">Accesos rápidos</p>
+               >
+                <div class="border-b border-white/10 bg-[#0A1428] px-4 py-4">
+                  <p class="text-[11px] uppercase tracking-[0.24em] text-slate-400">Panel Admin</p>
+                  <p class="mt-1 text-sm font-semibold text-white">Accesos rápidos</p>
                 </div>
 
-                <div class="p-2 grid gap-1">
-                  <!-- ✅ NUEVO: Inicio (editar home) -->
+                <div class="p-2 grid gap-1.5">
                   <NuxtLink
                     to="/admin/inicio"
-                    class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
-                    :class="isActive('/admin/inicio') ? 'bg-white/10' : ''"
+                    class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-100 transition hover:bg-white/8"
+                    :class="isActive('/admin/inicio') ? 'bg-white/10 ring-1 ring-white/10' : ''"
                     @click="adminOpen = false"
                   >
-                    <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
-                      <!-- icon home + edit -->
-                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <span class="h-11 w-11 rounded-xl border border-fuchsia-500/50 bg-[#0D1930] grid place-items-center shrink-0">
+                      <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path
                           d="M4 10.5 12 4l8 6.5V20a2 2 0 0 1-2 2h-4v-6H10v6H6a2 2 0 0 1-2-2v-9.5Z"
                           stroke="currentColor"
@@ -122,19 +130,19 @@
                       </svg>
                     </span>
                     <div class="min-w-0">
-                      <p class="font-semibold truncate">Inicio</p>
-                      <p class="text-[11px] text-slate-300/80">Editar Home</p>
+                      <p class="font-semibold text-white truncate">Inicio</p>
+                      <p class="text-[11px] text-slate-400">Editar Home</p>
                     </div>
                   </NuxtLink>
 
                   <NuxtLink
                     to="/admin/partidos"
-                    class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
-                    :class="isActive('/admin/partidos') ? 'bg-white/10' : ''"
+                    class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-100 transition hover:bg-white/8"
+                    :class="isActive('/admin/partidos') ? 'bg-white/10 ring-1 ring-white/10' : ''"
                     @click="adminOpen = false"
                   >
-                    <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
-                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <span class="h-11 w-11 rounded-xl border border-fuchsia-500/50 bg-[#0D1930] grid place-items-center shrink-0">
+                      <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M8 3h8v3H8V3z" stroke="currentColor" stroke-width="1.6" />
                         <path d="M6 6h12v15H6V6z" stroke="currentColor" stroke-width="1.6" />
                         <path
@@ -146,19 +154,19 @@
                       </svg>
                     </span>
                     <div class="min-w-0">
-                      <p class="font-semibold truncate">Partidos</p>
-                      <p class="text-[11px] text-slate-300/80">Administración</p>
+                      <p class="font-semibold text-white truncate">Partidos</p>
+                      <p class="text-[11px] text-slate-400">Administración</p>
                     </div>
                   </NuxtLink>
 
                   <NuxtLink
                     to="/admin/usuarios"
-                    class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
-                    :class="isActive('/admin/usuarios') ? 'bg-white/10' : ''"
+                    class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-100 transition hover:bg-white/8"
+                    :class="isActive('/admin/usuarios') ? 'bg-white/10 ring-1 ring-white/10' : ''"
                     @click="adminOpen = false"
                   >
-                    <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
-                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <span class="h-11 w-11 rounded-xl border border-fuchsia-500/50 bg-[#0D1930] grid place-items-center shrink-0">
+                      <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path
                           d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
                           stroke="currentColor"
@@ -181,19 +189,19 @@
                       </svg>
                     </span>
                     <div class="min-w-0">
-                      <p class="font-semibold truncate">Usuarios</p>
-                      <p class="text-[11px] text-slate-300/80">Roles / acceso</p>
+                      <p class="font-semibold text-white truncate">Usuarios</p>
+                      <p class="text-[11px] text-slate-400">Roles / acceso</p>
                     </div>
                   </NuxtLink>
 
                   <NuxtLink
                     to="/admin/jugadores"
-                    class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
-                    :class="isActive('/admin/jugadores') ? 'bg-white/10' : ''"
+                    class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-100 transition hover:bg-white/8"
+                    :class="isActive('/admin/jugadores') ? 'bg-white/10 ring-1 ring-white/10' : ''"
                     @click="adminOpen = false"
                   >
-                    <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
-                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <span class="h-11 w-11 rounded-xl border border-fuchsia-500/50 bg-[#0D1930] grid place-items-center shrink-0">
+                      <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5z" stroke="currentColor" stroke-width="1.6" />
                         <path
                           d="M3 21a9 9 0 0 1 18 0"
@@ -204,20 +212,19 @@
                       </svg>
                     </span>
                     <div class="min-w-0">
-                      <p class="font-semibold truncate">Jugadores</p>
-                      <p class="text-[11px] text-slate-300/80">Gestión</p>
+                      <p class="font-semibold text-white truncate">Jugadores</p>
+                      <p class="text-[11px] text-slate-400">Gestión</p>
                     </div>
                   </NuxtLink>
 
-                  <!-- Equipos -->
                   <NuxtLink
                     to="/admin/equipos"
-                    class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-100 hover:bg-white/10"
-                    :class="isActive('/admin/equipos') ? 'bg-white/10' : ''"
+                    class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-100 transition hover:bg-white/8"
+                    :class="isActive('/admin/equipos') ? 'bg-white/10 ring-1 ring-white/10' : ''"
                     @click="adminOpen = false"
                   >
-                    <span class="h-9 w-9 rounded-xl bg-white/10 grid place-items-center border border-white/10">
-                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <span class="h-11 w-11 rounded-xl border border-fuchsia-500/50 bg-[#0D1930] grid place-items-center shrink-0">
+                      <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path
                           d="M4 7h16M10 11v7M14 11v7M6 7l1 14h10l1-14M9 7V4h6v3"
                           stroke="currentColor"
@@ -228,8 +235,8 @@
                       </svg>
                     </span>
                     <div class="min-w-0">
-                      <p class="font-semibold truncate">Equipos</p>
-                      <p class="text-[11px] text-slate-300/80">Borrar / limpiar</p>
+                      <p class="font-semibold text-white truncate">Equipos</p>
+                      <p class="text-[11px] text-slate-400">Borrar / limpiar</p>
                     </div>
                   </NuxtLink>
                 </div>
@@ -241,7 +248,7 @@
             href="https://www.instagram.com/tochero5liga"
             target="_blank"
             rel="noopener"
-            class="opacity-80 hover:opacity-100 text-slate-100"
+            class="opacity-80 hover:opacity-100 text-muted-foreground hover:text-foreground transition"
             aria-label="Instagram"
           >
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -253,33 +260,35 @@
 
           <button
             v-if="kcReady"
-            class="rounded-xl px-3 py-1.5 bg-blue-500 text-white hover:bg-blue-400 text-sm font-semibold"
+            class="rounded-2xl px-4 py-2 bg-primary text-primary-foreground hover:brightness-110 text-sm font-semibold transition shadow-sm"
             @click="onAuthClick"
           >
             {{ isAuthenticated ? 'Cerrar sesión' : 'Entrar' }}
           </button>
 
-          <span v-else class="text-xs text-slate-300">Inicializando…</span>
+          <span v-else class="text-xs text-muted-foreground">Inicializando…</span>
         </div>
 
         <!-- NAV MOBILE -->
         <div class="flex items-center gap-2 sm:hidden">
           <button
             type="button"
-            class="inline-flex items-center gap-2 rounded-xl bg-blue-500 text-white px-3 py-2 text-sm font-semibold shadow-sm active:scale-[0.99]"
+            class="rounded-2xl px-4 py-3 bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:brightness-110 transition active:scale-[0.99]"
             :aria-expanded="mobileOpen ? 'true' : 'false'"
             aria-controls="mobile-menu"
             @click="toggleMobile"
           >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M4 6h16M4 12h16M4 18h16"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-            Menú
+            <span class="inline-flex items-center gap-2">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M4 6h16M4 12h16M4 18h16"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Menú
+            </span>
           </button>
         </div>
       </nav>
@@ -295,28 +304,26 @@
       >
         <div v-if="mobileOpen" class="sm:hidden">
           <!-- backdrop -->
-          <div class="fixed inset-0 z-40 bg-black/40" @click="closeMobile" />
+          <div class="fixed inset-0 z-40 bg-black/60" @click="closeMobile" />
 
           <!-- dropdown -->
           <div id="mobile-menu" class="absolute top-full inset-x-0 z-50">
-            <div
-              class="mx-4 mt-3 rounded-2xl overflow-hidden border border-white/10 bg-[#0B1220] shadow-[0_18px_50px_rgba(0,0,0,0.35)]"
-            >
-              <div class="p-3 grid gap-1 text-sm text-slate-100">
-                <NuxtLink to="/partidos" class="px-3 py-2 rounded-xl hover:bg-white/10" @click="closeMobile">
+            <div class="mx-4 mt-3 overflow-hidden rounded-3xl border border-white/10 bg-[#07101F] shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+              <div class="p-3 grid gap-1 text-sm">
+                <NuxtLink to="/partidos" class="px-3 py-2 rounded-2xl text-slate-100 hover:bg-white/8" @click="closeMobile">
                   Partidos
                 </NuxtLink>
-                <NuxtLink to="/equipos" class="px-3 py-2 rounded-xl hover:bg-white/10" @click="closeMobile">
+                <NuxtLink to="/equipos" class="px-3 py-2 rounded-2xl text-slate-100 hover:bg-white/8" @click="closeMobile">
                   Equipos
                 </NuxtLink>
-                <NuxtLink to="/estadisticas" class="px-3 py-2 rounded-xl hover:bg-white/10" @click="closeMobile">
+                <NuxtLink to="/estadisticas" class="px-3 py-2 rounded-2xl text-slate-100 hover:bg-white/8" @click="closeMobile">
                   Estadísticas
                 </NuxtLink>
 
                 <NuxtLink
                   v-if="showRegistro"
                   to="/registro"
-                  class="px-3 py-2 rounded-xl hover:bg-white/10"
+                  class="px-3 py-2 rounded-2xl text-slate-100 hover:bg-white/8"
                   @click="closeMobile"
                 >
                   Registro
@@ -325,19 +332,19 @@
                 <NuxtLink
                   v-if="showMiEquipo"
                   to="/mi-equipo"
-                  class="px-3 py-2 rounded-xl hover:bg-white/10"
+                  class="px-3 py-2 rounded-2xl text-slate-100 hover:bg-white/8"
                   @click="closeMobile"
                 >
                   Mi equipo
                 </NuxtLink>
               </div>
 
-              <div class="px-4 pb-4 pt-2 border-t border-white/10 flex items-center justify-between gap-3">
+              <div class="px-4 pb-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
                 <a
                   href="https://www.instagram.com/tochero5liga"
                   target="_blank"
                   rel="noopener"
-                  class="inline-flex items-center gap-2 text-sm text-slate-100/90 hover:text-white"
+                  class="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white transition"
                   @click="closeMobile"
                 >
                   <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -350,13 +357,13 @@
 
                 <button
                   v-if="kcReady"
-                  class="rounded-xl px-3 py-2 bg-blue-500 text-white hover:bg-blue-400 text-sm font-semibold"
+                  class="rounded-2xl px-4 py-2 bg-primary text-primary-foreground hover:brightness-110 text-sm font-semibold transition shadow-sm"
                   @click="onAuthClick(); closeMobile()"
                 >
                   {{ isAuthenticated ? 'Cerrar sesión' : 'Entrar' }}
                 </button>
 
-                <span v-else class="text-xs text-slate-300">Inicializando…</span>
+                <span v-else class="text-xs text-slate-400">Inicializando…</span>
               </div>
             </div>
           </div>
@@ -370,17 +377,12 @@
     <!-- ✅ Dock admin móvil (solo admins) -->
     <div v-if="isAdmin" class="sm:hidden fixed bottom-0 inset-x-0 z-30" aria-label="Admin dock">
       <div class="mx-auto max-w-6xl px-4 pb-3">
-        <div
-          class="rounded-2xl border border-white/10 bg-gradient-to-r from-[#0B1220]/95 to-[#0F1A33]/95
-                 backdrop-blur shadow-[0_18px_50px_rgba(0,0,0,0.35)] px-2 py-2"
-        >
-          <!-- ✅ CAMBIO: 4 -> 5 columnas -->
+        <div class="rounded-2xl border border-white/10 bg-[#07101F] px-2 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.45)]">
           <div class="grid grid-cols-5 gap-2">
-            <!-- ✅ NUEVO: Inicio (editar Home) -->
             <NuxtLink
               to="/admin/inicio"
               class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
-              :class="isActive('/admin/inicio') ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/10'"
+              :class="isActive('/admin/inicio') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="w-5 h-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
@@ -402,7 +404,7 @@
             <NuxtLink
               to="/admin/partidos"
               class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
-              :class="isActive('/admin/partidos') ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/10'"
+              :class="isActive('/admin/partidos') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="w-5 h-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M8 3h8v3H8V3z" stroke="currentColor" stroke-width="1.6" />
@@ -415,7 +417,7 @@
             <NuxtLink
               to="/admin/usuarios"
               class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
-              :class="isActive('/admin/usuarios') ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/10'"
+              :class="isActive('/admin/usuarios') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="w-5 h-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
@@ -444,7 +446,7 @@
             <NuxtLink
               to="/admin/jugadores"
               class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
-              :class="isActive('/admin/jugadores') ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/10'"
+              :class="isActive('/admin/jugadores') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="w-5 h-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5z" stroke="currentColor" stroke-width="1.6"/>
@@ -456,7 +458,7 @@
             <NuxtLink
               to="/admin/equipos"
               class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
-              :class="isActive('/admin/equipos') ? 'bg-white/10 text-white' : 'text-slate-200 hover:bg-white/10'"
+              :class="isActive('/admin/equipos') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="w-5 h-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
