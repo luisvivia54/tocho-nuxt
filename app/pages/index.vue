@@ -1,5 +1,5 @@
 <template>
-  <main class="bg-[#F3F4FF] text-slate-900 min-h-screen w-full overflow-x-hidden">
+  <main class="bg-[#F3F4FF] text-slate-900 min-h-[100dvh] w-full overflow-x-hidden">
     <!-- ========== HERO + CARRUSEL ========== -->
     <section class="pt-24 md:pt-28 lg:pt-32">
       <!-- ✅ FIX: sin container-pad (evita padding doble) + padding mobile más pequeño -->
@@ -873,7 +873,14 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRuntimeConfig, useAsyncData } from '#imports'
-
+useHead({
+  htmlAttrs: {
+    class: 'page-home',
+  },
+  bodyAttrs: {
+    class: 'page-home',
+  },
+})
 /* ===================== API_BASE ===================== */
 const config = useRuntimeConfig()
 const API_BASE = (config.public && config.public.apiBase) ? String(config.public.apiBase) : 'https://tocho5-api.tochero5.mx/api'
