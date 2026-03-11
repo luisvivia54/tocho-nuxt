@@ -2,7 +2,7 @@
 <template>
   <main class="bg-[#F3F4FF] text-slate-900 min-h-screen overflow-x-hidden">
     <!-- ========== HERO + CARRUSEL ========== -->
-    <section class="pt-24 md:pt-28 lg:pt-32">
+    <section class="pt-16 md:pt-20 lg:pt-24">
       <div class="max-w-6xl mx-auto container-pad px-6">
         <!-- Carrusel con IMG real -->
         <div class="w-full rounded-[28px] overflow-hidden shadow-[0_24px_60px_rgba(15,23,42,0.40)] bg-slate-900">

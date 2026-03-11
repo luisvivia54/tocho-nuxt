@@ -37,11 +37,11 @@
             <NuxtLink
               to="/jueves/equipos"
               class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/equipos' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
+              :class="route.path.startsWith('/jueves/equipos') ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
             >
               Equipos
               <span
-                v-if="route.path === '/jueves/equipos'"
+                v-if="route.path.startsWith('/jueves/equipos')"
                 class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
               />
             </NuxtLink>
@@ -154,7 +154,9 @@
           </div>
 
           <h1 class="mt-6 text-5xl font-extrabold tracking-tight">Calendario de Partidos</h1>
-          <p class="mt-4 text-slate-400">Consulta partidos programados y finalizados desde el backend.</p>
+          <p class="mt-4 text-slate-400">
+            Consulta partidos programados y finalizados desde el backend.
+          </p>
         </div>
 
         <div class="mt-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -167,6 +169,7 @@
             >
               Programados
             </button>
+
             <button
               type="button"
               class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em]"
@@ -175,6 +178,7 @@
             >
               Finalizados
             </button>
+
             <button
               type="button"
               class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em]"
@@ -197,28 +201,89 @@
 
     <section>
       <div class="mx-auto max-w-7xl px-4 sm:px-6 py-10">
-        <div class="grid grid-cols-1 gap-4">
-          <div
+        <div class="grid grid-cols-1 gap-5">
+          <article
             v-for="m in paginatedMatches"
             :key="m.id"
-            class="rounded-[24px] border border-white/8 bg-white/[0.03] px-6 py-5"
+            class="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.03] shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
           >
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div class="text-lg font-black text-white">
-                  {{ m.home }} <span class="mx-2 text-orange-400">vs</span> {{ m.away }}
-                </div>
-                <div class="mt-2 text-sm text-slate-400">
-                  {{ m.date }} · {{ m.time }}
-                  <span v-if="m.venue"> · {{ m.venue }}</span>
-                </div>
-              </div>
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_24%)]" />
 
-              <div class="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-500">
-                Liga de Jueves
+            <div class="relative p-5 md:p-6">
+              <div class="flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,1fr)_320px_minmax(0,1fr)] md:items-center">
+                <!-- LOCAL -->
+                <div class="flex min-w-0 items-center gap-4">
+                  <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/35 shadow-inner">
+                    <img
+                      v-if="m.homeLogo"
+                      :src="m.homeLogo"
+                      :alt="m.home"
+                      loading="lazy"
+                      class="h-14 w-14 object-contain"
+                    />
+                    <span v-else class="text-sm font-extrabold uppercase text-white">
+                      {{ m.homeShort || getTeamInitials(m.home) }}
+                    </span>
+                  </div>
+
+                  <div class="min-w-0">
+                    <p class="break-words text-xl font-extrabold leading-tight text-white md:text-2xl">
+                      {{ m.home }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- CENTRO -->
+                <div class="flex flex-col items-center justify-center text-center md:px-3">
+                  <span class="text-[0.72rem] font-extrabold uppercase tracking-[0.34em] text-orange-300">
+                    VS
+                  </span>
+
+                  <div class="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] md:text-xs">
+                    <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 font-semibold text-slate-200">
+                      {{ m.date }}
+                    </span>
+
+                    <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 font-semibold text-slate-200">
+                      {{ m.time }}
+                    </span>
+
+                    <span
+                      class="inline-flex items-center rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 font-semibold text-orange-100"
+                    >
+                      Liga de Jueves
+                    </span>
+                  </div>
+
+                  <div v-if="m.venue" class="mt-2 text-[11px] font-medium text-slate-400 md:text-xs">
+                    {{ m.venue }}
+                  </div>
+                </div>
+
+                <!-- VISITANTE -->
+                <div class="flex min-w-0 items-center gap-4 md:justify-end">
+                  <div class="min-w-0 md:text-right">
+                    <p class="break-words text-xl font-extrabold leading-tight text-white md:text-2xl">
+                      {{ m.away }}
+                    </p>
+                  </div>
+
+                  <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/35 shadow-inner">
+                    <img
+                      v-if="m.awayLogo"
+                      :src="m.awayLogo"
+                      :alt="m.away"
+                      loading="lazy"
+                      class="h-14 w-14 object-contain"
+                    />
+                    <span v-else class="text-sm font-extrabold uppercase text-white">
+                      {{ m.awayShort || getTeamInitials(m.away) }}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          </article>
 
           <div v-if="pendingGames" class="text-sm text-slate-400">Cargando partidos...</div>
           <div v-else-if="gamesError" class="text-sm text-rose-300">No se pudieron cargar partidos.</div>
@@ -287,6 +352,13 @@
 import { Facebook, Instagram } from "lucide-vue-next"
 import { useJuevesData, type UiMatch } from "~/composables/useJuevesData"
 
+type UiMatchCard = UiMatch & {
+  homeLogo?: string
+  awayLogo?: string
+  homeShort?: string
+  awayShort?: string
+}
+
 const ITEMS_PER_PAGE = 10
 
 const route = useRoute()
@@ -311,7 +383,7 @@ const { data: gamesData, pending: pendingGames, error: gamesError } =
               leagueKey,
               status: "SCHEDULED",
               sort: "startTime,asc",
-              limit: 80,
+              limit: 120,
             },
           }).catch(() => [])
         : [],
@@ -321,32 +393,71 @@ const { data: gamesData, pending: pendingGames, error: gamesError } =
               league: leagueKey,
               leagueKey,
               sort: "startTime,desc",
-              limit: 80,
+              limit: 120,
             },
           }).catch(() => [])
         : [],
     ])
 
     const merged = [...toList(scheduled), ...toList(finished)]
-    return merged.map(toUiMatch)
+
+    return merged.map((game: any) => {
+      const ui = toUiMatch(game)
+
+      return {
+        ...ui,
+        homeLogo: firstValue(game, [
+          "homeTeam.logoUrl",
+          "homeTeam.logo",
+          "home_team.logo_url",
+          "home_team.logoUrl",
+          "home.logoUrl",
+          "localTeam.logoUrl",
+          "local.logoUrl",
+        ]),
+        awayLogo: firstValue(game, [
+          "awayTeam.logoUrl",
+          "awayTeam.logo",
+          "away_team.logo_url",
+          "away_team.logoUrl",
+          "away.logoUrl",
+          "visitorTeam.logoUrl",
+          "visitor.logoUrl",
+        ]),
+        homeShort: firstValue(game, [
+          "homeTeam.shortName",
+          "home_team.short_name",
+          "home.shortName",
+          "localTeam.shortName",
+        ]),
+        awayShort: firstValue(game, [
+          "awayTeam.shortName",
+          "away_team.short_name",
+          "away.shortName",
+          "visitorTeam.shortName",
+        ]),
+      } as UiMatchCard
+    })
   }, { watch: [matchStatus] })
 
-const matches = computed<UiMatch[]>(() => gamesData.value ?? [])
+const matches = computed<UiMatchCard[]>(() => gamesData.value ?? [])
 
-const filteredMatches = computed<UiMatch[]>(() => {
+const filteredMatches = computed<UiMatchCard[]>(() => {
   const q = search.value.toLowerCase()
   if (!q) return matches.value
-  return matches.value.filter((m) => `${m.home} ${m.away}`.toLowerCase().includes(q))
+
+  return matches.value.filter((m) => {
+    return `${m.home} ${m.away}`.toLowerCase().includes(q)
+  })
 })
 
 const totalMatchPages = computed(() => {
   return Math.max(1, Math.ceil(filteredMatches.value.length / ITEMS_PER_PAGE))
 })
 
-const paginatedMatches = computed<UiMatch[]>(() => {
+const paginatedMatches = computed<UiMatchCard[]>(() => {
   const start = (currentPage.value - 1) * ITEMS_PER_PAGE
-  const end = start + ITEMS_PER_PAGE
-  return filteredMatches.value.slice(start, end)
+  return filteredMatches.value.slice(start, start + ITEMS_PER_PAGE)
 })
 
 const matchRangeStart = computed(() => {
@@ -387,12 +498,37 @@ watch([search, matchStatus], () => {
 })
 
 watch(totalMatchPages, (pages) => {
-  if (currentPage.value > pages) {
-    currentPage.value = pages
-  }
+  if (currentPage.value > pages) currentPage.value = pages
 })
 
 function goToMatchPage(page: number) {
   currentPage.value = Math.min(Math.max(page, 1), totalMatchPages.value)
+}
+
+function getTeamInitials(name: string) {
+  return String(name || "")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+}
+
+function firstValue(obj: any, paths: string[]): string {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return String(value)
+    }
+  }
+  return ""
+}
+
+function readPath(obj: any, path: string) {
+  return path.split(".").reduce((acc: any, key) => {
+    if (acc === null || acc === undefined) return undefined
+    return acc[key]
+  }, obj)
 }
 </script>
