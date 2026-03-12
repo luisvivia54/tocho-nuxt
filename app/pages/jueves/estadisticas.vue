@@ -279,13 +279,6 @@
                   </button>
                 </div>
               </div>
-
-              <p class="mt-3 text-xs text-slate-400">
-                Fuente:
-                <span class="font-semibold text-slate-200">
-                  {{ view === 'equipos' ? '/api/points + /api/teams' : 'endpoint pendiente' }}
-                </span>
-              </p>
             </div>
 
             <div class="flex flex-col gap-2 text-sm text-slate-400 md:flex-row md:flex-wrap md:items-center md:gap-6">
