@@ -456,6 +456,7 @@
       </div>
     </footer>
   </main>
+  <ChatWidget/>
 </template>
 
 <script setup lang="ts">
