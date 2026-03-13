@@ -150,7 +150,7 @@
     </div>
 
     <!-- CONTENT -->
-    <section class="relative px-4 pb-12 pt-32 md:px-6">
+    <section class="relative px-4 pb-12 pt-16 md:px-6">
       <div class="mx-auto max-w-7xl">
         <div class="mb-6 flex flex-wrap items-center gap-3">
           <button
@@ -528,7 +528,6 @@ const onlyActive = ref(true)
 const teamPage = ref(1)
 const pageSize = 10
 
-// ✅ Back real confirmado
 const API_POINTS_URL = 'https://tocho5-webservice.onrender.com/api/points'
 const API_TEAMS_URL = 'https://tocho5-webservice.onrender.com/api/teams'
 
@@ -705,7 +704,6 @@ function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: 
   }
 }
 
-// ✅ No bloquea navegación
 const {
   data: pointsData,
   pending: pendingPoints,

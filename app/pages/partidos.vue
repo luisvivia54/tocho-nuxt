@@ -1,7 +1,7 @@
 <!-- app/pages/partidos.vue -->
 <template>
   <main class="bg-slate-950 min-h-screen text-slate-50 overflow-x-hidden">
-    <section class="pt-24 md:pt-28 lg:pt-32">
+    <section class="pt-16 md:pt-16 lg:pt-16">
       <div class="max-w-6xl mx-auto px-4 sm:px-6">
         <!-- HEADER -->
         <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">

@@ -1,6 +1,6 @@
 <template>
   <main class="bg-[#050816] text-slate-50 min-h-screen">
-    <section class="pt-24 md:pt-28 lg:pt-32">
+    <section class="pt-16 md:pt-16 lg:pt-16">
       <div class="max-w-6xl mx-auto container-pad px-4 sm:px-6">
         <!-- HEADER -->
         <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
