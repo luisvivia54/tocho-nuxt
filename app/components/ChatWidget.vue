@@ -35,7 +35,7 @@
               Pregúntale a TocheroBot
             </span>
             <span class="block text-[11px] font-semibold text-slate-500 leading-tight">
-              FAQ rápido · torneo, registro, ubicación…
+              FAQ rápido · inscripción
             </span>
           </span>
         </button>
@@ -109,10 +109,10 @@
                 </div>
               </div>
 
-              <!-- chips -->
+              <!-- preguntas arriba -->
               <div class="mt-3 flex flex-wrap gap-2">
                 <button
-                  v-for="item in chips"
+                  v-for="item in faqItems"
                   :key="item.question"
                   type="button"
                   class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
@@ -148,11 +148,17 @@
                   </div>
                 </div>
               </div>
-
-              <!-- lista FAQ -->
-              
-             
             </div>
+
+            <!-- footer -->
+            <footer class="px-4 py-3 border-t border-slate-200 bg-white">
+              <p class="text-[11px] text-slate-600 font-semibold">
+                Este módulo funciona como FAQ, no como chat abierto.
+              </p>
+              <p class="mt-1 text-[10px] text-slate-500">
+                Selecciona una pregunta de arriba · Esc para cerrar
+              </p>
+            </footer>
           </section>
         </Transition>
       </div>
@@ -167,8 +173,8 @@ const open = ref(false)
 const scrollEl = ref(null)
 const hasUnread = ref(false)
 
-const STORAGE_KEY = 't5_faq_history_v2'
-const STORAGE_UNREAD = 't5_faq_unread_v2'
+const STORAGE_KEY = 't5_faq_history_v3'
+const STORAGE_UNREAD = 't5_faq_unread_v3'
 
 function cryptoId() {
   try {
@@ -180,42 +186,20 @@ function cryptoId() {
 
 const faqItems = [
   {
-    question: '¿Cuándo inicia el torneo?',
-    answer: 'El torneo inicia el 19 de abril.'
-  },
-  {
-    question: '¿Cuántas jornadas habrá?',
-    answer: 'Serán 7 jornadas más semifinal y final.'
-  },
-  {
-    question: '¿Cuál es el costo de inscripción?',
-    answer: 'La inscripción cuesta $500.'
+    question: 'Cual es el costo de incripcion?',
+    answer: 'La inscripcion es de $500 (equipos femeniles no pagan inscripcion).'
   },
   {
     question: '¿Qué necesito para inscribir a mi equipo?',
     answer: 'Necesitas logo y nombre del equipo, nombre y teléfono del representante, además del pago de inscripción.'
-  },
-  {
-    question: '¿Qué necesito para jugar?',
-    answer: 'Necesitan ganas de competir, equipo para flag, uniforme, calzado adecuado y flags.'
-  },
-  {
-    question: '¿Qué premios habrá?',
-    answer: 'Habrá jersey de campeón y premios de patrocinadores.'
-  },
-  {
-    question: '¿A qué número puedo pedir informes?',
-    answer: 'Puedes pedir informes al 55 4144 2772.'
   }
 ]
-
-const chips = faqItems.slice(0, 5)
 
 const messages = ref([
   {
     id: cryptoId(),
     role: 'assistant',
-    text: '👋 Hola, soy TocheroBot. Selecciona una pregunta frecuente y te respondo al instante.',
+    text: '👋 Hola, soy TocheroBot. Selecciona una de las preguntas disponibles.',
     ts: Date.now()
   }
 ])
@@ -227,6 +211,7 @@ function formatTime(ts) {
 
 function toggle() {
   open.value = !open.value
+
   if (open.value) {
     hasUnread.value = false
     try {
@@ -273,7 +258,7 @@ function clearChat() {
     {
       id: cryptoId(),
       role: 'assistant',
-      text: 'Listo ✅ Selecciona una pregunta frecuente.',
+      text: 'Listo ✅ Selecciona una de las preguntas disponibles.',
       ts: Date.now()
     }
   ]
