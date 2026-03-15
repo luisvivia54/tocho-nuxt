@@ -9,7 +9,7 @@
             <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
           </NuxtLink>
 
-          <nav class="hidden md:flex items-center gap-12">
+          <nav class="hidden items-center gap-12 md:flex">
             <NuxtLink
               to="/jueves"
               class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
@@ -59,12 +59,14 @@
             </NuxtLink>
           </nav>
 
-          <div class="hidden md:flex items-center gap-6">
+          <div class="hidden items-center gap-6 md:flex">
             <NuxtLink
               to="/"
-              class="text-[0.95rem] font-extrabold uppercase tracking-[0.22em] text-slate-400 hover:text-slate-200"
+              class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
+              aria-label="Ir al home"
+              title="Ir al home"
             >
-              ← Volver
+              <Home class="h-5 w-5" />
             </NuxtLink>
 
             <a
@@ -90,14 +92,14 @@
 
           <button
             type="button"
-            class="md:hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200"
+            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 md:hidden"
             @click="mobileOpen = !mobileOpen"
           >
             Menú
           </button>
         </div>
 
-        <div v-if="mobileOpen" class="md:hidden pb-4">
+        <div v-if="mobileOpen" class="pb-4 md:hidden">
           <div class="flex flex-col gap-2">
             <NuxtLink
               to="/jueves"
@@ -133,10 +135,11 @@
 
             <NuxtLink
               to="/"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
+              class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
               @click="mobileOpen = false"
             >
-              ← Volver
+              <Home class="h-4 w-4" />
+              Home
             </NuxtLink>
           </div>
         </div>
@@ -145,53 +148,108 @@
 
     <div class="fixed inset-0 -z-10 bg-[#020617]" />
 
+    <!-- HERO / FILTROS -->
     <section class="border-b border-white/6 pt-24">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 py-16">
+      <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <div class="max-w-3xl">
-          <div class="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">
+          <div
+            class="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300"
+          >
             <span class="h-2 w-2 rounded-full bg-orange-400" />
             Liga de Jueves · Equipos
           </div>
 
           <h1 class="mt-6 text-5xl font-extrabold tracking-tight">Equipos</h1>
           <p class="mt-4 text-slate-400">
-            Consulta los equipos registrados y entra al detalle para ver capitán, descripción y miembros.
+            Filtra equipos por categoría, rama y estatus. La vista carga primero lo esencial y completa filtros en segundo plano.
           </p>
         </div>
 
-        <div class="mt-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div class="flex gap-2">
-            <button
-              type="button"
-              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em]"
-              :class="activeOnly ? 'border-orange-400/40 bg-orange-400/15 text-orange-200' : 'border-white/10 bg-white/5 text-slate-300'"
-              @click="activeOnly = true"
-            >
-              Activos
-            </button>
+        <div class="mt-10 rounded-[28px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] md:p-5">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Categoría
+              </label>
+              <select
+                v-model="selectedCategory"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option v-for="option in categoryOptions" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+            </div>
 
-            <button
-              type="button"
-              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em]"
-              :class="!activeOnly ? 'border-orange-400/40 bg-orange-400/15 text-orange-200' : 'border-white/10 bg-white/5 text-slate-300'"
-              @click="activeOnly = false"
-            >
-              Todos
-            </button>
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Rama
+              </label>
+              <select
+                v-model="selectedBranch"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option v-for="option in branchOptions" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Estatus
+              </label>
+              <select
+                v-model="selectedStatus"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todos</option>
+                <option value="ACTIVE">Activos</option>
+                <option value="INACTIVE">Inactivos</option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Buscar equipo
+              </label>
+              <input
+                v-model.trim="search"
+                type="text"
+                placeholder="Buscar equipo..."
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              />
+            </div>
           </div>
 
-          <input
-            v-model.trim="search"
-            type="text"
-            placeholder="Buscar equipo..."
-            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 md:w-72"
-          />
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <span class="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-100">
+              {{ filteredTeams.length }} resultados
+            </span>
+
+            <span
+              v-if="metaLoading"
+              class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300"
+            >
+              Cargando filtros…
+            </span>
+
+            <button
+              type="button"
+              class="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-200 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
+              @click="resetFilters"
+            >
+              Limpiar filtros
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
     <section>
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 py-10">
+      <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           <article
             v-for="team in paginatedTeams"
@@ -207,7 +265,7 @@
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_28%)]" />
             <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_42%,rgba(2,6,23,0.18))]" />
 
-            <div class="relative flex min-h-[210px] flex-col justify-between p-6">
+            <div class="relative flex min-h-[230px] flex-col justify-between p-6">
               <div class="flex items-start gap-4">
                 <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/30 shadow-inner">
                   <img
@@ -236,10 +294,17 @@
 
                   <div class="mt-4 flex flex-wrap items-center gap-2">
                     <span
-                      v-if="team.categoryLabel"
+                      v-if="team.categoryLabel && team.categoryLabel !== 'Sin categoría'"
                       class="inline-flex items-center rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90"
                     >
-                      Categoría: {{ team.categoryLabel }}
+                      {{ team.categoryLabel }}
+                    </span>
+
+                    <span
+                      v-if="team.branchLabel && team.branchLabel !== 'Sin rama'"
+                      class="inline-flex items-center rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90"
+                    >
+                      {{ team.branchLabel }}
                     </span>
 
                     <span
@@ -341,93 +406,133 @@
 </template>
 
 <script setup lang="ts">
-import { Facebook, Instagram } from "lucide-vue-next"
+import { Facebook, Home, Instagram } from "lucide-vue-next"
 import { useJuevesData } from "~/composables/useJuevesData"
+
+type FilterValue = "ALL" | string
+type TeamStatusValue = "ALL" | "ACTIVE" | "INACTIVE"
+
+type TeamMeta = {
+  categoryLabel: string
+  branchLabel: string
+  divisionLabel: string
+  isActive: boolean
+}
 
 type UiTeamCard = {
   id: string
   name: string
   shortName?: string
-  categoryLabel?: string
-  divisionLabel?: string
   logoUrl?: string
   colorPrimary?: string
   colorSecondary?: string
   isActive: boolean
+  categoryLabel: string
+  branchLabel: string
+  divisionLabel?: string
 }
 
 const ITEMS_PER_PAGE = 10
+const META_CONCURRENCY = 4
+const META_CACHE_PREFIX = "jueves-team-meta-v1:"
 
 const route = useRoute()
 const mobileOpen = ref(false)
+const search = ref("")
+const currentPage = ref(1)
+const selectedCategory = ref<FilterValue>("ALL")
+const selectedBranch = ref<FilterValue>("ALL")
+const selectedStatus = ref<TeamStatusValue>("ALL")
+const metaLoading = ref(false)
 
 const { leagueKey, toList, pick } = useJuevesData()
 
-const activeOnly = ref(true)
-const search = ref("")
-const currentPage = ref(1)
-
 const { data: teamsData, pending: pendingTeams, error: teamsError } =
-  await useAsyncData("jueves-equipos-page", async () => {
+  await useAsyncData("jueves-equipos-page-hybrid", async () => {
     try {
       const raw = await $fetch<any>("/api/t5/teams", {
         query: {
           league: leagueKey,
           leagueKey,
-          ...(activeOnly.value ? { isActive: true } : {}),
         },
       })
 
       const list = toList(raw)
 
-      return list.map((t: any) => {
-        const rawCategory = firstNonEmpty([
-          pick(t, ["category.gender", "gender", "categoryGender"]),
-          pick(t, ["category.name", "categoryName"]),
-        ])
+      return list
+        .map((t: any) => {
+          const id = String(pick(t, ["teamId", "id"]) ?? "").trim()
+          if (!id) return null
 
-        const rawDivision = firstNonEmpty([
-          pick(t, ["division.name", "divisionName"]),
-          pick(t, ["category.code", "categoryCode", "code"]),
-        ])
-
-        const categoryLabel = formatCategory(rawCategory)
-        let divisionLabel = formatDivision(rawDivision)
-
-        if (categoryLabel && divisionLabel && categoryLabel.toLowerCase() === divisionLabel.toLowerCase()) {
-          divisionLabel = ""
-        }
-
-        return {
-          id: String(pick(t, ["teamId", "id"]) ?? t?.name ?? Math.random()),
-          name: String(pick(t, ["name", "teamName"]) ?? "Equipo"),
-          shortName: String(pick(t, ["shortName"]) ?? ""),
-          categoryLabel,
-          divisionLabel,
-          logoUrl: String(
-            pick(t, ["logoUrl", "logo", "imageUrl", "image", "teamLogo", "teamLogoUrl"]) ?? ""
-          ),
-          colorPrimary: normalizeColor(String(pick(t, ["colorPrimary"]) ?? "")),
-          colorSecondary: normalizeColor(String(pick(t, ["colorSecondary"]) ?? "")),
-          isActive: Boolean(pick(t, ["isActive", "active"]) ?? true),
-        } as UiTeamCard
-      })
+          return {
+            id,
+            name: String(pick(t, ["name", "teamName"]) ?? "Equipo"),
+            shortName: String(pick(t, ["shortName"]) ?? ""),
+            logoUrl: String(
+              pick(t, ["logoUrl", "logo", "imageUrl", "image", "teamLogo", "teamLogoUrl"]) ?? ""
+            ),
+            colorPrimary: normalizeColor(String(pick(t, ["colorPrimary"]) ?? "")),
+            colorSecondary: normalizeColor(String(pick(t, ["colorSecondary"]) ?? "")),
+            isActive: Boolean(pick(t, ["isActive", "active"]) ?? true),
+            categoryLabel: "",
+            branchLabel: "",
+            divisionLabel: "",
+          } as UiTeamCard
+        })
+        .filter((team): team is UiTeamCard => team !== null)
     } catch {
       return []
     }
-  }, { watch: [activeOnly] })
+  })
+
+const teams = ref<UiTeamCard[]>([])
+
+watch(
+  () => teamsData.value,
+  (value) => {
+    teams.value = [...(value ?? [])]
+  },
+  { immediate: true }
+)
+
+const categoryOptions = computed(() =>
+  uniqueSorted(
+    teams.value
+      .map((t) => t.categoryLabel)
+      .filter((value) => value && value !== "Sin categoría")
+  )
+)
+
+const branchOptions = computed(() =>
+  uniqueSorted(
+    teams.value
+      .map((t) => t.branchLabel)
+      .filter((value) => value && value !== "Sin rama")
+  )
+)
 
 const filteredTeams = computed<UiTeamCard[]>(() => {
-  const q = search.value.toLowerCase()
-  if (!q) return teamsData.value ?? []
+  const q = normalizeText(search.value)
 
-  return (teamsData.value ?? []).filter((t) => {
-    return (
-      t.name.toLowerCase().includes(q) ||
-      (t.shortName || "").toLowerCase().includes(q) ||
-      (t.categoryLabel || "").toLowerCase().includes(q) ||
-      (t.divisionLabel || "").toLowerCase().includes(q)
-    )
+  return teams.value.filter((t) => {
+    const matchesCategory =
+      selectedCategory.value === "ALL" || t.categoryLabel === selectedCategory.value
+
+    const matchesBranch =
+      selectedBranch.value === "ALL" || t.branchLabel === selectedBranch.value
+
+    const matchesStatus =
+      selectedStatus.value === "ALL" ||
+      (selectedStatus.value === "ACTIVE" && t.isActive) ||
+      (selectedStatus.value === "INACTIVE" && !t.isActive)
+
+    const matchesSearch =
+      !q ||
+      normalizeText(
+        `${t.name} ${t.shortName || ""} ${t.categoryLabel || ""} ${t.branchLabel || ""} ${t.divisionLabel || ""}`
+      ).includes(q)
+
+    return matchesCategory && matchesBranch && matchesStatus && matchesSearch
   })
 })
 
@@ -453,7 +558,9 @@ const visibleTeamPages = computed<number[]>(() => {
   const total = totalTeamPages.value
   const current = currentPage.value
 
-  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
 
   let start = Math.max(1, current - 2)
   let end = Math.min(total, current + 2)
@@ -471,7 +578,7 @@ const visibleTeamPages = computed<number[]>(() => {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
-watch([search, activeOnly], () => {
+watch([search, selectedCategory, selectedBranch, selectedStatus], () => {
   currentPage.value = 1
 })
 
@@ -479,12 +586,179 @@ watch(totalTeamPages, (pages) => {
   if (currentPage.value > pages) currentPage.value = pages
 })
 
+watch(
+  () => teams.value.length,
+  async (len) => {
+    if (len > 0) {
+      await enrichTeamsMeta()
+    }
+  },
+  { immediate: true }
+)
+
+async function enrichTeamsMeta() {
+  if (!teams.value.length) return
+
+  metaLoading.value = true
+
+  const queue: string[] = teams.value
+    .map((team) => team.id)
+    .filter((id): id is string => Boolean(id))
+
+  let index = 0
+
+  const worker = async () => {
+    while (index < queue.length) {
+      const currentIndex = index++
+      const teamId = queue[currentIndex]
+      if (!teamId) continue
+      await enrichSingleTeam(teamId)
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(META_CONCURRENCY, queue.length) },
+    () => worker()
+  )
+
+  await Promise.allSettled(workers)
+  metaLoading.value = false
+}
+
+async function enrichSingleTeam(teamId: string) {
+  const teamIndex = teams.value.findIndex((t) => t.id === teamId)
+  if (teamIndex === -1) return
+
+  const cached = readMetaCache(teamId)
+  if (cached) {
+    applyMetaToTeam(teamId, cached)
+    return
+  }
+
+  try {
+    const detail = await $fetch<any>(`/api/t5/teams/${teamId}/detail`, {
+      query: { league: leagueKey, leagueKey },
+    })
+
+    const detailTeam = detail?.team ?? {}
+
+    const categoryLabel =
+      String(
+        pick(detailTeam, [
+          "category.name",
+          "categoryName",
+          "categoria.nombre",
+          "categoria",
+        ]) ?? ""
+      ).trim() || "Sin categoría"
+
+    const branchLabel =
+      formatBranch(
+        String(
+          pick(detailTeam, [
+            "category.gender",
+            "gender",
+            "categoryGender",
+            "branch.name",
+            "branchName",
+            "rama.nombre",
+            "rama",
+          ]) ?? ""
+        ).trim()
+      ) || "Sin rama"
+
+    let divisionLabel = String(
+      pick(detailTeam, [
+        "division.name",
+        "divisionName",
+        "category.code",
+        "categoryCode",
+        "code",
+      ]) ?? ""
+    ).trim()
+
+    if (
+      divisionLabel &&
+      categoryLabel &&
+      normalizeText(divisionLabel) === normalizeText(categoryLabel)
+    ) {
+      divisionLabel = ""
+    }
+
+    const currentTeam = teams.value[teamIndex]
+
+    const meta: TeamMeta = {
+      categoryLabel,
+      branchLabel,
+      divisionLabel: formatDivision(divisionLabel),
+      isActive: Boolean(pick(detailTeam, ["isActive", "active"]) ?? currentTeam?.isActive ?? true),
+    }
+
+    writeMetaCache(teamId, meta)
+    applyMetaToTeam(teamId, meta)
+  } catch {
+    // no-op
+  }
+}
+
+function applyMetaToTeam(teamId: string, meta: TeamMeta) {
+  const idx = teams.value.findIndex((t) => t.id === teamId)
+  if (idx === -1) return
+
+  const current = teams.value[idx]
+  if (!current) return
+
+  const updated: UiTeamCard = {
+    id: current.id,
+    name: current.name,
+    shortName: current.shortName,
+    logoUrl: current.logoUrl,
+    colorPrimary: current.colorPrimary,
+    colorSecondary: current.colorSecondary,
+    isActive: meta.isActive,
+    categoryLabel: meta.categoryLabel,
+    branchLabel: meta.branchLabel,
+    divisionLabel: meta.divisionLabel,
+  }
+
+  teams.value[idx] = updated
+}
+
+function readMetaCache(teamId: string): TeamMeta | null {
+  if (typeof window === "undefined") return null
+
+  try {
+    const raw = sessionStorage.getItem(`${META_CACHE_PREFIX}${teamId}`)
+    return raw ? (JSON.parse(raw) as TeamMeta) : null
+  } catch {
+    return null
+  }
+}
+
+function writeMetaCache(teamId: string, meta: TeamMeta) {
+  if (typeof window === "undefined") return
+
+  try {
+    sessionStorage.setItem(`${META_CACHE_PREFIX}${teamId}`, JSON.stringify(meta))
+  } catch {
+    // no-op
+  }
+}
+
 function goToTeamPage(page: number) {
   currentPage.value = Math.min(Math.max(page, 1), totalTeamPages.value)
 }
 
+function resetFilters() {
+  selectedCategory.value = "ALL"
+  selectedBranch.value = "ALL"
+  selectedStatus.value = "ALL"
+  search.value = ""
+  currentPage.value = 1
+}
+
 function normalizeColor(value: string): string {
-  const color = value.trim()
+  const color = String(value || "").trim()
   if (!color) return ""
   if (color.startsWith("#")) return color
 
@@ -506,24 +780,16 @@ function getCardGradientStyle(team: UiTeamCard) {
 }
 
 function getTeamInitials(name: string) {
-  return name
+  return String(name || "")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0])
     .join("")
+    .toUpperCase()
 }
 
-function firstNonEmpty(values: any[]) {
-  for (const value of values) {
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return String(value)
-    }
-  }
-  return ""
-}
-
-function formatCategory(value: string) {
+function formatBranch(value: string) {
   const v = String(value || "").trim()
   const upper = v.toUpperCase()
 
@@ -537,11 +803,24 @@ function formatCategory(value: string) {
 function formatDivision(value: string) {
   const v = String(value || "").trim()
   if (!v) return ""
-  if (/^[A-Z0-9\- ]+$/i.test(v)) return v.toUpperCase()
+  if (/^[A-Z0-9 -]+$/i.test(v)) return v.toUpperCase()
   return v
 }
 
+function uniqueSorted(values: string[]) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"))
+}
+
+function normalizeText(value: string) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+}
+
 async function openTeam(id: string) {
+  if (!id) return
   await navigateTo(`/jueves/equipos/${id}`)
 }
 </script>

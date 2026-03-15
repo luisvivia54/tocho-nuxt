@@ -150,17 +150,21 @@
           </section>
 
           <!-- CONTENIDO -->
-          <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <div class="mt-6 grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
             <section class="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
-              <h2 class="text-xl font-extrabold text-white">Capitán</h2>
-              <p class="mt-4 text-lg font-bold text-white">
-                {{ captainName }}
-              </p>
+              <div class="flex h-full flex-col justify-center">
+                <p class="text-[11px] font-extrabold uppercase tracking-[0.24em] text-slate-400">
+                  Capitán
+                </p>
 
-              <h2 class="mt-8 text-xl font-extrabold text-white">Descripción</h2>
-              <p class="mt-4 text-sm leading-7 text-slate-300">
-                {{ descriptionText }}
-              </p>
+                <h2 class="mt-4 text-3xl font-extrabold text-white leading-tight">
+                  {{ captainName }}
+                </h2>
+
+                <p class="mt-4 text-sm leading-7 text-slate-400">
+                  Responsable principal del equipo dentro de la Liga de Jueves.
+                </p>
+              </div>
             </section>
 
             <section class="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
@@ -303,20 +307,6 @@ const captainName = computed(() => {
   if (!captain) return "Por definir"
   if (typeof captain === "string") return captain
   return captain.fullName || "Por definir"
-})
-
-const descriptionText = computed(() => {
-  const raw =
-    team.value?.description ||
-    team.value?.teamDescription ||
-    team.value?.about ||
-    team.value?.bio ||
-    ""
-
-  if (String(raw).trim()) return String(raw).trim()
-
-  const teamName = team.value?.name || "Este equipo"
-  return `${teamName} participa actualmente en la Liga de Jueves. Aquí puedes consultar una breve descripción del equipo, su capitán y los miembros registrados del roster.`
 })
 
 const teamActive = computed(() => Boolean(team.value?.isActive ?? true))

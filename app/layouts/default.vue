@@ -274,6 +274,15 @@
               </svg>
             </a>
 
+            <NuxtLink
+              to="/"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/75 transition hover:border-blue-300/40 hover:bg-blue-500/10 hover:text-white"
+              aria-label="Ir al home"
+              title="Ir al home"
+            >
+              <Home class="h-5 w-5" />
+            </NuxtLink>
+
             <button
               v-if="kcReady"
               class="whitespace-nowrap rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] transition hover:bg-blue-500"
@@ -338,6 +347,15 @@
 
                   <NuxtLink to="/estadisticas" class="rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8" @click="closeMobile">
                     Estadísticas
+                  </NuxtLink>
+
+                  <NuxtLink
+                    to="/"
+                    class="flex items-center gap-3 rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8"
+                    @click="closeMobile"
+                  >
+                    <Home class="h-4 w-4" />
+                    Home
                   </NuxtLink>
 
                   <NuxtLink
@@ -500,6 +518,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { Home } from 'lucide-vue-next'
 import { useNuxtApp, useRoute, useState } from '#imports'
 import { useAuthz } from '~/composables/useAuthz'
 import { useBackendUser } from '~/composables/useBackendUser'

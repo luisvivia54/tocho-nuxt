@@ -167,10 +167,7 @@
                         <div class="px-4 py-3 border-b border-slate-200">
                           <div class="flex items-start justify-between gap-3 min-w-0">
                             <div class="min-w-0 flex-1">
-                              <p
-                                class="text-[11px] font-semibold text-slate-500 break-words"
-                                style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
-                              >
+                              <p class="text-[11px] font-semibold text-slate-500 break-words clamp-2">
                                 {{ activeUpcoming.categoryName }}
                                 <template v-if="activeUpcoming.code"> · {{ activeUpcoming.code }}</template>
                                 <template v-if="activeUpcoming.genderLabel"> · {{ activeUpcoming.genderLabel }}</template>
@@ -212,10 +209,7 @@
 
                               <div class="min-w-0">
                                 <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Local</p>
-                                <p
-                                  class="mt-0.5 text-[13px] font-extrabold text-slate-900 leading-snug break-words"
-                                  style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
-                                >
+                                <p class="mt-0.5 text-[13px] font-extrabold text-slate-900 leading-snug break-words clamp-2">
                                   {{ activeUpcoming.homeName }}
                                 </p>
                               </div>
@@ -240,10 +234,7 @@
 
                               <div class="min-w-0">
                                 <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Visitante</p>
-                                <p
-                                  class="mt-0.5 text-[13px] font-extrabold text-slate-900 leading-snug break-words"
-                                  style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
-                                >
+                                <p class="mt-0.5 text-[13px] font-extrabold text-slate-900 leading-snug break-words clamp-2">
                                   {{ activeUpcoming.awayName }}
                                 </p>
                               </div>
@@ -1888,4 +1879,12 @@ onBeforeUnmount(() => {
 .lift-enter-active, .lift-leave-active { transition: transform .22s ease, opacity .22s ease; }
 .lift-enter-from { transform: translateY(6px) scale(0.99); opacity: 0; }
 .lift-leave-to { transform: translateY(-6px) scale(0.99); opacity: 0; }
+
+.clamp-2 {
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 </style>

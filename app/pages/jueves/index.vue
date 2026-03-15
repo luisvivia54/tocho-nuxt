@@ -65,9 +65,11 @@
           <div class="hidden md:flex items-center gap-6">
             <NuxtLink
               to="/"
-              class="text-[0.95rem] font-extrabold uppercase tracking-[0.22em] text-slate-400 hover:text-slate-200"
+              class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
+              aria-label="Ir al home"
+              title="Ir al home"
             >
-              ← Volver
+              <Home class="h-5 w-5" />
             </NuxtLink>
 
             <a
@@ -138,10 +140,11 @@
 
             <NuxtLink
               to="/"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
+              class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
               @click="mobileOpen = false"
             >
-              ← Volver
+              <Home class="h-4 w-4" />
+              Home
             </NuxtLink>
           </div>
         </div>
@@ -374,7 +377,7 @@
 </template>
 
 <script setup lang="ts">
-import { Facebook, Instagram } from "lucide-vue-next"
+import { Facebook, Home, Instagram } from "lucide-vue-next"
 import ScrollReveal from "~/components/ScrollReveal.vue"
 
 type UiMatch = {

@@ -9,7 +9,7 @@
             <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
           </NuxtLink>
 
-          <nav class="hidden md:flex items-center gap-12">
+          <nav class="hidden items-center gap-12 md:flex">
             <NuxtLink
               to="/jueves"
               class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
@@ -59,12 +59,14 @@
             </NuxtLink>
           </nav>
 
-          <div class="hidden md:flex items-center gap-6">
+          <div class="hidden items-center gap-6 md:flex">
             <NuxtLink
               to="/"
-              class="text-[0.95rem] font-extrabold uppercase tracking-[0.22em] text-slate-400 hover:text-slate-200"
+              class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
+              aria-label="Ir al home"
+              title="Ir al home"
             >
-              ← Volver
+              <Home class="h-5 w-5" />
             </NuxtLink>
 
             <a
@@ -90,14 +92,14 @@
 
           <button
             type="button"
-            class="md:hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200"
+            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 md:hidden"
             @click="mobileOpen = !mobileOpen"
           >
             Menú
           </button>
         </div>
 
-        <div v-if="mobileOpen" class="md:hidden pb-4">
+        <div v-if="mobileOpen" class="pb-4 md:hidden">
           <div class="flex flex-col gap-2">
             <NuxtLink
               to="/jueves"
@@ -133,10 +135,11 @@
 
             <NuxtLink
               to="/"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
+              class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
               @click="mobileOpen = false"
             >
-              ← Volver
+              <Home class="h-4 w-4" />
+              Home
             </NuxtLink>
           </div>
         </div>
@@ -145,62 +148,118 @@
 
     <div class="fixed inset-0 -z-10 bg-[#020617]" />
 
+    <!-- HERO / FILTROS -->
     <section class="border-b border-white/6 pt-24">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 py-16">
+      <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <div class="max-w-3xl">
-          <div class="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">
+          <div
+            class="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300"
+          >
             <span class="h-2 w-2 rounded-full bg-orange-400" />
             Liga de Jueves · Partidos
           </div>
 
           <h1 class="mt-6 text-5xl font-extrabold tracking-tight">Calendario de Partidos</h1>
           <p class="mt-4 text-slate-400">
-            Consulta partidos programados y finalizados desde el backend.
+            Filtra partidos por temporada, categoría, rama y jornada.
           </p>
         </div>
 
-        <div class="mt-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div class="flex flex-wrap gap-2">
-            <button
-              type="button"
-              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em]"
-              :class="matchStatus === 'SCHEDULED' ? 'border-orange-400/40 bg-orange-400/15 text-orange-200' : 'border-white/10 bg-white/5 text-slate-300'"
-              @click="matchStatus = 'SCHEDULED'"
-            >
-              Programados
-            </button>
+        <div class="mt-10 rounded-[28px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] md:p-5">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Temporada
+              </label>
+              <select
+                v-model="selectedSeason"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option v-for="option in seasonOptions" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+            </div>
 
-            <button
-              type="button"
-              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em]"
-              :class="matchStatus === 'FINISHED' ? 'border-orange-400/40 bg-orange-400/15 text-orange-200' : 'border-white/10 bg-white/5 text-slate-300'"
-              @click="matchStatus = 'FINISHED'"
-            >
-              Finalizados
-            </button>
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Categoría
+              </label>
+              <select
+                v-model="selectedCategory"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option v-for="option in categoryOptions" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+            </div>
 
-            <button
-              type="button"
-              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em]"
-              :class="matchStatus === 'ALL' ? 'border-orange-400/40 bg-orange-400/15 text-orange-200' : 'border-white/10 bg-white/5 text-slate-300'"
-              @click="matchStatus = 'ALL'"
-            >
-              Todos
-            </button>
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Rama
+              </label>
+              <select
+                v-model="selectedBranch"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option v-for="option in branchOptions" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Jornada
+              </label>
+              <select
+                v-model="selectedRound"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option v-for="option in roundOptions" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Buscar equipo
+              </label>
+              <input
+                v-model.trim="search"
+                type="text"
+                placeholder="Buscar equipo..."
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              />
+            </div>
           </div>
 
-          <input
-            v-model.trim="search"
-            type="text"
-            placeholder="Buscar equipo..."
-            class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 md:w-72"
-          />
+          <div class="mt-4 flex flex-wrap gap-2">
+            <span class="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-100">
+              {{ filteredMatches.length }} resultados
+            </span>
+
+            <button
+              type="button"
+              class="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-200 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
+              @click="resetFilters"
+            >
+              Limpiar filtros
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
+    <!-- LISTA -->
     <section>
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 py-10">
+      <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div class="grid grid-cols-1 gap-5">
           <article
             v-for="m in paginatedMatches"
@@ -210,6 +269,41 @@
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_24%)]" />
 
             <div class="relative p-5 md:p-6">
+              <div class="mb-5 flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                  {{ m.date }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                  {{ m.time }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold text-orange-100">
+                  {{ m.seasonLabel }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
+                  {{ m.categoryLabel }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
+                  {{ m.branchLabel }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
+                  {{ m.roundLabel }}
+                </span>
+
+                <span
+                  class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold"
+                  :class="m.status === 'FINISHED'
+                    ? 'border border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                    : 'border border-sky-400/20 bg-sky-400/10 text-sky-200'"
+                >
+                  {{ m.status === 'FINISHED' ? 'Finalizado' : 'Programado' }}
+                </span>
+              </div>
+
               <div class="flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,1fr)_320px_minmax(0,1fr)] md:items-center">
                 <!-- LOCAL -->
                 <div class="flex min-w-0 items-center gap-4">
@@ -239,23 +333,7 @@
                     VS
                   </span>
 
-                  <div class="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] md:text-xs">
-                    <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 font-semibold text-slate-200">
-                      {{ m.date }}
-                    </span>
-
-                    <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 font-semibold text-slate-200">
-                      {{ m.time }}
-                    </span>
-
-                    <span
-                      class="inline-flex items-center rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 font-semibold text-orange-100"
-                    >
-                      Liga de Jueves
-                    </span>
-                  </div>
-
-                  <div v-if="m.venue" class="mt-2 text-[11px] font-medium text-slate-400 md:text-xs">
+                  <div v-if="m.venue" class="mt-3 text-[11px] font-medium text-slate-400 md:text-xs">
                     {{ m.venue }}
                   </div>
                 </div>
@@ -349,60 +427,71 @@
 </template>
 
 <script setup lang="ts">
-import { Facebook, Instagram } from "lucide-vue-next"
+import { Facebook, Home, Instagram } from "lucide-vue-next"
 import { useJuevesData, type UiMatch } from "~/composables/useJuevesData"
+
+type FilterValue = "ALL" | string
 
 type UiMatchCard = UiMatch & {
   homeLogo?: string
   awayLogo?: string
   homeShort?: string
   awayShort?: string
+  seasonLabel: string
+  categoryLabel: string
+  branchLabel: string
+  roundLabel: string
+  status: string
 }
 
 const ITEMS_PER_PAGE = 10
 
 const route = useRoute()
 const mobileOpen = ref(false)
-
-const { leagueKey, toList, toUiMatch } = useJuevesData()
-
-const matchStatus = ref<"SCHEDULED" | "FINISHED" | "ALL">("SCHEDULED")
 const search = ref("")
 const currentPage = ref(1)
 
+const selectedSeason = ref<FilterValue>("ALL")
+const selectedCategory = ref<FilterValue>("ALL")
+const selectedBranch = ref<FilterValue>("ALL")
+const selectedRound = ref<FilterValue>("ALL")
+
+const { leagueKey, toList, toUiMatch } = useJuevesData()
+
 const { data: gamesData, pending: pendingGames, error: gamesError } =
   await useAsyncData("jueves-partidos-page", async () => {
-    const wantScheduled = matchStatus.value !== "FINISHED"
-    const wantFinished = matchStatus.value !== "SCHEDULED"
-
     const [scheduled, finished] = await Promise.all([
-      wantScheduled
-        ? $fetch<any>("/api/t5/games", {
-            query: {
-              league: leagueKey,
-              leagueKey,
-              status: "SCHEDULED",
-              sort: "startTime,asc",
-              limit: 120,
-            },
-          }).catch(() => [])
-        : [],
-      wantFinished
-        ? $fetch<any>("/api/t5/gamesFinal", {
-            query: {
-              league: leagueKey,
-              leagueKey,
-              sort: "startTime,desc",
-              limit: 120,
-            },
-          }).catch(() => [])
-        : [],
+      $fetch<any>("/api/t5/games", {
+        query: {
+          league: leagueKey,
+          leagueKey,
+          status: "SCHEDULED",
+          sort: "startTime,asc",
+          limit: 200,
+        },
+      }).catch(() => []),
+      $fetch<any>("/api/t5/gamesFinal", {
+        query: {
+          league: leagueKey,
+          leagueKey,
+          sort: "startTime,desc",
+          limit: 200,
+        },
+      }).catch(() => []),
     ])
 
     const merged = [...toList(scheduled), ...toList(finished)]
 
     return merged.map((game: any) => {
       const ui = toUiMatch(game)
+
+      const status = normalizeText(
+        firstValue(game, [
+          "status",
+          "gameStatus",
+          "matchStatus",
+        ]) || "SCHEDULED"
+      )
 
       return {
         ...ui,
@@ -436,18 +525,65 @@ const { data: gamesData, pending: pendingGames, error: gamesError } =
           "away.shortName",
           "visitorTeam.shortName",
         ]),
+        seasonLabel: pickLabel(game, [
+          "season.name",
+          "seasonName",
+          "season.label",
+          "season.title",
+          "temporada.nombre",
+          "temporada",
+        ], "Sin temporada"),
+        categoryLabel: pickLabel(game, [
+          "category.name",
+          "categoryName",
+          "category.label",
+          "categoria.nombre",
+          "categoria",
+        ], "Sin categoría"),
+        branchLabel: pickLabel(game, [
+          "branch.name",
+          "branchName",
+          "gender",
+          "rama.nombre",
+          "rama",
+        ], "Sin rama"),
+        roundLabel: pickRoundLabel(game),
+        status,
       } as UiMatchCard
     })
-  }, { watch: [matchStatus] })
+  })
 
 const matches = computed<UiMatchCard[]>(() => gamesData.value ?? [])
 
+const seasonOptions = computed(() => uniqueSorted(matches.value.map((m) => m.seasonLabel)))
+const categoryOptions = computed(() => uniqueSorted(matches.value.map((m) => m.categoryLabel)))
+const branchOptions = computed(() => uniqueSorted(matches.value.map((m) => m.branchLabel)))
+const roundOptions = computed(() => {
+  const labels = uniqueSorted(matches.value.map((m) => m.roundLabel))
+  return labels.sort(sortRoundLabels)
+})
+
 const filteredMatches = computed<UiMatchCard[]>(() => {
-  const q = search.value.toLowerCase()
-  if (!q) return matches.value
+  const q = normalizeText(search.value)
 
   return matches.value.filter((m) => {
-    return `${m.home} ${m.away}`.toLowerCase().includes(q)
+    const matchesSeason =
+      selectedSeason.value === "ALL" || m.seasonLabel === selectedSeason.value
+
+    const matchesCategory =
+      selectedCategory.value === "ALL" || m.categoryLabel === selectedCategory.value
+
+    const matchesBranch =
+      selectedBranch.value === "ALL" || m.branchLabel === selectedBranch.value
+
+    const matchesRound =
+      selectedRound.value === "ALL" || m.roundLabel === selectedRound.value
+
+    const matchesSearch =
+      !q ||
+      normalizeText(`${m.home} ${m.away} ${m.venue || ""}`).includes(q)
+
+    return matchesSeason && matchesCategory && matchesBranch && matchesRound && matchesSearch
   })
 })
 
@@ -493,9 +629,12 @@ const visibleMatchPages = computed<number[]>(() => {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
-watch([search, matchStatus], () => {
-  currentPage.value = 1
-})
+watch(
+  [search, selectedSeason, selectedCategory, selectedBranch, selectedRound],
+  () => {
+    currentPage.value = 1
+  }
+)
 
 watch(totalMatchPages, (pages) => {
   if (currentPage.value > pages) currentPage.value = pages
@@ -503,6 +642,15 @@ watch(totalMatchPages, (pages) => {
 
 function goToMatchPage(page: number) {
   currentPage.value = Math.min(Math.max(page, 1), totalMatchPages.value)
+}
+
+function resetFilters() {
+  selectedSeason.value = "ALL"
+  selectedCategory.value = "ALL"
+  selectedBranch.value = "ALL"
+  selectedRound.value = "ALL"
+  search.value = ""
+  currentPage.value = 1
 }
 
 function getTeamInitials(name: string) {
@@ -513,6 +661,67 @@ function getTeamInitials(name: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase()
+}
+
+function uniqueSorted(values: string[]) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"))
+}
+
+function pickLabel(obj: any, paths: string[], fallback: string) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return String(value).trim()
+    }
+  }
+  return fallback
+}
+
+function pickRoundLabel(obj: any) {
+  const raw = firstValue(obj, [
+    "round",
+    "roundNumber",
+    "week",
+    "weekNumber",
+    "jornada",
+    "jornada.numero",
+    "matchday",
+    "gameDay",
+  ])
+
+  if (!raw) return "Sin jornada"
+
+  const clean = String(raw).trim()
+
+  if (/^\d+$/.test(clean)) {
+    return `Jornada ${clean}`
+  }
+
+  return clean.toLowerCase().startsWith("jornada") ? clean : `Jornada ${clean}`
+}
+
+function sortRoundLabels(a: string, b: string) {
+  const numA = extractRoundNumber(a)
+  const numB = extractRoundNumber(b)
+
+  if (numA !== null && numB !== null) return numA - numB
+  if (numA !== null) return -1
+  if (numB !== null) return 1
+
+  return a.localeCompare(b, "es")
+}
+
+function extractRoundNumber(value: string) {
+  const match = String(value).match(/(\d+)/)
+  return match ? Number(match[1]) : null
+}
+
+function normalizeText(value: string) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
 }
 
 function firstValue(obj: any, paths: string[]): string {

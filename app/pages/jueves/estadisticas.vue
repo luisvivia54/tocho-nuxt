@@ -37,11 +37,11 @@
             <NuxtLink
               to="/jueves/equipos"
               class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/equipos' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
+              :class="route.path.startsWith('/jueves/equipos') ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
             >
               Equipos
               <span
-                v-if="route.path === '/jueves/equipos'"
+                v-if="route.path.startsWith('/jueves/equipos')"
                 class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
               />
             </NuxtLink>
@@ -62,9 +62,11 @@
           <div class="hidden items-center gap-6 md:flex">
             <NuxtLink
               to="/"
-              class="text-[0.95rem] font-extrabold uppercase tracking-[0.22em] text-slate-400 hover:text-slate-200"
+              class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
+              aria-label="Ir al home"
+              title="Ir al home"
             >
-              ← Volver
+              <Home class="h-5 w-5" />
             </NuxtLink>
 
             <a
@@ -129,10 +131,11 @@
             </NuxtLink>
             <NuxtLink
               to="/"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
+              class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
               @click="mobileOpen = false"
             >
-              ← Volver
+              <Home class="h-4 w-4" />
+              Home
             </NuxtLink>
           </div>
         </div>
@@ -463,7 +466,7 @@
 </template>
 
 <script setup lang="ts">
-import { Facebook, Instagram } from 'lucide-vue-next'
+import { Facebook, Home, Instagram } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'liga-b',
@@ -548,7 +551,7 @@ function toBoolean(value: unknown, fallback = true): boolean {
 
   if (typeof value === 'string') {
     const normalized = value.trim().toLowerCase()
-    if (['true', '1', 'yes', 'si', 'sí', 'active'].includes(normalized)) return true
+    if (['true', '1', 'yes', 'si', 'sí', 'active', 'activo'].includes(normalized)) return true
     if (['false', '0', 'no', 'inactive', 'inactivo'].includes(normalized)) return false
   }
 
@@ -610,20 +613,29 @@ function normalizeBranch(value: string): string {
   return value || 'Mixto'
 }
 
+function normalizeKey(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase()
+}
+
 function normalizeTeamMeta(row: AnyRow): TeamMeta {
   const rawId = pick(row, ['team_id', 'teamId', 'id'], '')
   const id = String(rawId ?? '').trim()
 
+  const categoryName = toText(
+    pick(row, ['category.name', 'categoryName', 'category', 'categoria', 'division.name', 'divisionName']),
+    'Sin categoría'
+  )
+
+  const branchRaw = toText(
+    pick(row, ['category.gender', 'branch', 'rama', 'gender', 'genre']),
+    'Mixto'
+  )
+
   return {
     id,
     teamName: toText(pick(row, ['team_name', 'teamName', 'name']), 'Equipo'),
-    category: toText(
-      pick(row, ['category.name', 'categoryName', 'category', 'categoria']),
-      'Sin categoría'
-    ),
-    branch: normalizeBranch(
-      toText(pick(row, ['branch', 'rama', 'gender', 'genre']), 'Mixto')
-    ),
+    category: categoryName,
+    branch: normalizeBranch(branchRaw),
     season: toText(
       pick(row, ['season.name', 'seasonName', 'season', 'temporada', 'seasonCode']),
       'WT'
@@ -722,6 +734,8 @@ const {
 
 const {
   data: teamsData,
+  pending: pendingTeams,
+  error: teamsError,
   refresh: refreshTeams,
 } = useLazyAsyncData(
   'jueves-teams',
@@ -734,14 +748,26 @@ const {
   }
 )
 
-const pending = computed(() => pendingPoints.value)
+const pending = computed(() => pendingPoints.value || pendingTeams.value)
 
-const teamMetaMap = computed(() => {
+const teamMetaById = computed(() => {
   const map = new Map<string, TeamMeta>()
 
   for (const row of (teamsData.value ?? []) as AnyRow[]) {
     const meta = normalizeTeamMeta(row)
-    if (meta.id) map.set(meta.id, meta)
+    if (meta.id) map.set(normalizeKey(meta.id), meta)
+  }
+
+  return map
+})
+
+const teamMetaByName = computed(() => {
+  const map = new Map<string, TeamMeta>()
+
+  for (const row of (teamsData.value ?? []) as AnyRow[]) {
+    const meta = normalizeTeamMeta(row)
+    const key = normalizeKey(meta.teamName)
+    if (key) map.set(key, meta)
   }
 
   return map
@@ -752,18 +778,29 @@ const teamRows = computed<TeamStanding[]>(() => {
 
   return rows.map((row, index) => {
     const rawTeamId = pick(row, ['team_id', 'teamId', 'id'], '')
-    const meta = teamMetaMap.value.get(String(rawTeamId ?? ''))
+    const rawTeamName = pick(row, ['team_name', 'teamName', 'name'], '')
+    const meta =
+      teamMetaById.value.get(normalizeKey(rawTeamId)) ||
+      teamMetaByName.value.get(normalizeKey(rawTeamName))
+
     return buildTeamStanding(row, meta, index)
   })
 })
 
 const loadError = computed(() => {
-  const raw = pointsError.value as { data?: { message?: string }; message?: string } | null
-  if (!raw) return ''
-  return raw.data?.message || raw.message || 'No se pudieron cargar los puntos desde el backend.'
+  const pointErr = pointsError.value as { data?: { message?: string }; message?: string } | null
+  const teamErr = teamsError.value as { data?: { message?: string }; message?: string } | null
+
+  return (
+    pointErr?.data?.message ||
+    pointErr?.message ||
+    teamErr?.data?.message ||
+    teamErr?.message ||
+    ''
+  )
 })
 
-const activeTeamsCount = computed(() => teamRows.value.filter(item => item.active).length)
+const activeTeamsCount = computed(() => filteredTeams.value.filter(item => item.active).length)
 
 const seasonOptions = computed<string[]>(() => {
   const values = Array.from(new Set(teamRows.value.map(item => item.season).filter(Boolean)))
@@ -944,7 +981,7 @@ function initials(name: string): string {
 }
 
 function signedNumber(value: number): string {
-  return value > 0 ? `${value}` : String(value)
+  return value > 0 ? `+${value}` : String(value)
 }
 
 function formatPct(value: number): string {

@@ -18,8 +18,13 @@
 
     <LigaBHeader />
 
+    <!-- switcher -->
+    <div class="px-4 pt-24 sm:px-6 md:px-8">
+      <LigaSwitcher />
+    </div>
+
     <!-- page -->
-    <div class="pt-24 md:pt-28">
+    <div class="pt-6 md:pt-8">
       <slot />
     </div>
   </main>
