@@ -1,7 +1,6 @@
-<!-- app/pages/partidos.vue -->
 <template>
   <main class="bg-slate-950 min-h-screen text-slate-50 overflow-x-hidden">
-    <section class="pt-16 md:pt-16 lg:pt-16">
+    <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="max-w-6xl mx-auto px-4 sm:px-6">
         <!-- HEADER -->
         <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
@@ -9,7 +8,6 @@
             <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">Tochero5</p>
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Partidos</h1>
 
-            <!-- TEMPORADA FIX -->
             <div
               class="inline-flex items-center gap-2 rounded-2xl border border-slate-800/70 bg-slate-900/55 px-3 py-1.5"
             >
@@ -20,7 +18,6 @@
             </div>
           </div>
 
-          <!-- acciones (mobile stack / desktop row) -->
           <div class="grid grid-cols-1 sm:grid-cols-2 md:flex md:items-center gap-2">
             <button
               type="button"
@@ -39,7 +36,7 @@
           </div>
         </header>
 
-        <!-- FILTROS (mobile-first) -->
+        <!-- FILTROS -->
         <section
           class="mb-6 rounded-3xl border border-slate-800/70 bg-slate-900/45 p-4 md:p-6 shadow-[0_18px_45px_rgba(0,0,0,0.30)] overflow-hidden"
         >
@@ -52,14 +49,20 @@
               </div>
 
               <div class="rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2">
-                <select v-model="seasonPick" class="w-full bg-transparent outline-none text-xs text-slate-100">
-                  <option v-for="s in seasonOptions" :key="s.id" :value="String(s.id)">
+                <select
+                  v-model="seasonPick"
+                  class="w-full appearance-none bg-transparent outline-none text-xs text-slate-100"
+                >
+                  <option
+                    v-for="s in seasonOptions"
+                    :key="s.id"
+                    :value="String(s.id)"
+                    style="background: white; color: #0f172a;"
+                  >
                     {{ s.name }}
                   </option>
                 </select>
               </div>
-
-              <p class="mt-2 text-[11px] text-slate-500">Nota: se quitó “Todas las temporadas”.</p>
             </div>
 
             <!-- Categoría -->
@@ -225,7 +228,7 @@
               </div>
             </div>
 
-            <!-- Estado / Contadores -->
+            <!-- Estado -->
             <div class="md:col-span-12 min-w-0">
               <div class="mt-1 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 <p class="text-[11px] text-slate-400">
@@ -285,7 +288,6 @@
               class="rounded-3xl border border-slate-800/80 bg-slate-900/55 p-4 md:px-6 md:py-5 hover:border-slate-600 transition shadow-[0_12px_32px_rgba(0,0,0,0.22)]"
               style="content-visibility:auto; contain-intrinsic-size: 240px;"
             >
-              <!-- Header -->
               <div class="flex items-start justify-between gap-3 mb-3">
                 <div class="flex items-center gap-2 text-[11px] text-slate-300 flex-wrap">
                   <span :class="badgeClass(g.status)">
@@ -317,9 +319,7 @@
                 </div>
               </div>
 
-              <!-- Main -->
               <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center gap-3">
-                <!-- Local -->
                 <div class="flex items-center gap-3 min-w-0">
                   <div
                     class="h-12 w-12 rounded-2xl bg-slate-950/60 border border-slate-700/70 flex items-center justify-center overflow-hidden shrink-0"
@@ -347,7 +347,6 @@
                   </div>
                 </div>
 
-                <!-- Centro -->
                 <div class="flex flex-col items-center justify-center sm:min-w-[140px]">
                   <template v-if="g.isFinal">
                     <p class="text-[11px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Marcador</p>
@@ -370,7 +369,6 @@
                   </template>
                 </div>
 
-                <!-- Visitante -->
                 <div class="flex items-center justify-between sm:justify-end gap-3 min-w-0">
                   <div class="sm:hidden h-px flex-1 bg-slate-800/70"></div>
 
@@ -401,7 +399,6 @@
                 </div>
               </div>
 
-              <!-- Footer -->
               <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] text-slate-400">
                 <p class="truncate">
                   ID: <span class="text-slate-200 font-semibold">{{ g.id }}</span>
@@ -477,9 +474,6 @@
 
 <script setup lang="ts">
 import { markRaw, shallowRef, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useRuntimeConfig, useAsyncData } from '#imports'
-import { $fetch } from 'ofetch'
-import { normalizeApiBase } from '../composables/useApiBase'
 
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO' | string
 
@@ -559,21 +553,18 @@ type VMGame = {
 
 type Group = { key: string; label: string; items: VMGame[] }
 
-function unwrapList<T>(x: any): T[] {
-  if (Array.isArray(x)) return x
-  if (x && Array.isArray(x.content)) return x.content
-  if (x && Array.isArray(x.items)) return x.items
-  if (x && Array.isArray(x.data)) return x.data
-  return []
-}
-
 const config = useRuntimeConfig()
-const API_BASE = normalizeApiBase((config.public as any)?.apiBase)
+const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
 
-/** temporada default fija */
+const LEAGUE_ID = 1
 const DEFAULT_SEASON_ID = 2
 
-/** filtros */
+async function apiGet<T = any>(path: string) {
+  return await $fetch<T>(`${API_BASE}${path}`, {
+    query: { leagueId: LEAGUE_ID },
+  })
+}
+
 const seasonPick = ref<string>(String(DEFAULT_SEASON_ID))
 const roundPick = ref<'ALL' | string>('ALL')
 const roundInput = ref('')
@@ -595,7 +586,6 @@ watch(rama, () => {
   roundInput.value = ''
 })
 
-/** paginación */
 const pageSize = ref(5)
 const page = ref(1)
 const pageInput = ref('1')
@@ -605,31 +595,29 @@ watch([seasonPick, roundPick, categoria, rama], () => {
   pageInput.value = '1'
 })
 
-/** ahora */
 const nowMs = ref(0)
-let tmr: ReturnType<typeof setInterval> | null = null
+let tmr: any = null
 
 onMounted(() => {
   nowMs.value = Date.now()
-  tmr = setInterval(() => {
-    nowMs.value = Date.now()
-  }, 60_000)
+  tmr = setInterval(() => (nowMs.value = Date.now()), 60_000)
 })
 
 onBeforeUnmount(() => {
   if (tmr) clearInterval(tmr)
 })
 
-/** formatters */
 const timeFmt = new Intl.DateTimeFormat('es-MX', {
   timeZone: 'America/Mexico_City',
   hour: '2-digit',
   minute: '2-digit',
 })
+
 const weekdayFmt = new Intl.DateTimeFormat('es-MX', {
   timeZone: 'America/Mexico_City',
   weekday: 'long',
 })
+
 const dateFmt = new Intl.DateTimeFormat('es-MX', {
   timeZone: 'America/Mexico_City',
   day: '2-digit',
@@ -637,29 +625,29 @@ const dateFmt = new Intl.DateTimeFormat('es-MX', {
   year: 'numeric',
 })
 
-/** fetch seasons */
 const { data: seasonsRaw } = useAsyncData<any[]>(
-  'seasons-public-lite',
+  'seasons-admin-lite-league-1',
   async () => {
-    const try1 = await $fetch<any>(`${API_BASE}/seasons/list`).catch(() => null)
-    const list1 = unwrapList<any>(try1)
-    if (list1.length) return list1
+    const try1 = await apiGet<any[]>('/seasons/list').catch(() => null)
+    if (Array.isArray(try1)) return try1
 
-    const try2 = await $fetch<any>(`${API_BASE}/seasons`).catch(() => [])
-    return unwrapList<any>(try2)
+    const try2 = await apiGet<any[]>('/seasons').catch(() => [])
+    return Array.isArray(try2) ? try2 : []
   },
-  { server: false, default: () => [] }
+  { server: false }
 )
 
 const seasonsMap = computed<Record<number, string>>(() => {
   const out: Record<number, string> = {}
   const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
+
   for (const s of list) {
     const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
     if (!id) continue
     const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
     out[id] = name
   }
+
   return out
 })
 
@@ -675,6 +663,7 @@ function seasonKey(name: string) {
 const seasonNameToId = computed<Record<string, number>>(() => {
   const out: Record<string, number> = {}
   const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
+
   for (const s of list) {
     const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
     if (!id) continue
@@ -682,24 +671,21 @@ const seasonNameToId = computed<Record<string, number>>(() => {
     if (!name) continue
     out[seasonKey(name)] = id
   }
+
   return out
 })
 
-/** fetch games */
 const { data, pending, error, refresh } = useAsyncData<Game[]>(
-  'games-calendar-public-paged-5',
+  'games-calendar-admin-paged-5-league-1',
   async () => {
-    const [scheduledRaw, finalsRaw] = await Promise.all([
-      $fetch<any>(`${API_BASE}/games`).catch(() => []),
-      $fetch<any>(`${API_BASE}/gamesFinal`).catch(() => []),
+    const [scheduled, finals] = await Promise.all([
+      apiGet<any[]>('/games').catch(() => []),
+      apiGet<any[]>('/gamesFinal').catch(() => []),
     ])
 
-    const scheduled = unwrapList<any>(scheduledRaw)
-    const finals = unwrapList<any>(finalsRaw)
+    const all = [...(Array.isArray(scheduled) ? scheduled : []), ...(Array.isArray(finals) ? finals : [])]
 
-    const all = [...scheduled, ...finals]
     const map = new Map<number, any>()
-
     for (const g of all) {
       const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
       if (!id) continue
@@ -708,20 +694,19 @@ const { data, pending, error, refresh } = useAsyncData<Game[]>(
 
     return Array.from(map.values())
   },
-  { server: false, default: () => [] }
+  { server: false }
 )
 
-const errorMsg = computed(() =>
+const errorMsg = computed(() => (
   error.value ? 'Error cargando partidos. Revisa el endpoint o logs del back.' : ''
-)
+))
 
-/** VM */
 const vmAll = shallowRef<VMGame[]>(markRaw([]))
 
 watch(
   [data, seasonsMap, seasonNameToId],
   ([raw]) => {
-    const list = Array.isArray(raw) ? raw : []
+    const list = raw ?? []
     const out: VMGame[] = []
     const dayLabelCache = new Map<string, string>()
 
@@ -763,9 +748,7 @@ watch(
       const awayName = String(g.away_team ?? g.awayTeam?.name ?? 'Visitante').trim()
 
       const rawStatus = String(g?.status ?? '').trim()
-      const hasScore =
-        g?.homeScore != null || g?.awayScore != null || g?.home_score != null || g?.away_score != null
-
+      const hasScore = g?.homeScore != null || g?.awayScore != null || g?.home_score != null || g?.away_score != null
       const status = upper(rawStatus) || (hasScore ? 'FINAL' : 'SCHEDULED')
       const isFinal = status === 'FINAL'
 
@@ -831,9 +814,9 @@ const seasonOptions = computed<Season[]>(() => {
 
   const merged = new Map<number, string>()
   for (const s of fromApi) merged.set(s.id, s.name)
-  derived.forEach((name, id) => {
+  for (const [id, name] of derived.entries()) {
     if (!merged.has(id)) merged.set(id, name)
-  })
+  }
 
   if (!merged.has(DEFAULT_SEASON_ID)) {
     merged.set(DEFAULT_SEASON_ID, seasonsMap.value[DEFAULT_SEASON_ID] || `Temporada #${DEFAULT_SEASON_ID}`)
@@ -1045,12 +1028,12 @@ function applyPageInput() {
   pageInput.value = String(safe)
 }
 
-/* ---------- helpers UI ---------- */
 function segBtn(active: boolean, tone: 'base' | 'blue' | 'emerald' | 'amber' = 'base', disabled = false) {
   const base =
     'inline-flex items-center justify-center rounded-xl border px-3 py-2 text-[11px] font-semibold transition select-none touch-manipulation whitespace-nowrap'
   const off = 'border-transparent text-slate-300 hover:bg-slate-900/60 hover:text-slate-100'
   const dis = 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-slate-300'
+
   if (disabled) return `${base} ${off} ${dis}`
   if (!active) return `${base} ${off}`
 
@@ -1098,17 +1081,19 @@ function initials(text: string) {
 function timeHintMs(ms: number, status: string) {
   const st = upper(status)
   if (st === 'FINAL') return 'Marcador final'
+
   const diff = ms - (nowMs.value || Date.now())
   if (diff < 0) return 'Hora pasada'
+
   const mins = Math.round(diff / 60000)
   const hrs = Math.round(diff / 3600000)
   const days = Math.round(diff / 86400000)
+
   if (mins <= 59) return `Arranca en ${mins} min`
   if (hrs <= 48) return `Arranca en ${hrs} h`
   return `En ${days} día(s)`
 }
 
-/* ---------- helpers data ---------- */
 function normalize(v: string) {
   const x = (v ?? '').trim()
   return x.length ? x : ''

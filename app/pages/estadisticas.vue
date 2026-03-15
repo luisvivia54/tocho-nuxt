@@ -1,7 +1,6 @@
-<!-- app/pages/estadisticas.vue -->
 <template>
   <main class="min-h-screen bg-[#F3F4FF] text-slate-900">
-    <section class="pt-12 md:pt-14 lg:pt-16">
+    <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="max-w-6xl mx-auto container-pad px-6 pb-10">
         <!-- Tabs internas -->
         <div class="mb-5 flex items-center gap-2">
@@ -144,17 +143,7 @@
               </div>
 
               <!-- Ruta actual -->
-              <div class="mt-3 flex flex-wrap gap-2 items-center">
-                <span class="text-[11px] text-slate-500">Consultando:</span>
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                  {{ pointsUrl }}
-                </span>
-
-                <!-- mini debug útil -->
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                  Equipos: {{ totalTeams }} · Activos: {{ totalActiveTeams }}
-                </span>
-              </div>
+              
             </div>
 
             <NuxtLink
@@ -589,12 +578,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter, useRuntimeConfig, useAsyncData } from '#imports'
-import { useApi } from '~/composables/useApi'
-import { normalizeApiBase } from '../composables/useApiBase'
 
-/* =========================
-   Tabs / query param
-========================= */
 type View = 'equipos' | 'jugadores'
 const route = useRoute()
 const router = useRouter()
@@ -616,20 +600,40 @@ function setView(v: View) {
   router.replace({ query: q })
 }
 
-/* =========================
-   API BASE
-========================= */
 const config = useRuntimeConfig()
-const API_BASE = normalizeApiBase((config.public as any)?.apiBase)
+const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
+const LEAGUE_ID = 1
 
-/* =========================
-   Helpers
-========================= */
+function withLeague(query: Record<string, any> = {}) {
+  return {
+    ...query,
+    leagueId: LEAGUE_ID,
+  }
+}
+
+async function leagueGet<T = any>(path: string, query: Record<string, any> = {}) {
+  return await $fetch<T>(`${API_BASE}${path}`, {
+    query: withLeague(query),
+  })
+}
+
+function leaguePath(path: string, query: Record<string, any> = {}) {
+  const params = new URLSearchParams()
+  const merged = withLeague(query)
+
+  for (const [key, value] of Object.entries(merged)) {
+    if (value === undefined || value === null || value === '') continue
+    params.set(key, String(value))
+  }
+
+  const qs = params.toString()
+  return qs ? `${path}?${qs}` : path
+}
+
 function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
   if (x && Array.isArray(x.items)) return x.items
-  if (x && Array.isArray(x.data)) return x.data
   return []
 }
 
@@ -644,9 +648,6 @@ function toBool(v: any): boolean {
 const upper = (v: any) => String(v ?? '').toUpperCase()
 const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
 
-/* =========================
-   TEAMS (FUENTE REAL para isActive)
-========================= */
 type TeamVM = { teamId: number; name: string; shortName?: string; isActive: boolean }
 
 const {
@@ -654,7 +655,14 @@ const {
   pending: pendingTeams,
   error: errorTeams,
   refresh: refreshTeams
-} = useApi<any[]>('/teams')
+} = useAsyncData<any[]>(
+  'stats-teams-league-1',
+  async () => {
+    const raw = await leagueGet<any[]>('/teams').catch(() => [])
+    return Array.isArray(raw) ? raw : []
+  },
+  { server: false, default: () => [] }
+)
 
 const teamsVm = computed<TeamVM[]>(() => {
   const list = unwrapList<any>(teamsRaw.value)
@@ -722,9 +730,6 @@ const activeTeamNamesLower = computed(() => {
 const totalTeams = computed(() => teamsVm.value.length)
 const totalActiveTeams = computed(() => teamsActiveVm.value.length)
 
-/* =========================
-   EQUIPOS (STANDINGS)
-========================= */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
 
 interface ApiStanding {
@@ -773,14 +778,13 @@ const seasonPick = ref<'ALL' | string>(String(DEFAULT_SEASON_ID))
 type SeasonOpt = { id: number; name: string }
 
 const { data: seasonsRaw } = useAsyncData<any[]>(
-  'seasons-stats-lite',
+  'seasons-stats-lite-league-1',
   async () => {
-    const try1 = await $fetch<any>(`${API_BASE}/seasons/list`).catch(() => null)
-    const list1 = unwrapList<any>(try1)
-    if (list1.length) return list1
+    const try1 = await leagueGet<any[]>('/seasons/list').catch(() => null)
+    if (Array.isArray(try1)) return try1
 
-    const try2 = await $fetch<any>(`${API_BASE}/seasons`).catch(() => [])
-    return unwrapList<any>(try2)
+    const try2 = await leagueGet<any[]>('/seasons').catch(() => [])
+    return Array.isArray(try2) ? try2 : []
   },
   { server: false, default: () => [] }
 )
@@ -819,23 +823,35 @@ const selectedCategoryCode = ref<'all' | string>('all')
 const selectedGender = ref<'all' | Gender>('all')
 const searchQuery = ref('')
 
-const pointsUrl = computed(() => {
-  const params = new URLSearchParams()
-  if (seasonPick.value !== 'ALL') params.set('seasonId', seasonPick.value)
-  if (selectedCategoryCode.value !== 'all') params.set('categoryCode', selectedCategoryCode.value)
-  if (selectedGender.value !== 'all') params.set('gender', selectedGender.value)
-  const qs = params.toString()
-  return qs ? `/points?${qs}` : '/points'
+const standingsQuery = computed<Record<string, any>>(() => {
+  const q: Record<string, any> = {}
+  if (seasonPick.value !== 'ALL') q.seasonId = seasonPick.value
+  if (selectedCategoryCode.value !== 'all') q.categoryCode = selectedCategoryCode.value
+  if (selectedGender.value !== 'all') q.gender = selectedGender.value
+  return q
 })
+
+const pointsUrl = computed(() => leaguePath('/points', standingsQuery.value))
 
 const {
   data: standings,
   pending: pendingStandings,
   error: errorStandings,
   refresh: refreshStandings
-} = useApi<ApiStanding[]>(pointsUrl)
+} = useAsyncData<ApiStanding[]>(
+  'stats-points-league-1',
+  async () => {
+    const raw = await leagueGet<ApiStanding[]>('/points', standingsQuery.value).catch(() => [])
+    return Array.isArray(raw) ? raw : []
+  },
+  {
+    server: false,
+    default: () => [],
+    watch: [seasonPick, selectedCategoryCode, selectedGender]
+  }
+)
 
-const standingsList = computed(() => unwrapList<ApiStanding>(standings.value))
+const standingsList = computed(() => (Array.isArray(standings.value) ? standings.value : []))
 
 const standingsHaveActiveFlag = computed(() => {
   return standingsList.value.some(
@@ -930,8 +946,6 @@ const clearTeamFilters = () => {
   searchQuery.value = ''
 }
 
-watch(pointsUrl, () => refreshStandings())
-
 const prettyDivision = (division: string | null | undefined): string => {
   if (!division) return '—'
   const up = String(division).toUpperCase()
@@ -957,11 +971,6 @@ async function refreshAllEquipos() {
   await refreshTeams()
   await refreshStandings()
 }
-
-/* =========================
-   JUGADORES
-========================= */
-const API_PLAYERS = `${API_BASE}/players`
 
 type PlayerStats = { td: number; int: number; pa: number; sack: number; rec: number }
 
@@ -992,7 +1001,7 @@ async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
   const chunks = await Promise.all(
     teams.map(async (t) => {
       try {
-        const raw = await $fetch<any>(`${API_BASE}/teams/${t.teamId}/players`)
+        const raw = await leagueGet<any[]>(`/teams/${t.teamId}/players`).catch(() => [])
         const list = unwrapList<any>(raw)
         return list.map((p) => ({ ...p, __teamId: t.teamId, __teamName: t.name }))
       } catch {
@@ -1005,10 +1014,10 @@ async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
 }
 
 const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
-  'stats-players-all',
+  'stats-players-all-league-1',
   async () => {
     try {
-      const raw = await $fetch<any>(API_PLAYERS)
+      const raw = await leagueGet<any[]>('/players')
       const list = unwrapList<any>(raw)
       if (list.length) return list
     } catch {
@@ -1103,14 +1112,17 @@ const filteredPlayers = computed(() => {
       const id = Number(tPick)
       if (Number.isFinite(id) && p.teamId !== id) return false
     }
+
     if (qNum) {
       const n = String(p.number ?? '')
       if (!n.includes(qNum)) return false
     }
+
     if (qName) {
       const fn = String(p.fullName ?? '').toLowerCase()
       if (!fn.includes(qName)) return false
     }
+
     return true
   })
 })
@@ -1127,7 +1139,6 @@ function clearPlayerFilters() {
   namePick.value = ''
 }
 
-/* pagination 10 */
 const pageSize = 10
 const page = ref(1)
 const totalPages = computed(() => Math.max(1, Math.ceil(sortedPlayers.value.length / pageSize)))
