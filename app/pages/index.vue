@@ -873,6 +873,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRuntimeConfig, useAsyncData } from '#imports'
+
 useHead({
   htmlAttrs: {
     class: 'page-home',
@@ -881,10 +882,25 @@ useHead({
     class: 'page-home',
   },
 })
+
 /* ===================== API_BASE ===================== */
 const config = useRuntimeConfig()
 const API_BASE = (config.public && config.public.apiBase) ? String(config.public.apiBase) : 'https://tocho5-api.tochero5.mx/api'
 const HOME_CFG_ENDPOINT = `${API_BASE}/site-configs/home`
+const LEAGUE_ID = 1
+
+function withLeague(query = {}) {
+  return {
+    ...query,
+    leagueId: LEAGUE_ID,
+  }
+}
+
+async function leagueGet(path, query = {}) {
+  return await $fetch(`${API_BASE}${path}`, {
+    query: withLeague(query),
+  })
+}
 
 /* ===================== HOME CONFIG (desde backend) ===================== */
 function uid(prefix) {
@@ -988,14 +1004,10 @@ async function loadHomeConfig() {
   homeCfgError.value = ''
   try {
     const res = await $fetch(HOME_CFG_ENDPOINT).catch(() => null)
-
-    // Tu DTO normalmente regresa { key, schemaVersion, data, updatedAt }
     const payload = (res && typeof res === 'object' && 'data' in res) ? res.data : res
     const merged = normalizeHomeData(payload)
 
     homeCfg.value = merged
-
-    // aplicar a refs que usa el UI
     heroSlides.value = merged.hero.images.map((x) => ({ id: x.id, src: x.src }))
     if (heroSlides.value.length === 0) heroSlides.value = clone(HOME_DEFAULTS.hero.images)
     currentSlide.value = 0
@@ -1004,7 +1016,6 @@ async function loadHomeConfig() {
     if (!sponsors.value.length) sponsors.value = clone(HOME_DEFAULTS.sponsors)
     activeSponsorIndex.value = 0
   } catch (e) {
-    // si falla, no truena la home: se queda con defaults
     homeCfg.value = clone(HOME_DEFAULTS)
     heroSlides.value = clone(HOME_DEFAULTS.hero.images)
     sponsors.value = clone(HOME_DEFAULTS.sponsors)
@@ -1012,15 +1023,15 @@ async function loadHomeConfig() {
   }
 }
 
+let onVisHandler = null
+
 onMounted(() => {
   loadHomeConfig()
 
-  // opcional: refresca cuando vuelves a la pestaña (para ver cambios del admin sin hard refresh)
-  const onVis = () => {
+  onVisHandler = () => {
     if (document.visibilityState === 'visible') loadHomeConfig()
   }
-  document.addEventListener('visibilitychange', onVis)
-  onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVis))
+  document.addEventListener('visibilitychange', onVisHandler)
 })
 
 const homeHeroTitle = computed(() => String(homeCfg.value?.hero?.title ?? HOME_DEFAULTS.hero.title))
@@ -1070,11 +1081,11 @@ const DEFAULT_SEASON_ID = 2
 const selectedSeasonId = ref(DEFAULT_SEASON_ID)
 
 const { data: seasonsRaw } = useAsyncData(
-  'seasons-home-lite',
+  'seasons-home-lite-league-1',
   async () => {
-    const try1 = await $fetch(`${API_BASE}/seasons/list`).catch(() => null)
+    const try1 = await leagueGet('/seasons/list').catch(() => null)
     if (Array.isArray(try1)) return try1
-    const try2 = await $fetch(`${API_BASE}/seasons`).catch(() => [])
+    const try2 = await leagueGet('/seasons').catch(() => [])
     return Array.isArray(try2) ? try2 : []
   },
   { server: false, default: () => [] }
@@ -1174,13 +1185,12 @@ function rowTeamKey(r) {
   return name ? `name:${name}` : `name:—`
 }
 async function tryFetchPoints(params) {
-  const qs = new URLSearchParams(params).toString()
-  const url = `${API_BASE}/points?${qs}`
-  const res = await $fetch(url).catch(() => null)
+  const res = await leagueGet('/points', params).catch(() => null)
   return Array.isArray(res) ? res : null
 }
 async function tryFetchPointsRaw(paramsQS) {
-  const url = `${API_BASE}/points?${paramsQS}`
+  const qs = paramsQS ? `${paramsQS}&leagueId=${encodeURIComponent(String(LEAGUE_ID))}` : `leagueId=${encodeURIComponent(String(LEAGUE_ID))}`
+  const url = `${API_BASE}/points?${qs}`
   const res = await $fetch(url).catch(() => null)
   return Array.isArray(res) ? res : null
 }
@@ -1428,13 +1438,13 @@ function pickArrayFromResponse(res) {
 async function fetchGamesAny(seasonId) {
   const sid = Number(seasonId || 0) || 0
   const tries = [
-    `${API_BASE}/games/upcoming?seasonId=${encodeURIComponent(String(sid))}`,
-    `${API_BASE}/games?seasonId=${encodeURIComponent(String(sid))}`,
-    `${API_BASE}/games`
+    { path: '/games/upcoming', query: { seasonId: sid } },
+    { path: '/games', query: { seasonId: sid } },
+    { path: '/games', query: {} }
   ]
 
-  for (const url of tries) {
-    const res = await $fetch(url).catch(() => null)
+  for (const item of tries) {
+    const res = await leagueGet(item.path, item.query).catch(() => null)
     const arr = pickArrayFromResponse(res)
     if (Array.isArray(arr) && arr.length) return arr
   }
@@ -1442,7 +1452,7 @@ async function fetchGamesAny(seasonId) {
 }
 
 const { data: gamesRaw, pending: gamesPending, refresh: refreshGames } = useAsyncData(
-  'games-home-upcoming',
+  'games-home-upcoming-league-1',
   () => fetchGamesAny(selectedSeasonId.value),
   { server: false, default: () => [] }
 )
@@ -1817,6 +1827,7 @@ onBeforeUnmount(() => {
   if (standingsTO) clearTimeout(standingsTO)
   if (nowTimer) clearInterval(nowTimer)
   if (sponsorsIntervalId) clearInterval(sponsorsIntervalId)
+  if (onVisHandler) document.removeEventListener('visibilitychange', onVisHandler)
 })
 </script>
 

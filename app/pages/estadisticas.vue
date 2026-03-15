@@ -1,4 +1,3 @@
-<!-- app/pages/estadisticas.vue -->
 <template>
   <main class="min-h-screen bg-[#F3F4FF] text-slate-900">
     <section class="pt-24 md:pt-28 lg:pt-32">
@@ -144,17 +143,7 @@
               </div>
 
               <!-- Ruta actual -->
-              <div class="mt-3 flex flex-wrap gap-2 items-center">
-                <span class="text-[11px] text-slate-500">Consultando:</span>
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                  {{ pointsUrl }}
-                </span>
-
-                <!-- mini debug útil -->
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                  Equipos: {{ totalTeams }} · Activos: {{ totalActiveTeams }}
-                </span>
-              </div>
+              
             </div>
 
             <NuxtLink
@@ -589,11 +578,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter, useRuntimeConfig, useAsyncData } from '#imports'
-import { useApi } from '@/composables/useApi'
 
-/* =========================
-   Tabs / query param
-========================= */
 type View = 'equipos' | 'jugadores'
 const route = useRoute()
 const router = useRouter()
@@ -615,15 +600,36 @@ function setView(v: View) {
   router.replace({ query: q })
 }
 
-/* =========================
-   API BASE (1 sola vez)
-========================= */
 const config = useRuntimeConfig()
 const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
+const LEAGUE_ID = 1
 
-/* =========================
-   Helpers
-========================= */
+function withLeague(query: Record<string, any> = {}) {
+  return {
+    ...query,
+    leagueId: LEAGUE_ID,
+  }
+}
+
+async function leagueGet<T = any>(path: string, query: Record<string, any> = {}) {
+  return await $fetch<T>(`${API_BASE}${path}`, {
+    query: withLeague(query),
+  })
+}
+
+function leaguePath(path: string, query: Record<string, any> = {}) {
+  const params = new URLSearchParams()
+  const merged = withLeague(query)
+
+  for (const [key, value] of Object.entries(merged)) {
+    if (value === undefined || value === null || value === '') continue
+    params.set(key, String(value))
+  }
+
+  const qs = params.toString()
+  return qs ? `${path}?${qs}` : path
+}
+
 function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
@@ -642,13 +648,21 @@ function toBool(v: any): boolean {
 const upper = (v: any) => String(v ?? '').toUpperCase()
 const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
 
-/* =========================
-   TEAMS (FUENTE REAL para isActive)
-   - usando useApi para que viaje igual que /points
-========================= */
 type TeamVM = { teamId: number; name: string; shortName?: string; isActive: boolean }
 
-const { data: teamsRaw, pending: pendingTeams, error: errorTeams, refresh: refreshTeams } = useApi<any[]>('/teams')
+const {
+  data: teamsRaw,
+  pending: pendingTeams,
+  error: errorTeams,
+  refresh: refreshTeams
+} = useAsyncData<any[]>(
+  'stats-teams-league-1',
+  async () => {
+    const raw = await leagueGet<any[]>('/teams').catch(() => [])
+    return Array.isArray(raw) ? raw : []
+  },
+  { server: false, default: () => [] }
+)
 
 const teamsVm = computed<TeamVM[]>(() => {
   const list = unwrapList<any>(teamsRaw.value)
@@ -658,7 +672,6 @@ const teamsVm = computed<TeamVM[]>(() => {
       const name = String(x.name ?? x.teamName ?? 'Equipo')
       const shortName = String(x.shortName ?? x.short_name ?? '').trim()
 
-      // flags directos
       const rawActive =
         x.isActive ??
         x.is_active ??
@@ -671,7 +684,6 @@ const teamsVm = computed<TeamVM[]>(() => {
         x.team?.active ??
         x.team?.enabled
 
-      // flags de "eliminado/archivado" (si existe, invertimos)
       const rawDeleted =
         x.deleted ??
         x.isDeleted ??
@@ -718,9 +730,6 @@ const activeTeamNamesLower = computed(() => {
 const totalTeams = computed(() => teamsVm.value.length)
 const totalActiveTeams = computed(() => teamsActiveVm.value.length)
 
-/* =========================
-   EQUIPOS (STANDINGS)
-========================= */
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
 
 interface ApiStanding {
@@ -739,8 +748,6 @@ interface ApiStanding {
   seasonId: number
   categoryCode: string
   seasonName?: string
-
-  // por si el endpoint ya lo manda:
   isActive?: boolean | number | string
   teamIsActive?: boolean | number | string
   active?: boolean | number | string
@@ -771,11 +778,12 @@ const seasonPick = ref<'ALL' | string>(String(DEFAULT_SEASON_ID))
 type SeasonOpt = { id: number; name: string }
 
 const { data: seasonsRaw } = useAsyncData<any[]>(
-  'seasons-stats-lite',
+  'seasons-stats-lite-league-1',
   async () => {
-    const try1 = await $fetch<any>(`${API_BASE}/seasons/list`).catch(() => null)
+    const try1 = await leagueGet<any[]>('/seasons/list').catch(() => null)
     if (Array.isArray(try1)) return try1
-    const try2 = await $fetch<any>(`${API_BASE}/seasons`).catch(() => [])
+
+    const try2 = await leagueGet<any[]>('/seasons').catch(() => [])
     return Array.isArray(try2) ? try2 : []
   },
   { server: false, default: () => [] }
@@ -783,7 +791,7 @@ const { data: seasonsRaw } = useAsyncData<any[]>(
 
 const seasonOptions = computed<SeasonOpt[]>(() => {
   const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
-  const out = list
+  return list
     .map((s: any) => {
       const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
       const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
@@ -791,7 +799,6 @@ const seasonOptions = computed<SeasonOpt[]>(() => {
     })
     .filter((s) => s.id > 0)
     .sort((a, b) => a.name.localeCompare(b.name, 'es'))
-  return out
 })
 
 const seasonsMap = computed<Record<number, string>>(() => {
@@ -816,33 +823,43 @@ const selectedCategoryCode = ref<'all' | string>('all')
 const selectedGender = ref<'all' | Gender>('all')
 const searchQuery = ref('')
 
-const pointsUrl = computed(() => {
-  const params = new URLSearchParams()
-  if (seasonPick.value !== 'ALL') params.set('seasonId', seasonPick.value)
-  if (selectedCategoryCode.value !== 'all') params.set('categoryCode', selectedCategoryCode.value)
-  if (selectedGender.value !== 'all') params.set('gender', selectedGender.value)
-  const qs = params.toString()
-  return qs ? `/points?${qs}` : '/points'
+const standingsQuery = computed<Record<string, any>>(() => {
+  const q: Record<string, any> = {}
+  if (seasonPick.value !== 'ALL') q.seasonId = seasonPick.value
+  if (selectedCategoryCode.value !== 'all') q.categoryCode = selectedCategoryCode.value
+  if (selectedGender.value !== 'all') q.gender = selectedGender.value
+  return q
 })
+
+const pointsUrl = computed(() => leaguePath('/points', standingsQuery.value))
 
 const {
   data: standings,
   pending: pendingStandings,
   error: errorStandings,
   refresh: refreshStandings
-} = useApi<ApiStanding[]>(pointsUrl)
+} = useAsyncData<ApiStanding[]>(
+  'stats-points-league-1',
+  async () => {
+    const raw = await leagueGet<ApiStanding[]>('/points', standingsQuery.value).catch(() => [])
+    return Array.isArray(raw) ? raw : []
+  },
+  {
+    server: false,
+    default: () => [],
+    watch: [seasonPick, selectedCategoryCode, selectedGender]
+  }
+)
 
-const standingsList = computed(() => (Array.isArray(standings.value) ? (standings.value as ApiStanding[]) : []))
+const standingsList = computed(() => (Array.isArray(standings.value) ? standings.value : []))
 
 const standingsHaveActiveFlag = computed(() => {
-  // si el endpoint /points ya trae la bandera, no dependemos de /teams
   return standingsList.value.some(
     (s) => s.isActive != null || s.teamIsActive != null || s.active != null || (s as any).team_active != null
   )
 })
 
 const activeIndexReady = computed(() => {
-  // listo cuando /teams terminó sin error y tenemos al menos 1 equipo
   return !pendingTeams.value && !errorTeams.value && teamsVm.value.length > 0
 })
 
@@ -852,7 +869,6 @@ function standingActiveFlag(s: ApiStanding): boolean | null {
   return toBool(s.isActive ?? s.teamIsActive ?? s.active ?? (s as any).team_active)
 }
 
-// ✅ Solo equipos activos
 const allRows = computed<RowVM[]>(() => {
   const rows = standingsList.value
   const sp = seasonPick.value === 'ALL' ? 0 : Number(seasonPick.value || 0)
@@ -862,11 +878,9 @@ const allRows = computed<RowVM[]>(() => {
   return rows
     .filter((s) => (sp ? Number(s.seasonId || 0) === sp : true))
     .filter((s) => {
-      // 1) si /points trae bandera => úsala
       const flag = standingActiveFlag(s)
       if (flag !== null) return flag
 
-      // 2) si ya cargamos /teams => filtra por id o nombre
       if (activeIndexReady.value) {
         const tid = Number(s.teamId)
         if (Number.isFinite(tid) && activeIds.has(tid)) return true
@@ -875,8 +889,6 @@ const allRows = computed<RowVM[]>(() => {
         return false
       }
 
-      // 3) si no está listo /teams y /points no trae bandera,
-      //    no mostramos nada todavía (evita que se cuelen inactivos)
       return false
     })
     .slice()
@@ -934,8 +946,6 @@ const clearTeamFilters = () => {
   searchQuery.value = ''
 }
 
-watch(pointsUrl, () => refreshStandings())
-
 const prettyDivision = (division: string | null | undefined): string => {
   if (!division) return '—'
   const up = String(division).toUpperCase()
@@ -945,10 +955,6 @@ const prettyDivision = (division: string | null | undefined): string => {
   return division
 }
 
-/* UI states equipos:
-   - si /points ya trae isActive => no necesitamos esperar /teams
-   - si no trae => esperamos a que /teams esté listo para filtrar bien
-*/
 const pendingEquiposUI = computed(() => {
   if (pendingStandings.value) return true
   if (standingsHaveActiveFlag.value) return false
@@ -965,11 +971,6 @@ async function refreshAllEquipos() {
   await refreshTeams()
   await refreshStandings()
 }
-
-/* =========================
-   JUGADORES
-========================= */
-const API_PLAYERS = `${API_BASE}/players`
 
 type PlayerStats = { td: number; int: number; pa: number; sack: number; rec: number }
 
@@ -1000,7 +1001,7 @@ async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
   const chunks = await Promise.all(
     teams.map(async (t) => {
       try {
-        const raw = await $fetch<any>(`${API_BASE}/teams/${t.teamId}/players`)
+        const raw = await leagueGet<any[]>(`/teams/${t.teamId}/players`).catch(() => [])
         const list = unwrapList<any>(raw)
         return list.map((p) => ({ ...p, __teamId: t.teamId, __teamName: t.name }))
       } catch {
@@ -1013,10 +1014,10 @@ async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
 }
 
 const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
-  'stats-players-all',
+  'stats-players-all-league-1',
   async () => {
     try {
-      const raw = await $fetch<any>(API_PLAYERS)
+      const raw = await leagueGet<any[]>('/players')
       const list = unwrapList<any>(raw)
       if (list.length) return list
     } catch {
@@ -1105,21 +1106,23 @@ const filteredPlayers = computed(() => {
   const activeIds = activeTeamIds.value
 
   return playersVm.value.filter((p) => {
-    // ✅ ocultar jugadores de equipos inactivos (si conocemos el catálogo)
     if (activeIndexReady.value && p.teamId && !activeIds.has(p.teamId)) return false
 
     if (tPick !== 'ALL') {
       const id = Number(tPick)
       if (Number.isFinite(id) && p.teamId !== id) return false
     }
+
     if (qNum) {
       const n = String(p.number ?? '')
       if (!n.includes(qNum)) return false
     }
+
     if (qName) {
       const fn = String(p.fullName ?? '').toLowerCase()
       if (!fn.includes(qName)) return false
     }
+
     return true
   })
 })
@@ -1136,7 +1139,6 @@ function clearPlayerFilters() {
   namePick.value = ''
 }
 
-/* pagination 10 */
 const pageSize = 10
 const page = ref(1)
 const totalPages = computed(() => Math.max(1, Math.ceil(sortedPlayers.value.length / pageSize)))
