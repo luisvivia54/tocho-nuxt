@@ -1,148 +1,7 @@
 <template>
   <main class="min-h-screen text-slate-50">
-    <!-- HEADER -->
-    <header class="fixed inset-x-0 top-0 z-[100] border-b border-white/8 bg-[#050816]/88 backdrop-blur-xl">
-      <div class="mx-auto max-w-7xl px-6">
-        <div class="flex h-20 items-center justify-between gap-6">
-          <NuxtLink to="/jueves" class="flex items-center gap-3">
-            <span class="text-[2rem] font-black leading-none tracking-tight text-orange-400">T5</span>
-            <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
-          </NuxtLink>
+    <JuevesHeader />
 
-          <nav class="hidden items-center gap-12 md:flex">
-            <NuxtLink
-              to="/jueves"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Inicio
-              <span
-                v-if="route.path === '/jueves'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/partidos"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/partidos' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Partidos
-              <span
-                v-if="route.path === '/jueves/partidos'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/equipos"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path.startsWith('/jueves/equipos') ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Equipos
-              <span
-                v-if="route.path.startsWith('/jueves/equipos')"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/estadisticas"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/estadisticas' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Estadísticas
-              <span
-                v-if="route.path === '/jueves/estadisticas'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-          </nav>
-
-          <div class="hidden items-center gap-6 md:flex">
-            <NuxtLink
-              to="/"
-              class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
-              aria-label="Ir al home"
-              title="Ir al home"
-            >
-              <Home class="h-5 w-5" />
-            </NuxtLink>
-
-            <a
-              href="https://www.instagram.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-400 transition hover:text-slate-200"
-              aria-label="Instagram"
-            >
-              <Instagram class="h-5 w-5" />
-            </a>
-
-            <a
-              href="https://www.facebook.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-400 transition hover:text-slate-200"
-              aria-label="Facebook"
-            >
-              <Facebook class="h-5 w-5" />
-            </a>
-          </div>
-
-          <button
-            type="button"
-            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 md:hidden"
-            @click="mobileOpen = !mobileOpen"
-          >
-            Menú
-          </button>
-        </div>
-
-        <div v-if="mobileOpen" class="pb-4 md:hidden">
-          <div class="flex flex-col gap-2">
-            <NuxtLink
-              to="/jueves"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Inicio
-            </NuxtLink>
-            <NuxtLink
-              to="/jueves/partidos"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Partidos
-            </NuxtLink>
-            <NuxtLink
-              to="/jueves/equipos"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Equipos
-            </NuxtLink>
-            <NuxtLink
-              to="/jueves/estadisticas"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Estadísticas
-            </NuxtLink>
-            <NuxtLink
-              to="/"
-              class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              <Home class="h-4 w-4" />
-              Home
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- BG -->
     <div class="fixed inset-0 -z-10">
       <div
         class="absolute inset-0 bg-cover bg-center opacity-30"
@@ -152,8 +11,7 @@
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.10),transparent_28%)]" />
     </div>
 
-    <!-- CONTENT -->
-    <section class="relative px-4 pb-12 pt-16 md:px-6">
+    <section class="relative px-4 pb-12 pt-28 md:px-6">
       <div class="mx-auto max-w-7xl">
         <div class="mb-6 flex flex-wrap items-center gap-3">
           <button
@@ -466,18 +324,14 @@
 </template>
 
 <script setup lang="ts">
-import { Facebook, Home, Instagram } from 'lucide-vue-next'
-
-definePageMeta({
-  layout: 'liga-b',
-})
+import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
 useHead({
-  title: 'Estadísticas | Liga Jueves',
+  title: "Estadísticas | Liga Jueves",
 })
 
 type AnyRow = Record<string, unknown>
-type ViewMode = 'equipos' | 'jugadores'
+type ViewMode = "equipos" | "jugadores"
 
 type TeamStanding = {
   rowKey: string
@@ -517,42 +371,40 @@ type TeamMeta = {
   logo: string | null
 }
 
-const route = useRoute()
-const mobileOpen = ref(false)
-const stadiumBg = '/img/hero-stadium.jpg'
+const stadiumBg = "/img/hero-stadium.jpg"
 
-const view = ref<ViewMode>('equipos')
-const search = ref('')
-const selectedSeason = ref('Todas')
-const selectedCategory = ref('Todas')
-const selectedBranch = ref('Todas')
+const view = ref<ViewMode>("equipos")
+const search = ref("")
+const selectedSeason = ref("Todas")
+const selectedCategory = ref("Todas")
+const selectedBranch = ref("Todas")
 const onlyActive = ref(true)
 
 const teamPage = ref(1)
 const pageSize = 10
 
-const API_POINTS_URL = 'https://tocho5-webservice.onrender.com/api/points'
-const API_TEAMS_URL = 'https://tocho5-webservice.onrender.com/api/teams'
+const API_POINTS_URL = "https://tocho5-webservice.onrender.com/api/points"
+const API_TEAMS_URL = "https://tocho5-webservice.onrender.com/api/teams"
 
 function toNumber(value: unknown, fallback = 0): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-function toText(value: unknown, fallback = '—'): string {
-  if (typeof value === 'string' && value.trim()) return value.trim()
-  if (typeof value === 'number') return String(value)
+function toText(value: unknown, fallback = "—"): string {
+  if (typeof value === "string" && value.trim()) return value.trim()
+  if (typeof value === "number") return String(value)
   return fallback
 }
 
 function toBoolean(value: unknown, fallback = true): boolean {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'number') return value === 1
+  if (typeof value === "boolean") return value
+  if (typeof value === "number") return value === 1
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const normalized = value.trim().toLowerCase()
-    if (['true', '1', 'yes', 'si', 'sí', 'active', 'activo'].includes(normalized)) return true
-    if (['false', '0', 'no', 'inactive', 'inactivo'].includes(normalized)) return false
+    if (["true", "1", "yes", "si", "sí", "active", "activo"].includes(normalized)) return true
+    if (["false", "0", "no", "inactive", "inactivo"].includes(normalized)) return false
   }
 
   return fallback
@@ -560,14 +412,14 @@ function toBoolean(value: unknown, fallback = true): boolean {
 
 function pick(row: AnyRow, keys: string[], fallback: unknown = null): unknown {
   for (const key of keys) {
-    const value = key.split('.').reduce<unknown>((acc, part) => {
-      if (acc && typeof acc === 'object' && part in (acc as Record<string, unknown>)) {
+    const value = key.split(".").reduce<unknown>((acc, part) => {
+      if (acc && typeof acc === "object" && part in (acc as Record<string, unknown>)) {
         return (acc as Record<string, unknown>)[part]
       }
       return undefined
     }, row)
 
-    if (value !== undefined && value !== null && value !== '') {
+    if (value !== undefined && value !== null && value !== "") {
       return value
     }
   }
@@ -578,7 +430,7 @@ function pick(row: AnyRow, keys: string[], fallback: unknown = null): unknown {
 function normalizeCollection(payload: unknown): AnyRow[] {
   if (Array.isArray(payload)) return payload as AnyRow[]
 
-  if (payload && typeof payload === 'object') {
+  if (payload && typeof payload === "object") {
     const source = payload as Record<string, unknown>
     if (Array.isArray(source.data)) return source.data as AnyRow[]
     if (Array.isArray(source.items)) return source.items as AnyRow[]
@@ -592,7 +444,7 @@ function normalizeCollection(payload: unknown): AnyRow[] {
 
 async function fetchArray(url: string, timeout = 12000): Promise<AnyRow[]> {
   const response = await $fetch<unknown>(url, {
-    method: 'GET',
+    method: "GET",
     timeout,
   })
   return normalizeCollection(response)
@@ -606,99 +458,99 @@ function normalizePct(value: number): number {
 function normalizeBranch(value: string): string {
   const normalized = value.trim().toLowerCase()
 
-  if (['varonil', 'masculino', 'male', 'm'].includes(normalized)) return 'Varonil'
-  if (['femenil', 'femenino', 'female', 'f'].includes(normalized)) return 'Femenil'
-  if (['mixto', 'mixta', 'mixed'].includes(normalized)) return 'Mixto'
+  if (["varonil", "masculino", "male", "m"].includes(normalized)) return "Varonil"
+  if (["femenil", "femenino", "female", "f"].includes(normalized)) return "Femenil"
+  if (["mixto", "mixta", "mixed"].includes(normalized)) return "Mixto"
 
-  return value || 'Mixto'
+  return value || "Mixto"
 }
 
 function normalizeKey(value: unknown): string {
-  return String(value ?? '').trim().toLowerCase()
+  return String(value ?? "").trim().toLowerCase()
 }
 
 function normalizeTeamMeta(row: AnyRow): TeamMeta {
-  const rawId = pick(row, ['team_id', 'teamId', 'id'], '')
-  const id = String(rawId ?? '').trim()
+  const rawId = pick(row, ["team_id", "teamId", "id"], "")
+  const id = String(rawId ?? "").trim()
 
   const categoryName = toText(
-    pick(row, ['category.name', 'categoryName', 'category', 'categoria', 'division.name', 'divisionName']),
-    'Sin categoría'
+    pick(row, ["category.name", "categoryName", "category", "categoria", "division.name", "divisionName"]),
+    "Sin categoría"
   )
 
   const branchRaw = toText(
-    pick(row, ['category.gender', 'branch', 'rama', 'gender', 'genre']),
-    'Mixto'
+    pick(row, ["category.gender", "branch", "rama", "gender", "genre"]),
+    "Mixto"
   )
 
   return {
     id,
-    teamName: toText(pick(row, ['team_name', 'teamName', 'name']), 'Equipo'),
+    teamName: toText(pick(row, ["team_name", "teamName", "name"]), "Equipo"),
     category: categoryName,
     branch: normalizeBranch(branchRaw),
     season: toText(
-      pick(row, ['season.name', 'seasonName', 'season', 'temporada', 'seasonCode']),
-      'WT'
+      pick(row, ["season.name", "seasonName", "season", "temporada", "seasonCode"]),
+      "WT"
     ),
-    active: toBoolean(pick(row, ['isActive', 'active']), true),
+    active: toBoolean(pick(row, ["isActive", "active"]), true),
     logo: (() => {
-      const value = pick(row, ['logoUrl', 'logo', 'imageUrl', 'photo', 'avatar'], null)
+      const value = pick(row, ["logoUrl", "logo", "imageUrl", "photo", "avatar"], null)
       return value ? String(value) : null
     })(),
   }
 }
 
 function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: number): TeamStanding {
-  const rawTeamId = pick(pointRow, ['team_id', 'teamId', 'id'], null)
+  const rawTeamId = pick(pointRow, ["team_id", "teamId", "id"], null)
 
   const teamId =
     rawTeamId === null || rawTeamId === undefined
       ? null
-      : (typeof rawTeamId === 'number' || typeof rawTeamId === 'string'
+      : (typeof rawTeamId === "number" || typeof rawTeamId === "string"
           ? rawTeamId
           : String(rawTeamId))
 
-  const played = toNumber(pick(pointRow, ['gp', 'games_played', 'played', 'jj', 'pj']), 0)
-  const won = toNumber(pick(pointRow, ['wins', 'won', 'jg', 'pg']), 0)
-  const tied = toNumber(pick(pointRow, ['ties', 'tied', 'empates', 'je']), 0)
+  const played = toNumber(pick(pointRow, ["gp", "games_played", "played", "jj", "pj"]), 0)
+  const won = toNumber(pick(pointRow, ["wins", "won", "jg", "pg"]), 0)
+  const tied = toNumber(pick(pointRow, ["ties", "tied", "empates", "je"]), 0)
   const lost = toNumber(
-    pick(pointRow, ['losses', 'lost', 'jp', 'pp']),
+    pick(pointRow, ["losses", "lost", "jp", "pp"]),
     Math.max(played - won - tied, 0)
   )
 
   const pointsFor = toNumber(
-    pick(pointRow, ['points_for', 'gf', 'pointsFor', 'pf', 'favor']),
+    pick(pointRow, ["points_for", "gf", "pointsFor", "pf", "favor"]),
     0
   )
 
   const pointsAgainst = toNumber(
-    pick(pointRow, ['points_against', 'gc', 'pointsAgainst', 'pc', 'against']),
+    pick(pointRow, ["points_against", "gc", "pointsAgainst", "pc", "against"]),
     0
   )
 
   const pointDiff = toNumber(
-    pick(pointRow, ['pointDiff', 'difference', 'dif', 'diff']),
+    pick(pointRow, ["pointDiff", "difference", "dif", "diff"]),
     pointsFor - pointsAgainst
   )
 
-  const pctValue = pick(pointRow, ['pct', 'percentage', 'winPct'], null)
+  const pctValue = pick(pointRow, ["pct", "percentage", "winPct"], null)
   const pct =
     pctValue !== null && pctValue !== undefined
       ? normalizePct(toNumber(pctValue))
       : (played > 0 ? (won / played) * 100 : 0)
 
   const teamName = toText(
-    pick(pointRow, ['team_name', 'teamName', 'name']),
-    meta?.teamName || 'Equipo'
+    pick(pointRow, ["team_name", "teamName", "name"]),
+    meta?.teamName || "Equipo"
   )
 
   return {
     rowKey: `team-${teamId ?? teamName}-${index}`,
     teamId,
     teamName,
-    season: meta?.season || toText(pick(pointRow, ['season', 'seasonName', 'temporada']), 'WT'),
-    category: meta?.category || toText(pick(pointRow, ['category', 'categoryName', 'categoria']), 'Sin categoría'),
-    branch: meta?.branch || normalizeBranch(toText(pick(pointRow, ['branch', 'rama', 'gender']), 'Mixto')),
+    season: meta?.season || toText(pick(pointRow, ["season", "seasonName", "temporada"]), "WT"),
+    category: meta?.category || toText(pick(pointRow, ["category", "categoryName", "categoria"]), "Sin categoría"),
+    branch: meta?.branch || normalizeBranch(toText(pick(pointRow, ["branch", "rama", "gender"]), "Mixto")),
     played,
     won,
     lost,
@@ -707,7 +559,7 @@ function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: 
     pointsAgainst,
     pointDiff,
     standingPoints: toNumber(
-      pick(pointRow, ['table_points', 'pts', 'points', 'standingPoints', 'puntos']),
+      pick(pointRow, ["table_points", "pts", "points", "standingPoints", "puntos"]),
       0
     ),
     pct,
@@ -722,7 +574,7 @@ const {
   error: pointsError,
   refresh: refreshPoints,
 } = useLazyAsyncData(
-  'jueves-points',
+  "jueves-points",
   async () => {
     return await fetchArray(API_POINTS_URL, 12000)
   },
@@ -738,7 +590,7 @@ const {
   error: teamsError,
   refresh: refreshTeams,
 } = useLazyAsyncData(
-  'jueves-teams',
+  "jueves-teams",
   async () => {
     return await fetchArray(API_TEAMS_URL, 12000)
   },
@@ -777,8 +629,8 @@ const teamRows = computed<TeamStanding[]>(() => {
   const rows = (pointsData.value ?? []) as AnyRow[]
 
   return rows.map((row, index) => {
-    const rawTeamId = pick(row, ['team_id', 'teamId', 'id'], '')
-    const rawTeamName = pick(row, ['team_name', 'teamName', 'name'], '')
+    const rawTeamId = pick(row, ["team_id", "teamId", "id"], "")
+    const rawTeamName = pick(row, ["team_name", "teamName", "name"], "")
     const meta =
       teamMetaById.value.get(normalizeKey(rawTeamId)) ||
       teamMetaByName.value.get(normalizeKey(rawTeamName))
@@ -796,7 +648,7 @@ const loadError = computed(() => {
     pointErr?.message ||
     teamErr?.data?.message ||
     teamErr?.message ||
-    ''
+    ""
   )
 })
 
@@ -804,37 +656,37 @@ const activeTeamsCount = computed(() => filteredTeams.value.filter(item => item.
 
 const seasonOptions = computed<string[]>(() => {
   const values = Array.from(new Set(teamRows.value.map(item => item.season).filter(Boolean)))
-  return ['Todas', ...values.sort((a, b) => a.localeCompare(b, 'es'))]
+  return ["Todas", ...values.sort((a, b) => a.localeCompare(b, "es"))]
 })
 
 const categoryOptions = computed<string[]>(() => {
   const values = Array.from(new Set(teamRows.value.map(item => item.category).filter(Boolean)))
-  return ['Todas', ...values.sort((a, b) => a.localeCompare(b, 'es'))]
+  return ["Todas", ...values.sort((a, b) => a.localeCompare(b, "es"))]
 })
 
 const branchOptions = computed<string[]>(() => {
   const values = Array.from(new Set(teamRows.value.map(item => item.branch).filter(Boolean)))
-  return ['Todas', ...values.sort((a, b) => a.localeCompare(b, 'es'))]
+  return ["Todas", ...values.sort((a, b) => a.localeCompare(b, "es"))]
 })
 
 const viewDescription = computed(() => {
-  return view.value === 'equipos'
-    ? 'Partidos jugados, ganados, perdidos, puntos a favor y en contra, diferencia e índice de victorias.'
-    : 'La vista de jugadores queda lista en cuanto confirmemos el endpoint real del backend.'
+  return view.value === "equipos"
+    ? "Partidos jugados, ganados, perdidos, puntos a favor y en contra, diferencia e índice de victorias."
+    : "La vista de jugadores queda lista en cuanto confirmemos el endpoint real del backend."
 })
 
 const filteredTeams = computed<TeamStanding[]>(() => {
   const query = search.value.trim().toLowerCase()
 
   return [...teamRows.value]
-    .filter(item => selectedSeason.value === 'Todas' || item.season === selectedSeason.value)
-    .filter(item => selectedCategory.value === 'Todas' || item.category === selectedCategory.value)
-    .filter(item => selectedBranch.value === 'Todas' || item.branch === selectedBranch.value)
+    .filter(item => selectedSeason.value === "Todas" || item.season === selectedSeason.value)
+    .filter(item => selectedCategory.value === "Todas" || item.category === selectedCategory.value)
+    .filter(item => selectedBranch.value === "Todas" || item.branch === selectedBranch.value)
     .filter(item => !onlyActive.value || item.active)
     .filter(item => {
       if (!query) return true
       return [item.teamName, item.category, item.branch, item.season]
-        .join(' ')
+        .join(" ")
         .toLowerCase()
         .includes(query)
     })
@@ -844,7 +696,7 @@ const filteredTeams = computed<TeamStanding[]>(() => {
         b.pct - a.pct ||
         b.pointDiff - a.pointDiff ||
         b.pointsFor - a.pointsFor ||
-        a.teamName.localeCompare(b.teamName, 'es')
+        a.teamName.localeCompare(b.teamName, "es")
       )
     })
 })
@@ -866,25 +718,21 @@ watch([search, selectedSeason, selectedCategory, selectedBranch, onlyActive, vie
   teamPage.value = 1
 })
 
-watch(() => route.path, () => {
-  mobileOpen.value = false
-})
-
 watch(seasonOptions, (options) => {
   if (!options.includes(selectedSeason.value)) {
-    selectedSeason.value = 'Todas'
+    selectedSeason.value = "Todas"
   }
 })
 
 watch(categoryOptions, (options) => {
   if (!options.includes(selectedCategory.value)) {
-    selectedCategory.value = 'Todas'
+    selectedCategory.value = "Todas"
   }
 })
 
 watch(branchOptions, (options) => {
   if (!options.includes(selectedBranch.value)) {
-    selectedBranch.value = 'Todas'
+    selectedBranch.value = "Todas"
   }
 })
 
@@ -906,14 +754,14 @@ function buildPagination(current: number, total: number): PageNode[] {
   }
 
   const pageNumbers = Array.from(new Set([1, total, current - 1, current, current + 1]))
-    .filter((n): n is number => typeof n === 'number' && n >= 1 && n <= total)
+    .filter((n): n is number => typeof n === "number" && n >= 1 && n <= total)
     .sort((a, b) => a - b)
 
   const nodes: PageNode[] = []
 
   for (let i = 0; i < pageNumbers.length; i++) {
     const value = pageNumbers[i]
-    if (typeof value !== 'number') continue
+    if (typeof value !== "number") continue
 
     nodes.push({
       key: `page-${value}`,
@@ -924,10 +772,10 @@ function buildPagination(current: number, total: number): PageNode[] {
     })
 
     const next = pageNumbers[i + 1]
-    if (typeof next === 'number' && next - value > 1) {
+    if (typeof next === "number" && next - value > 1) {
       nodes.push({
         key: `ellipsis-${value}-${next}`,
-        label: '...',
+        label: "...",
         value: null,
         active: false,
         ellipsis: true,
@@ -946,7 +794,7 @@ function goToTeamPage(page: number): void {
 }
 
 function handleTeamPageNode(page: number | null): void {
-  if (typeof page !== 'number') return
+  if (typeof page !== "number") return
   goToTeamPage(page)
 }
 
@@ -955,10 +803,10 @@ function setView(next: ViewMode): void {
 }
 
 function clearFilters(): void {
-  search.value = ''
-  selectedSeason.value = 'Todas'
-  selectedCategory.value = 'Todas'
-  selectedBranch.value = 'Todas'
+  search.value = ""
+  selectedSeason.value = "Todas"
+  selectedCategory.value = "Todas"
+  selectedBranch.value = "Todas"
   onlyActive.value = true
 }
 
@@ -973,11 +821,11 @@ async function reloadData(): Promise<void> {
 
 function initials(name: string): string {
   return name
-    .split(' ')
+    .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map(part => part.charAt(0).toUpperCase())
-    .join('')
+    .join("")
 }
 
 function signedNumber(value: number): string {
@@ -990,14 +838,14 @@ function formatPct(value: number): string {
 }
 
 function branchBadgeClass(branch: string): string {
-  if (branch === 'Varonil') return 'bg-cyan-400/15 text-cyan-200'
-  if (branch === 'Femenil') return 'bg-pink-400/15 text-pink-200'
-  return 'bg-amber-400/15 text-amber-200'
+  if (branch === "Varonil") return "bg-cyan-400/15 text-cyan-200"
+  if (branch === "Femenil") return "bg-pink-400/15 text-pink-200"
+  return "bg-amber-400/15 text-amber-200"
 }
 
 function diffBadgeClass(value: number): string {
-  if (value > 0) return 'bg-emerald-400/15 text-emerald-200'
-  if (value < 0) return 'bg-rose-400/15 text-rose-200'
-  return 'bg-slate-400/15 text-slate-200'
+  if (value > 0) return "bg-emerald-400/15 text-emerald-200"
+  if (value < 0) return "bg-rose-400/15 text-rose-200"
+  return "bg-slate-400/15 text-slate-200"
 }
 </script>

@@ -1,161 +1,12 @@
 <template>
   <main class="min-h-screen text-slate-50">
-    <!-- HEADER INFALIBLE -->
-    <header class="fixed inset-x-0 top-0 z-[100] border-b border-white/8 bg-[#050816]/88 backdrop-blur-xl">
-      <div class="mx-auto max-w-7xl px-6">
-        <div class="flex h-20 items-center justify-between gap-6">
-          <!-- Left -->
-          <NuxtLink to="/jueves" class="flex items-center gap-3">
-            <span class="text-[2rem] font-black leading-none tracking-tight text-orange-400">T5</span>
-            <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
-          </NuxtLink>
-
-          <!-- Center -->
-          <nav class="hidden md:flex items-center gap-12">
-            <NuxtLink
-              to="/jueves"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Inicio
-              <span
-                v-if="route.path === '/jueves'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/partidos"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/partidos' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Partidos
-              <span
-                v-if="route.path === '/jueves/partidos'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/equipos"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/equipos' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Equipos
-              <span
-                v-if="route.path === '/jueves/equipos'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/estadisticas"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/estadisticas' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Estadísticas
-              <span
-                v-if="route.path === '/jueves/estadisticas'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-          </nav>
-
-          <!-- Right -->
-          <div class="hidden md:flex items-center gap-6">
-            <NuxtLink
-              to="/"
-              class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
-              aria-label="Ir al home"
-              title="Ir al home"
-            >
-              <Home class="h-5 w-5" />
-            </NuxtLink>
-
-            <a
-              href="https://www.instagram.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-400 transition hover:text-slate-200"
-              aria-label="Instagram"
-            >
-              <Instagram class="h-5 w-5" />
-            </a>
-
-            <a
-              href="https://www.facebook.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-400 transition hover:text-slate-200"
-              aria-label="Facebook"
-            >
-              <Facebook class="h-5 w-5" />
-            </a>
-          </div>
-
-          <!-- Mobile -->
-          <button
-            type="button"
-            class="md:hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200"
-            @click="mobileOpen = !mobileOpen"
-          >
-            Menú
-          </button>
-        </div>
-
-        <!-- Mobile menu -->
-        <div v-if="mobileOpen" class="md:hidden pb-4">
-          <div class="flex flex-col gap-2">
-            <NuxtLink
-              to="/jueves"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Inicio
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/partidos"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Partidos
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/equipos"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Equipos
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/estadisticas"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Estadísticas
-            </NuxtLink>
-
-            <NuxtLink
-              to="/"
-              class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              <Home class="h-4 w-4" />
-              Home
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-    </header>
+    <JuevesHeader />
 
     <!-- BG -->
     <div class="fixed inset-0 -z-10">
       <div
         class="absolute inset-0 bg-cover bg-center opacity-30"
-        :style="{ backgroundImage: `url(${stadiumBg})` }"
+        :style="{ backgroundImage: `url(${heroBackgroundSrc})` }"
       />
       <div class="absolute inset-0 bg-[#050816]" />
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.10),transparent_28%)]" />
@@ -167,43 +18,44 @@
         class="absolute inset-0 flex items-center justify-center transition-opacity duration-100"
         :style="{ opacity: heroOpacity * 0.14 }"
       >
-        <img :src="tocherosLogo" alt="Hero stadium" class="h-full w-full object-cover" />
+        <img :src="heroBackgroundSrc" alt="Hero stadium" class="h-full w-full object-cover" />
       </div>
 
       <div class="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-6 text-center">
         <ScrollReveal>
           <div class="pill-badge" style="border-color: hsla(28, 100%, 55%, 0.3)">
             <span class="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-            Liga de Jueves · Desarrollo
+            {{ heroBadge }}
           </div>
         </ScrollReveal>
 
         <ScrollReveal :delay="100">
           <h1 class="font-display font-900 max-w-4xl text-4xl leading-[0.95] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            <span class="text-foreground">Toda la liga al</span>
+            <span class="text-foreground">{{ heroTitleLine1 }}</span>
             <br />
-            <span class="text-accent">alcance de tu mano</span>
+            <span class="text-accent">{{ heroTitleLine2 }}</span>
           </h1>
         </ScrollReveal>
 
         <ScrollReveal :delay="200">
           <p class="text-base md:text-lg text-muted-foreground">
-            Patrocinado por <span class="font-semibold text-accent">Dicass</span>
+            {{ heroSponsorPrefix }}
+            <span class="font-semibold text-accent">{{ heroSponsorName }}</span>
           </p>
         </ScrollReveal>
 
         <ScrollReveal :delay="300">
           <div class="mt-2 flex flex-col items-center gap-4 sm:flex-row">
             <NuxtLink
-              to="/jueves/partidos"
+              :to="heroPrimaryTo"
               class="btn-hero inline-flex items-center justify-center gap-3 rounded-2xl bg-accent px-8 py-4 text-sm font-semibold uppercase tracking-wider text-accent-foreground transition-all hover:brightness-110"
               style="min-height: 52px"
             >
-              Ver Partidos <span aria-hidden="true">→</span>
+              {{ heroPrimaryLabel }} <span aria-hidden="true">→</span>
             </NuxtLink>
 
-            <NuxtLink to="/jueves/equipos" class="btn-hero-secondary">
-              Ver Equipos <span aria-hidden="true">→</span>
+            <NuxtLink :to="heroSecondaryTo" class="btn-hero-secondary">
+              {{ heroSecondaryLabel }} <span aria-hidden="true">→</span>
             </NuxtLink>
           </div>
         </ScrollReveal>
@@ -214,13 +66,28 @@
     <section class="py-12">
       <div class="section-container">
         <ScrollReveal>
-          <div class="eyebrow justify-center mb-8">Patrocinadores</div>
+          <div class="eyebrow justify-center mb-8">{{ sponsorsTitle }}</div>
         </ScrollReveal>
 
         <ScrollReveal :delay="150">
           <div class="flex flex-wrap items-center justify-center gap-10">
-            <div v-for="s in sponsors" :key="s.name" class="flex h-24 w-40 items-center justify-center">
+            <div v-for="s in sponsors" :key="s.id" class="flex h-24 w-40 items-center justify-center">
+              <a
+                v-if="s.url"
+                :href="s.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex h-full w-full items-center justify-center"
+              >
+                <img
+                  :src="s.logo"
+                  :alt="s.name"
+                  class="max-h-full max-w-full object-contain grayscale opacity-70 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
+                />
+              </a>
+
               <img
+                v-else
                 :src="s.logo"
                 :alt="s.name"
                 class="max-h-full max-w-full object-contain grayscale opacity-70 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
@@ -267,7 +134,7 @@
     <section class="py-16">
       <div class="section-container">
         <ScrollReveal>
-          <div class="eyebrow justify-center mb-10">Fotos del Torneo</div>
+          <div class="eyebrow justify-center mb-10">{{ galleryTitle }}</div>
         </ScrollReveal>
 
         <ScrollReveal :delay="150">
@@ -278,7 +145,7 @@
             >
               <img
                 v-for="(photo, i) in photos"
-                :key="i"
+                :key="`${photo}-${i}`"
                 :src="photo"
                 :alt="`Torneo foto ${i + 1}`"
                 class="h-full w-full flex-shrink-0 object-cover"
@@ -326,9 +193,9 @@
           <div class="mb-8 text-center">
             <h2 class="mb-2 font-display text-3xl font-bold text-foreground md:text-4xl">
               <span class="mr-2 inline-block text-accent">📍</span>
-              Sede del Torneo
+              {{ venueTitle }}
             </h2>
-            <p class="text-sm text-muted-foreground">Encuentra la ubicación del torneo aquí</p>
+            <p class="text-sm text-muted-foreground">{{ venueSubtitle }}</p>
           </div>
         </ScrollReveal>
 
@@ -354,7 +221,7 @@
               rel="noopener noreferrer"
               class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-accent transition-colors hover:text-accent/80"
             >
-              📍 Abrir en Google Maps
+              {{ mapsLabel }}
             </a>
           </div>
         </ScrollReveal>
@@ -377,8 +244,10 @@
 </template>
 
 <script setup lang="ts">
-import { Facebook, Home, Instagram } from "lucide-vue-next"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
+import { useAsyncData, useRuntimeConfig } from "#imports"
 import ScrollReveal from "~/components/ScrollReveal.vue"
+import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
 type UiMatch = {
   id: string
@@ -388,22 +257,244 @@ type UiMatch = {
   time: string
 }
 
-const route = useRoute()
-const mobileOpen = ref(false)
+type HeroButton = {
+  label: string
+  to: string
+}
 
-const stadiumBg = "/img/hero-stadium.jpg"
-const tocherosLogo = "/img/hero-stadium.jpg"
-const dicassLogo = "/img/sponsors/dicass-logo.png"
-const blitzflagLogo = "/img/sponsors/blitzflag-logo.png"
-const martiLogo = "/img/sponsors/underarmour-logo.png"
-const medimexLogo = "/img/sponsors/medimex-logo.png"
+type SponsorItem = {
+  id: string
+  name: string
+  logo: string
+  url: string
+}
 
-const sponsors = [
-  { name: "Dicass", logo: dicassLogo },
-  { name: "BlitzFlag", logo: blitzflagLogo },
-  { name: "Under Armour", logo: martiLogo },
-  { name: "Fundación Medimex", logo: medimexLogo },
-]
+type GalleryImage = {
+  id: string
+  src: string
+}
+
+type JuevesHomeConfig = {
+  hero: {
+    badge: string
+    titleLine1: string
+    titleLine2: string
+    sponsorPrefix: string
+    sponsorName: string
+    backgroundImage: string
+    primaryButton: HeroButton
+    secondaryButton: HeroButton
+  }
+  sponsors: {
+    title: string
+    items: SponsorItem[]
+  }
+  gallery: {
+    title: string
+    images: GalleryImage[]
+  }
+  venue: {
+    title: string
+    subtitle: string
+    embedUrl: string
+    mapsUrl: string
+    mapsLabel: string
+  }
+}
+
+function normalizeApiBase(v: string) {
+  const s = String(v || "").trim().replace(/\/+$/, "")
+  if (!s) return "https://tocho5-api.tochero5.mx/api"
+  return s.endsWith("/api") ? s : `${s}/api`
+}
+
+function clone<T>(x: T): T {
+  return JSON.parse(JSON.stringify(x))
+}
+
+const DEFAULT_HOME: JuevesHomeConfig = {
+  hero: {
+    badge: "LIGA DE JUEVES · DESARROLLO",
+    titleLine1: "Toda la liga al",
+    titleLine2: "alcance de tu mano",
+    sponsorPrefix: "Patrocinado por",
+    sponsorName: "Dicass",
+    backgroundImage: "/img/hero-stadium.jpg",
+    primaryButton: {
+      label: "VER PARTIDOS",
+      to: "/jueves/partidos",
+    },
+    secondaryButton: {
+      label: "VER EQUIPOS",
+      to: "/jueves/equipos",
+    },
+  },
+  sponsors: {
+    title: "PATROCINADORES",
+    items: [
+      { id: "dicass", name: "Dicass", logo: "/img/sponsors/dicass-logo.png", url: "https://dicass.com.mx/" },
+      { id: "blitzflag", name: "BlitzFlag", logo: "/img/sponsors/blitzflag-logo.png", url: "" },
+      { id: "under-armour", name: "Under Armour", logo: "/img/sponsors/underarmour-logo.png", url: "https://www.underarmour.com.mx/" },
+      { id: "medimex", name: "Fundación Medimex", logo: "/img/sponsors/medimex-logo.png", url: "" },
+    ],
+  },
+  gallery: {
+    title: "FOTOS DEL TORNEO",
+    images: [
+      { id: "gal-1", src: "/img/carrusel1.jpg" },
+      { id: "gal-2", src: "/img/carrusel2.jpg" },
+      { id: "gal-3", src: "/img/carrusel3.jpg" },
+      { id: "gal-4", src: "/img/liga-jueves.png" },
+    ],
+  },
+  venue: {
+    title: "Sede del Torneo",
+    subtitle: "Encuentra la ubicación del torneo aquí",
+    embedUrl:
+      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3732.6!2d-103.4!3d20.65!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjDCsDM5JzAwLjAiTiAxMDPCsDI0JzAwLjAiVw!5e0!3m2!1ses!2smx!4v1700000000000",
+    mapsUrl: "https://maps.app.goo.gl/FLdwnEMaoJvpMuEDA",
+    mapsLabel: "📍 ABRIR EN GOOGLE MAPS",
+  },
+}
+
+function safeApplyParsed(parsed: any): JuevesHomeConfig {
+  const merged: JuevesHomeConfig = clone(DEFAULT_HOME)
+  const raw = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed
+
+  if (raw && typeof raw === "object") {
+    if (raw.hero && typeof raw.hero === "object") {
+      merged.hero.badge = String(raw.hero.badge ?? merged.hero.badge)
+      merged.hero.titleLine1 = String(raw.hero.titleLine1 ?? raw.hero.title ?? merged.hero.titleLine1)
+      merged.hero.titleLine2 = String(raw.hero.titleLine2 ?? raw.hero.subtitle ?? merged.hero.titleLine2)
+      merged.hero.sponsorPrefix = String(raw.hero.sponsorPrefix ?? merged.hero.sponsorPrefix)
+      merged.hero.sponsorName = String(raw.hero.sponsorName ?? merged.hero.sponsorName)
+      merged.hero.backgroundImage = String(
+        raw.hero.backgroundImage ??
+          raw.hero.image ??
+          raw.hero.images?.[0]?.src ??
+          merged.hero.backgroundImage
+      )
+
+      if (raw.hero.primaryButton && typeof raw.hero.primaryButton === "object") {
+        merged.hero.primaryButton.label = String(raw.hero.primaryButton.label ?? merged.hero.primaryButton.label)
+        merged.hero.primaryButton.to = String(raw.hero.primaryButton.to ?? merged.hero.primaryButton.to)
+      }
+
+      if (raw.hero.secondaryButton && typeof raw.hero.secondaryButton === "object") {
+        merged.hero.secondaryButton.label = String(raw.hero.secondaryButton.label ?? merged.hero.secondaryButton.label)
+        merged.hero.secondaryButton.to = String(raw.hero.secondaryButton.to ?? merged.hero.secondaryButton.to)
+      }
+    }
+
+    if (raw.sponsors && typeof raw.sponsors === "object" && !Array.isArray(raw.sponsors)) {
+      merged.sponsors.title = String(raw.sponsors.title ?? merged.sponsors.title)
+
+      if (Array.isArray(raw.sponsors.items)) {
+        merged.sponsors.items = raw.sponsors.items
+          .filter((x: any) => x && typeof x === "object")
+          .map((x: any) => ({
+            id: String(x.id ?? `sp-${Math.random().toString(16).slice(2)}`),
+            name: String(x.name ?? ""),
+            logo: String(x.logo ?? ""),
+            url: String(x.url ?? ""),
+          }))
+      }
+    } else if (Array.isArray(raw.sponsors)) {
+      merged.sponsors.items = raw.sponsors
+        .filter((x: any) => x && typeof x === "object")
+        .map((x: any) => ({
+          id: String(x.id ?? `sp-${Math.random().toString(16).slice(2)}`),
+          name: String(x.name ?? ""),
+          logo: String(x.logo ?? ""),
+          url: String(x.url ?? ""),
+        }))
+    }
+
+    if (raw.gallery && typeof raw.gallery === "object") {
+      merged.gallery.title = String(raw.gallery.title ?? merged.gallery.title)
+
+      if (Array.isArray(raw.gallery.images)) {
+        merged.gallery.images = raw.gallery.images
+          .filter((x: any) => x && typeof x === "object")
+          .map((x: any) => ({
+            id: String(x.id ?? `gal-${Math.random().toString(16).slice(2)}`),
+            src: String(x.src ?? ""),
+          }))
+      }
+    }
+
+    if (raw.venue && typeof raw.venue === "object") {
+      merged.venue.title = String(raw.venue.title ?? merged.venue.title)
+      merged.venue.subtitle = String(raw.venue.subtitle ?? merged.venue.subtitle)
+      merged.venue.embedUrl = String(raw.venue.embedUrl ?? merged.venue.embedUrl)
+      merged.venue.mapsUrl = String(raw.venue.mapsUrl ?? merged.venue.mapsUrl)
+      merged.venue.mapsLabel = String(raw.venue.mapsLabel ?? merged.venue.mapsLabel)
+    } else if (raw.location && typeof raw.location === "object") {
+      merged.venue.mapsUrl = String(raw.location.mapsUrl ?? merged.venue.mapsUrl)
+    }
+  }
+
+  if (!Array.isArray(merged.sponsors.items) || merged.sponsors.items.length === 0) {
+    merged.sponsors.items = clone(DEFAULT_HOME.sponsors.items)
+  }
+
+  if (!Array.isArray(merged.gallery.images) || merged.gallery.images.length === 0) {
+    merged.gallery.images = clone(DEFAULT_HOME.gallery.images)
+  }
+
+  return merged
+}
+
+const runtime = useRuntimeConfig()
+const API_BASE = normalizeApiBase(((runtime.public as any)?.apiBase as string) || "https://tocho5-api.tochero5.mx")
+const HOME_CONFIG_ENDPOINT = `${API_BASE}/site-configs/jueves-home`
+
+const { data: homeConfigData } = await useAsyncData(
+  "jueves-home-config",
+  async () => {
+    try {
+      const raw = await $fetch<any>(HOME_CONFIG_ENDPOINT)
+      return safeApplyParsed(raw)
+    } catch {
+      return clone(DEFAULT_HOME)
+    }
+  }
+)
+
+const homeConfig = computed<JuevesHomeConfig>(() => {
+  return safeApplyParsed(homeConfigData.value ?? DEFAULT_HOME)
+})
+
+const heroBackgroundSrc = computed(() => homeConfig.value.hero.backgroundImage || DEFAULT_HOME.hero.backgroundImage)
+const heroBadge = computed(() => homeConfig.value.hero.badge || DEFAULT_HOME.hero.badge)
+const heroTitleLine1 = computed(() => homeConfig.value.hero.titleLine1 || DEFAULT_HOME.hero.titleLine1)
+const heroTitleLine2 = computed(() => homeConfig.value.hero.titleLine2 || DEFAULT_HOME.hero.titleLine2)
+const heroSponsorPrefix = computed(() => homeConfig.value.hero.sponsorPrefix || DEFAULT_HOME.hero.sponsorPrefix)
+const heroSponsorName = computed(() => homeConfig.value.hero.sponsorName || DEFAULT_HOME.hero.sponsorName)
+const heroPrimaryLabel = computed(() => homeConfig.value.hero.primaryButton.label || DEFAULT_HOME.hero.primaryButton.label)
+const heroPrimaryTo = computed(() => homeConfig.value.hero.primaryButton.to || DEFAULT_HOME.hero.primaryButton.to)
+const heroSecondaryLabel = computed(() => homeConfig.value.hero.secondaryButton.label || DEFAULT_HOME.hero.secondaryButton.label)
+const heroSecondaryTo = computed(() => homeConfig.value.hero.secondaryButton.to || DEFAULT_HOME.hero.secondaryButton.to)
+
+const sponsorsTitle = computed(() => homeConfig.value.sponsors.title || DEFAULT_HOME.sponsors.title)
+const sponsors = computed(() => {
+  return homeConfig.value.sponsors.items.length ? homeConfig.value.sponsors.items : DEFAULT_HOME.sponsors.items
+})
+
+const galleryTitle = computed(() => homeConfig.value.gallery.title || DEFAULT_HOME.gallery.title)
+const photos = computed(() => {
+  const arr = homeConfig.value.gallery.images
+    .map((x) => String(x.src || "").trim())
+    .filter(Boolean)
+
+  return arr.length ? arr : DEFAULT_HOME.gallery.images.map((x) => x.src)
+})
+
+const venueTitle = computed(() => homeConfig.value.venue.title || DEFAULT_HOME.venue.title)
+const venueSubtitle = computed(() => homeConfig.value.venue.subtitle || DEFAULT_HOME.venue.subtitle)
+const mapsEmbed = computed(() => homeConfig.value.venue.embedUrl || DEFAULT_HOME.venue.embedUrl)
+const mapsLink = computed(() => homeConfig.value.venue.mapsUrl || DEFAULT_HOME.venue.mapsUrl)
+const mapsLabel = computed(() => homeConfig.value.venue.mapsLabel || DEFAULT_HOME.venue.mapsLabel)
 
 function pick(obj: any, keys: string[]) {
   for (const k of keys) {
@@ -492,27 +583,34 @@ const matches = computed<UiMatch[]>(() => {
   return real.length > 0 ? real : fallbackMatches
 })
 
-const photos = [
-  "/img/carrusel1.jpg",
-  "/img/carrusel2.jpg",
-  "/img/carrusel3.jpg",
-  "/img/liga-jueves.png",
-]
-
-const mapsEmbed =
-  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3732.6!2d-103.4!3d20.65!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjDCsDM5JzAwLjAiTiAxMDPCsDI0JzAwLjAiVw!5e0!3m2!1ses!2smx!4v1700000000000"
-const mapsLink = "https://maps.app.goo.gl/FLdwnEMaoJvpMuEDA"
-
 const heroOpacity = ref(1)
 const currentPhoto = ref(0)
 
 function nextPhoto() {
-  currentPhoto.value = currentPhoto.value === photos.length - 1 ? 0 : currentPhoto.value + 1
+  const total = photos.value.length
+  if (!total) return
+  currentPhoto.value = currentPhoto.value === total - 1 ? 0 : currentPhoto.value + 1
 }
 
 function prevPhoto() {
-  currentPhoto.value = currentPhoto.value === 0 ? photos.length - 1 : currentPhoto.value - 1
+  const total = photos.value.length
+  if (!total) return
+  currentPhoto.value = currentPhoto.value === 0 ? total - 1 : currentPhoto.value - 1
 }
+
+watch(
+  () => photos.value.length,
+  (len) => {
+    if (len <= 0) {
+      currentPhoto.value = 0
+      return
+    }
+    if (currentPhoto.value > len - 1) {
+      currentPhoto.value = 0
+    }
+  },
+  { immediate: true }
+)
 
 let onScroll: (() => void) | null = null
 

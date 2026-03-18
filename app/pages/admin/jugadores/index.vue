@@ -13,7 +13,6 @@
                 Jugadores (Admin)
               </h1>
 
-              <!-- indicador de sesión: NO muestra endpoints -->
               <span
                 class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold"
                 :class="authOk ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'"
@@ -36,7 +35,6 @@
               ⟳ Refrescar
             </button>
 
-            <!-- ✅ PDF CURP del filtro -->
             <button
               type="button"
               class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
@@ -60,7 +58,6 @@
         <!-- Filtros -->
         <section class="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <!-- Equipo (específico) -->
             <div class="md:col-span-4">
               <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                 Equipo
@@ -91,7 +88,6 @@
               </div>
             </div>
 
-            <!-- Rama (code) -->
             <div class="md:col-span-2">
               <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                 Rama (code)
@@ -122,7 +118,6 @@
               </div>
             </div>
 
-            <!-- Categoría (gender) -->
             <div class="md:col-span-2">
               <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                 Categoría (gender)
@@ -153,7 +148,6 @@
               </div>
             </div>
 
-            <!-- Buscar -->
             <div class="md:col-span-4">
               <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
                 Buscar (nombre / curp / correo / tel / equipo)
@@ -197,7 +191,6 @@
               </div>
             </div>
 
-            <!-- Chips de estado -->
             <div class="md:col-span-12 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 pt-1">
               <span class="text-slate-400">Estado:</span>
 
@@ -605,9 +598,6 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRuntimeConfig, useAsyncData, useNuxtApp } from '#imports'
 
-/* =========================
-   API (interno)
-========================= */
 const config = useRuntimeConfig()
 const nuxtApp = useNuxtApp()
 
@@ -618,13 +608,10 @@ function normalizeApiBase(v: string) {
 }
 
 const API_BASE = normalizeApiBase(((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx')
-const API_TEAMS = `${API_BASE}/teams`            // ✅ para /teams/{id}/players
-const API_TEAMS_LIST = `${API_BASE}/teams/list`  // ✅ trae code/gender en projection
+const API_TEAMS = `${API_BASE}/teams`
+const API_TEAMS_LIST = `${API_BASE}/teams/list`
 const API_CATEGORIES = `${API_BASE}/categories`
 
-/* =========================
-   AUTH (Keycloak)
-========================= */
 const authOk = ref(false)
 
 function getKeycloakClient(): { source: string; client: any } | null {
@@ -680,6 +667,7 @@ async function waitForToken(maxMs = 2500) {
 }
 
 type HeadersMap = Record<string, string>
+
 async function authHeaders(json = false): Promise<HeadersMap> {
   const token = await waitForToken()
   const h: HeadersMap = {}
@@ -688,9 +676,6 @@ async function authHeaders(json = false): Promise<HeadersMap> {
   return h
 }
 
-/* =========================
-   Helpers
-========================= */
 function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
@@ -722,35 +707,23 @@ function safeErr(e: any) {
   return [status ? `status: ${status}` : '', msg ? `message: ${msg}` : ''].filter(Boolean).join('\n')
 }
 
-/** pool simple para limitar concurrencia */
-async function asyncPool<T, R>(
-  poolLimit: number,
-  array: T[],
-  iteratorFn: (item: T, idx: number) => Promise<R>
-): Promise<R[]> {
-  const ret: Promise<R>[] = []
-  const executing: Promise<any>[] = []
-
-  for (let i = 0; i < array.length; i++) {
-    const item = array[i]
-    const p = Promise.resolve().then(() => iteratorFn(item, i))
-    ret.push(p)
-
-    if (poolLimit <= array.length) {
-      const e = p.then(() => executing.splice(executing.indexOf(e), 1))
-      executing.push(e)
-      if (executing.length >= poolLimit) await Promise.race(executing)
-    }
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  if (size <= 0) return [arr.slice()]
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) {
+    out.push(arr.slice(i, i + size))
   }
-  return Promise.all(ret)
+  return out
 }
 
 function pad2(n: number) {
   return String(n).padStart(2, '0')
 }
+
 function ymdLocal(d = new Date()) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
+
 function sanitizeFileName(s: string) {
   return String(s || '')
     .trim()
@@ -759,10 +732,12 @@ function sanitizeFileName(s: string) {
     .slice(0, 80)
 }
 
-/* =========================
-   Types
-========================= */
-type TeamVM = { teamId: number; name: string; code: string | null; gender: string | null }
+type TeamVM = {
+  teamId: number
+  name: string
+  code: string | null
+  gender: string | null
+}
 
 type PlayerVM = {
   id: number
@@ -786,9 +761,6 @@ type CategoryDto = {
   gender: string
 }
 
-/* =========================
-   Fetch Categories (para options)
-========================= */
 const {
   data: categoriesData,
   pending: categoriesPending,
@@ -811,31 +783,30 @@ const {
 const ramaOptions = computed(() => {
   const arr = unwrapList<CategoryDto>(categoriesData.value)
   const set = new Set<string>()
-  for (const c of arr) if (c?.code) set.add(String(c.code).toUpperCase())
+  for (const c of arr) {
+    if (c?.code) set.add(String(c.code).toUpperCase())
+  }
   return Array.from(set).sort()
 })
 
 const categoriaOptions = computed(() => {
   const arr = unwrapList<CategoryDto>(categoriesData.value)
   const set = new Set<string>()
-  for (const c of arr) if (c?.gender) set.add(String(c.gender).toUpperCase())
+  for (const c of arr) {
+    if (c?.gender) set.add(String(c.gender).toUpperCase())
+  }
   return Array.from(set).sort()
 })
 
-/* =========================
-   Fetch Teams (✅ usa /teams/list para traer code/gender)
-========================= */
 const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
   'admin-players-teams',
   async () => {
     const h = await authHeaders(false)
 
-    // 1) intenta /teams/list (ideal)
     try {
       const raw = await $fetch<any>(API_TEAMS_LIST, { headers: Object.keys(h).length ? h : undefined })
       return unwrapList<any>(raw)
     } catch {
-      // 2) fallback
       try {
         const raw2 = await $fetch<any>(API_TEAMS_LIST)
         return unwrapList<any>(raw2)
@@ -886,27 +857,36 @@ const teamById = computed(() => {
   return m
 })
 
-/* =========================
-   Fetch Players (✅ SIEMPRE por /teams/{id}/players)
-========================= */
 async function fetchPlayersByTeams(): Promise<any[]> {
   const h = await authHeaders(false)
   if (!h.Authorization) throw new Error('No se pudo obtener sesión')
 
-  const teamIds = teamsVm.value.map((t) => t.teamId).filter((n) => Number.isFinite(n))
+  const teamIds = teamsVm.value
+    .map((t) => t.teamId)
+    .filter((n) => Number.isFinite(n))
+
   if (!teamIds.length) return []
 
-  const chunks = await asyncPool(6, teamIds, async (tid) => {
-    try {
-      const raw = await $fetch<any>(`${API_TEAMS}/${tid}/players`, { headers: h })
-      const list = unwrapList<any>(raw)
-      return list.map((p: any) => ({ ...p, __teamId: tid }))
-    } catch {
-      return []
-    }
-  })
+  const chunks = chunkArray(teamIds, 6)
+  const out: any[] = []
 
-  return chunks.flat()
+  for (const group of chunks) {
+    const results = await Promise.all(
+      group.map(async (tid) => {
+        try {
+          const raw = await $fetch<any>(`${API_TEAMS}/${tid}/players`, { headers: h })
+          const list = unwrapList<any>(raw)
+          return list.map((p: any) => ({ ...p, __teamId: tid }))
+        } catch {
+          return [] as any[]
+        }
+      })
+    )
+
+    out.push(...results.flat())
+  }
+
+  return out
 }
 
 const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
@@ -940,7 +920,6 @@ const playersVm = computed<PlayerVM[]>(() => {
       const teamNameFromApi = String(x.teamName ?? x.team_name ?? x.team?.name ?? '').trim()
       const teamName = teamNameFromApi || t?.name || null
 
-      // code/gender desde TeamVM (porque /teams/{id}/players no los manda)
       const codeVal =
         x.category?.code ??
         x.categoryCode ??
@@ -949,6 +928,7 @@ const playersVm = computed<PlayerVM[]>(() => {
         x.team?.categoryCode ??
         x.team?.code ??
         null
+
       const code = (codeVal ? String(codeVal).toUpperCase() : (t?.code || null)) ?? null
 
       const genderVal =
@@ -959,6 +939,7 @@ const playersVm = computed<PlayerVM[]>(() => {
         x.team?.gender ??
         x.team?.categoryGender ??
         null
+
       const gender = (genderVal ? String(genderVal).toUpperCase() : (t?.gender || null)) ?? null
 
       const curp = x.curp ?? x.CURP ?? null
@@ -988,9 +969,6 @@ const playersVm = computed<PlayerVM[]>(() => {
     .filter((p) => Number.isFinite(p.id))
 })
 
-/* =========================
-   Filters + Pagination (equipo + code + gender + search)
-========================= */
 const q = ref('')
 const teamPick = ref<'ALL' | string>('ALL')
 const selectedRama = ref<string>('all')
@@ -1053,6 +1031,7 @@ const totalPages = computed(() => Math.max(1, Math.ceil(filteredPlayers.value.le
 watch([q, selectedRama, selectedCategoria, teamPick], () => {
   page.value = 1
 })
+
 watch(totalPages, (tp) => {
   if (page.value > tp) page.value = tp
 })
@@ -1071,18 +1050,22 @@ function clearSearch() {
   q.value = ''
   page.value = 1
 }
+
 function clearTeam() {
   teamPick.value = 'ALL'
   page.value = 1
 }
+
 function clearRama() {
   selectedRama.value = 'all'
   page.value = 1
 }
+
 function clearCategoria() {
   selectedCategoria.value = 'all'
   page.value = 1
 }
+
 function clearFilters() {
   q.value = ''
   teamPick.value = 'ALL'
@@ -1091,14 +1074,9 @@ function clearFilters() {
   page.value = 1
 }
 
-/* =========================
-   ✅ PDF: CURP del filtro (sin tocar back)
-========================= */
 const filteredCurps = computed(() => {
-  // toma SOLO lo que sale en el filtro actual (no solo paged)
   const base = filteredPlayers.value || []
 
-  // normaliza y quita sin CURP
   const normalized = base
     .map((p) => ({
       fullName: String(p.fullName || '').trim(),
@@ -1107,7 +1085,6 @@ const filteredCurps = computed(() => {
     }))
     .filter((x) => x.curp.length > 0)
 
-  // dedupe por CURP
   const seen = new Set<string>()
   const unique = normalized.filter((x) => {
     const k = x.curp.toUpperCase()
@@ -1116,7 +1093,6 @@ const filteredCurps = computed(() => {
     return true
   })
 
-  // orden: equipo -> nombre
   unique.sort((a, b) => (a.teamName || '').localeCompare(b.teamName || '') || a.fullName.localeCompare(b.fullName))
   return unique
 })
@@ -1131,16 +1107,13 @@ async function downloadCurpPdf() {
       return
     }
 
-    // imports lazy para no romper SSR
     const { jsPDF } = await import('jspdf')
     const autoTableMod: any = await import('jspdf-autotable')
     const autoTable = autoTableMod.default || autoTableMod
 
     const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-
     const dateStr = ymdLocal(new Date())
 
-    // Header
     doc.setFontSize(16)
     doc.text('Listado de CURP (Jugadores)', 40, 48)
 
@@ -1192,9 +1165,6 @@ async function downloadCurpPdf() {
   }
 }
 
-/* =========================
-   Drawer + Save
-========================= */
 const drawerOpen = ref(false)
 const saving = ref(false)
 
@@ -1214,24 +1184,29 @@ const draft = ref<PlayerVM>({
 })
 
 function openDrawer(p: PlayerVM) {
-  draft.value = JSON.parse(JSON.stringify(p))
+  draft.value = JSON.parse(JSON.stringify(p)) as PlayerVM
   drawerOpen.value = true
 }
+
 function closeDrawer() {
   drawerOpen.value = false
 }
 
 const notice = ref<{ type: 'ok' | 'err' | 'info'; text: string }>({ type: 'info', text: '' })
+
 const noticeClass = computed(() => {
   if (notice.value.type === 'ok') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
   if (notice.value.type === 'err') return 'border-red-200 bg-red-50 text-red-700'
   return 'border-slate-200 bg-white text-slate-700'
 })
+
 function setNotice(type: 'ok' | 'err' | 'info', text: string) {
   notice.value = { type, text }
   if (typeof window === 'undefined') return
   window.setTimeout(() => {
-    if (notice.value.text === text) notice.value = { type: 'info', text: '' }
+    if (notice.value.text === text) {
+      notice.value = { type: 'info', text: '' }
+    }
   }, 3500)
 }
 
@@ -1309,9 +1284,6 @@ async function savePlayer() {
   }
 }
 
-/* =========================
-   Global refresh + status
-========================= */
 const pendingAny = computed(() => !!teamsPending.value || !!playersPending.value)
 const errorAny = computed(() => !!teamsErr.value || !!playersErr.value)
 

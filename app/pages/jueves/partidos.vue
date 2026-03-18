@@ -1,154 +1,9 @@
 <template>
   <main class="min-h-screen text-slate-50">
-    <!-- HEADER -->
-    <header class="fixed inset-x-0 top-0 z-[100] border-b border-white/8 bg-[#050816]/88 backdrop-blur-xl">
-      <div class="mx-auto max-w-7xl px-6">
-        <div class="flex h-20 items-center justify-between gap-6">
-          <NuxtLink to="/jueves" class="flex items-center gap-3">
-            <span class="text-[2rem] font-black leading-none tracking-tight text-orange-400">T5</span>
-            <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
-          </NuxtLink>
-
-          <nav class="hidden items-center gap-12 md:flex">
-            <NuxtLink
-              to="/jueves"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Inicio
-              <span
-                v-if="route.path === '/jueves'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/partidos"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/partidos' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Partidos
-              <span
-                v-if="route.path === '/jueves/partidos'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/equipos"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path.startsWith('/jueves/equipos') ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Equipos
-              <span
-                v-if="route.path.startsWith('/jueves/equipos')"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/estadisticas"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/estadisticas' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Estadísticas
-              <span
-                v-if="route.path === '/jueves/estadisticas'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-          </nav>
-
-          <div class="hidden items-center gap-6 md:flex">
-            <NuxtLink
-              to="/"
-              class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
-              aria-label="Ir al home"
-              title="Ir al home"
-            >
-              <Home class="h-5 w-5" />
-            </NuxtLink>
-
-            <a
-              href="https://www.instagram.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-400 transition hover:text-slate-200"
-              aria-label="Instagram"
-            >
-              <Instagram class="h-5 w-5" />
-            </a>
-
-            <a
-              href="https://www.facebook.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-400 transition hover:text-slate-200"
-              aria-label="Facebook"
-            >
-              <Facebook class="h-5 w-5" />
-            </a>
-          </div>
-
-          <button
-            type="button"
-            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 md:hidden"
-            @click="mobileOpen = !mobileOpen"
-          >
-            Menú
-          </button>
-        </div>
-
-        <div v-if="mobileOpen" class="pb-4 md:hidden">
-          <div class="flex flex-col gap-2">
-            <NuxtLink
-              to="/jueves"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Inicio
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/partidos"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Partidos
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/equipos"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Equipos
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/estadisticas"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Estadísticas
-            </NuxtLink>
-
-            <NuxtLink
-              to="/"
-              class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              <Home class="h-4 w-4" />
-              Home
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-    </header>
+    <JuevesHeader />
 
     <div class="fixed inset-0 -z-10 bg-[#020617]" />
 
-    <!-- HERO / FILTROS -->
     <section class="border-b border-white/6 pt-24">
       <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <div class="max-w-3xl">
@@ -257,7 +112,6 @@
       </div>
     </section>
 
-    <!-- LISTA -->
     <section>
       <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div class="grid grid-cols-1 gap-5">
@@ -305,7 +159,6 @@
               </div>
 
               <div class="flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,1fr)_320px_minmax(0,1fr)] md:items-center">
-                <!-- LOCAL -->
                 <div class="flex min-w-0 items-center gap-4">
                   <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/35 shadow-inner">
                     <img
@@ -327,7 +180,6 @@
                   </div>
                 </div>
 
-                <!-- CENTRO -->
                 <div class="flex flex-col items-center justify-center text-center md:px-3">
                   <span class="text-[0.72rem] font-extrabold uppercase tracking-[0.34em] text-orange-300">
                     VS
@@ -338,7 +190,6 @@
                   </div>
                 </div>
 
-                <!-- VISITANTE -->
                 <div class="flex min-w-0 items-center gap-4 md:justify-end">
                   <div class="min-w-0 md:text-right">
                     <p class="break-words text-xl font-extrabold leading-tight text-white md:text-2xl">
@@ -427,7 +278,7 @@
 </template>
 
 <script setup lang="ts">
-import { Facebook, Home, Instagram } from "lucide-vue-next"
+import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 import { useJuevesData, type UiMatch } from "~/composables/useJuevesData"
 
 type FilterValue = "ALL" | string
@@ -446,8 +297,6 @@ type UiMatchCard = UiMatch & {
 
 const ITEMS_PER_PAGE = 10
 
-const route = useRoute()
-const mobileOpen = ref(false)
 const search = ref("")
 const currentPage = ref(1)
 

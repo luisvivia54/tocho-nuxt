@@ -1,156 +1,11 @@
 <template>
   <main class="min-h-screen text-slate-50">
-    <!-- HEADER -->
-    <header class="fixed inset-x-0 top-0 z-[100] border-b border-white/8 bg-[#050816]/88 backdrop-blur-xl">
-      <div class="mx-auto max-w-7xl px-6">
-        <div class="flex h-20 items-center justify-between gap-6">
-          <NuxtLink to="/jueves" class="flex items-center gap-3">
-            <span class="text-[2rem] font-black leading-none tracking-tight text-orange-400">T5</span>
-            <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
-          </NuxtLink>
-
-          <nav class="hidden items-center gap-12 md:flex">
-            <NuxtLink
-              to="/jueves"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Inicio
-              <span
-                v-if="route.path === '/jueves'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/partidos"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/partidos' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Partidos
-              <span
-                v-if="route.path === '/jueves/partidos'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/equipos"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path.startsWith('/jueves/equipos') ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Equipos
-              <span
-                v-if="route.path.startsWith('/jueves/equipos')"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/estadisticas"
-              class="relative text-[0.95rem] font-extrabold uppercase tracking-[0.24em] transition"
-              :class="route.path === '/jueves/estadisticas' ? 'text-white' : 'text-slate-400 hover:text-slate-200'"
-            >
-              Estadísticas
-              <span
-                v-if="route.path === '/jueves/estadisticas'"
-                class="absolute -bottom-[18px] left-1/2 h-[2px] w-10 -translate-x-1/2 rounded-full bg-orange-400"
-              />
-            </NuxtLink>
-          </nav>
-
-          <div class="hidden items-center gap-6 md:flex">
-            <NuxtLink
-              to="/"
-              class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
-              aria-label="Ir al home"
-              title="Ir al home"
-            >
-              <Home class="h-5 w-5" />
-            </NuxtLink>
-
-            <a
-              href="https://www.instagram.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-400 transition hover:text-slate-200"
-              aria-label="Instagram"
-            >
-              <Instagram class="h-5 w-5" />
-            </a>
-
-            <a
-              href="https://www.facebook.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-slate-400 transition hover:text-slate-200"
-              aria-label="Facebook"
-            >
-              <Facebook class="h-5 w-5" />
-            </a>
-          </div>
-
-          <button
-            type="button"
-            class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 md:hidden"
-            @click="mobileOpen = !mobileOpen"
-          >
-            Menú
-          </button>
-        </div>
-
-        <div v-if="mobileOpen" class="pb-4 md:hidden">
-          <div class="flex flex-col gap-2">
-            <NuxtLink
-              to="/jueves"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Inicio
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/partidos"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Partidos
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/equipos"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Equipos
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves/estadisticas"
-              class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              Estadísticas
-            </NuxtLink>
-
-            <NuxtLink
-              to="/"
-              class="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200"
-              @click="mobileOpen = false"
-            >
-              <Home class="h-4 w-4" />
-              Home
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
-    </header>
+    <JuevesHeader />
 
     <div class="fixed inset-0 -z-10 bg-[#020617]" />
 
-    <!-- HERO / FILTROS -->
     <section class="border-b border-white/6 pt-24">
-      <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 py-16">
         <div class="max-w-3xl">
           <div
             class="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300"
@@ -161,23 +16,56 @@
 
           <h1 class="mt-6 text-5xl font-extrabold tracking-tight">Equipos</h1>
           <p class="mt-4 text-slate-400">
-            Filtra equipos por categoría, rama y estatus. La vista carga primero lo esencial y completa filtros en segundo plano.
+            Consulta los equipos registrados y entra al detalle para ver capitán y miembros.
           </p>
         </div>
 
-        <div class="mt-10 rounded-[28px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] md:p-5">
+        <div
+          class="mt-10 rounded-[28px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] md:p-5"
+        >
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Temporada
+              </label>
+              <select
+                v-model="selectedSeason"
+                :disabled="!hasSeasonMeta"
+                class="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition"
+                :class="filterSelectClass(!hasSeasonMeta)"
+              >
+                <option value="ALL">
+                  {{ hasSeasonMeta ? 'Todas' : 'No disponible' }}
+                </option>
+                <option
+                  v-for="option in seasonOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
             <div class="space-y-2">
               <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
                 Categoría
               </label>
               <select
                 v-model="selectedCategory"
-                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+                :disabled="!hasCategoryMeta"
+                class="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition"
+                :class="filterSelectClass(!hasCategoryMeta)"
               >
-                <option value="ALL">Todas</option>
-                <option v-for="option in categoryOptions" :key="option" :value="option">
-                  {{ option }}
+                <option value="ALL">
+                  {{ hasCategoryMeta ? 'Todas' : 'No disponible' }}
+                </option>
+                <option
+                  v-for="option in categoryOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
                 </option>
               </select>
             </div>
@@ -188,26 +76,20 @@
               </label>
               <select
                 v-model="selectedBranch"
-                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+                :disabled="!hasBranchMeta"
+                class="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition"
+                :class="filterSelectClass(!hasBranchMeta)"
               >
-                <option value="ALL">Todas</option>
-                <option v-for="option in branchOptions" :key="option" :value="option">
-                  {{ option }}
+                <option value="ALL">
+                  {{ hasBranchMeta ? 'Todas' : 'No disponible' }}
                 </option>
-              </select>
-            </div>
-
-            <div class="space-y-2">
-              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
-                Estatus
-              </label>
-              <select
-                v-model="selectedStatus"
-                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
-              >
-                <option value="ALL">Todos</option>
-                <option value="ACTIVE">Activos</option>
-                <option value="INACTIVE">Inactivos</option>
+                <option
+                  v-for="option in branchOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
               </select>
             </div>
 
@@ -225,15 +107,10 @@
           </div>
 
           <div class="mt-4 flex flex-wrap items-center gap-2">
-            <span class="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-100">
-              {{ filteredTeams.length }} resultados
-            </span>
-
             <span
-              v-if="metaLoading"
-              class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300"
+              class="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-100"
             >
-              Cargando filtros…
+              {{ filteredTeams.length }} resultados
             </span>
 
             <button
@@ -244,12 +121,19 @@
               Limpiar filtros
             </button>
           </div>
+
+          <p
+            v-if="!hasAnyMeta"
+            class="mt-4 text-xs text-amber-200/90"
+          >
+            Este endpoint solo trae datos básicos del equipo. Temporada, categoría y rama no vienen en la respuesta, por eso esos filtros están deshabilitados.
+          </p>
         </div>
       </div>
     </section>
 
     <section>
-      <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 py-10">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           <article
             v-for="team in paginatedTeams"
@@ -265,9 +149,11 @@
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_28%)]" />
             <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_42%,rgba(2,6,23,0.18))]" />
 
-            <div class="relative flex min-h-[230px] flex-col justify-between p-6">
+            <div class="relative flex min-h-[210px] flex-col justify-between p-6">
               <div class="flex items-start gap-4">
-                <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/30 shadow-inner">
+                <div
+                  class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/30 shadow-inner"
+                >
                   <img
                     v-if="team.logoUrl"
                     :src="team.logoUrl"
@@ -294,24 +180,24 @@
 
                   <div class="mt-4 flex flex-wrap items-center gap-2">
                     <span
-                      v-if="team.categoryLabel && team.categoryLabel !== 'Sin categoría'"
+                      v-if="team.categoryLabel"
                       class="inline-flex items-center rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90"
                     >
-                      {{ team.categoryLabel }}
+                      Categoría: {{ team.categoryLabel }}
                     </span>
 
                     <span
-                      v-if="team.branchLabel && team.branchLabel !== 'Sin rama'"
+                      v-if="team.branchLabel"
                       class="inline-flex items-center rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90"
                     >
-                      {{ team.branchLabel }}
+                      Rama: {{ team.branchLabel }}
                     </span>
 
                     <span
-                      v-if="team.divisionLabel"
+                      v-if="team.seasonLabel"
                       class="inline-flex items-center rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90"
                     >
-                      División: {{ team.divisionLabel }}
+                      {{ team.seasonLabel }}
                     </span>
 
                     <span
@@ -335,7 +221,9 @@
                   Ver equipo
                 </div>
 
-                <div class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/20 text-white transition duration-300 group-hover:translate-x-1 group-hover:border-white/30">
+                <div
+                  class="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/20 text-white transition duration-300 group-hover:translate-x-1 group-hover:border-white/30"
+                >
                   →
                 </div>
               </div>
@@ -365,9 +253,11 @@
             <button
               type="button"
               class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
-              :class="currentPage === 1
-                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
-                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
+              :class="
+                currentPage === 1
+                  ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                  : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'
+              "
               :disabled="currentPage === 1"
               @click="goToTeamPage(currentPage - 1)"
             >
@@ -379,9 +269,11 @@
               :key="page"
               type="button"
               class="h-10 min-w-10 rounded-full border px-3 text-sm font-extrabold transition"
-              :class="page === currentPage
-                ? 'border-orange-400/40 bg-orange-400/15 text-orange-200'
-                : 'border-white/10 bg-white/5 text-slate-300 hover:border-orange-400/30 hover:bg-orange-400/10 hover:text-slate-100'"
+              :class="
+                page === currentPage
+                  ? 'border-orange-400/40 bg-orange-400/15 text-orange-200'
+                  : 'border-white/10 bg-white/5 text-slate-300 hover:border-orange-400/30 hover:bg-orange-400/10 hover:text-slate-100'
+              "
               @click="goToTeamPage(page)"
             >
               {{ page }}
@@ -390,9 +282,11 @@
             <button
               type="button"
               class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
-              :class="currentPage === totalTeamPages
-                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
-                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
+              :class="
+                currentPage === totalTeamPages
+                  ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                  : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'
+              "
               :disabled="currentPage === totalTeamPages"
               @click="goToTeamPage(currentPage + 1)"
             >
@@ -406,49 +300,46 @@
 </template>
 
 <script setup lang="ts">
-import { Facebook, Home, Instagram } from "lucide-vue-next"
+import { computed, ref, watch } from "vue"
+import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 import { useJuevesData } from "~/composables/useJuevesData"
 
 type FilterValue = "ALL" | string
-type TeamStatusValue = "ALL" | "ACTIVE" | "INACTIVE"
 
-type TeamMeta = {
-  categoryLabel: string
-  branchLabel: string
-  divisionLabel: string
-  isActive: boolean
+type OptionItem = {
+  label: string
+  value: string
 }
 
 type UiTeamCard = {
   id: string
   name: string
   shortName?: string
+  categoryLabel: string
+  categoryValue: string
+  branchLabel: string
+  branchValue: string
+  seasonLabel: string
+  seasonValue: string
   logoUrl?: string
   colorPrimary?: string
   colorSecondary?: string
   isActive: boolean
-  categoryLabel: string
-  branchLabel: string
-  divisionLabel?: string
 }
 
-const ITEMS_PER_PAGE = 10
-const META_CONCURRENCY = 4
-const META_CACHE_PREFIX = "jueves-team-meta-v1:"
+const ITEMS_PER_PAGE = 9
 
-const route = useRoute()
-const mobileOpen = ref(false)
 const search = ref("")
 const currentPage = ref(1)
+
+const selectedSeason = ref<FilterValue>("ALL")
 const selectedCategory = ref<FilterValue>("ALL")
 const selectedBranch = ref<FilterValue>("ALL")
-const selectedStatus = ref<TeamStatusValue>("ALL")
-const metaLoading = ref(false)
 
-const { leagueKey, toList, pick } = useJuevesData()
+const { leagueKey, toList } = useJuevesData()
 
 const { data: teamsData, pending: pendingTeams, error: teamsError } =
-  await useAsyncData("jueves-equipos-page-hybrid", async () => {
+  await useAsyncData<UiTeamCard[]>("jueves-equipos-page", async () => {
     try {
       const raw = await $fetch<any>("/api/t5/teams", {
         query: {
@@ -459,86 +350,145 @@ const { data: teamsData, pending: pendingTeams, error: teamsError } =
 
       const list = toList(raw)
 
+      console.log("TOTAL EQUIPOS:", list.length)
+      console.log("PRIMER TEAM JUEVES:", list?.[0])
+
       return list
-        .map((t: any) => {
-          const id = String(pick(t, ["teamId", "id"]) ?? "").trim()
-          if (!id) return null
+        .map((team: any) => {
+          const flattened = flattenObject(team)
+
+          const categoryRaw = findExactMeta(flattened, [
+            "category.name",
+            "categoryName",
+            "division.name",
+            "divisionName",
+            "category",
+            "division",
+            "categoria",
+          ])
+
+          const branchRaw = findExactMeta(flattened, [
+            "category.gender",
+            "categoryGender",
+            "gender",
+            "branch",
+            "branchName",
+            "rama",
+            "sexo",
+          ])
+
+          const seasonRaw = findExactMeta(flattened, [
+            "season.name",
+            "seasonName",
+            "temporada.name",
+            "temporada",
+            "season",
+          ])
+
+          const categoryLabel = stringValue(categoryRaw)
+          const branchLabel = formatBranchLabel(stringValue(branchRaw))
+          const seasonLabel = stringValue(seasonRaw)
 
           return {
-            id,
-            name: String(pick(t, ["name", "teamName"]) ?? "Equipo"),
-            shortName: String(pick(t, ["shortName"]) ?? ""),
+            id: String(firstNonEmpty([team?.teamId, team?.id]) ?? "").trim(),
+            name: String(firstNonEmpty([team?.name, team?.teamName, "Equipo"]) ?? "").trim(),
+            shortName: String(firstNonEmpty([team?.shortName, team?.alias]) ?? "").trim(),
+            categoryLabel,
+            categoryValue: normalizeText(categoryLabel),
+            branchLabel,
+            branchValue: normalizeText(branchLabel),
+            seasonLabel,
+            seasonValue: normalizeText(seasonLabel),
             logoUrl: String(
-              pick(t, ["logoUrl", "logo", "imageUrl", "image", "teamLogo", "teamLogoUrl"]) ?? ""
-            ),
-            colorPrimary: normalizeColor(String(pick(t, ["colorPrimary"]) ?? "")),
-            colorSecondary: normalizeColor(String(pick(t, ["colorSecondary"]) ?? "")),
-            isActive: Boolean(pick(t, ["isActive", "active"]) ?? true),
-            categoryLabel: "",
-            branchLabel: "",
-            divisionLabel: "",
-          } as UiTeamCard
+              firstNonEmpty([
+                team?.logoUrl,
+                team?.logo,
+                team?.imageUrl,
+                team?.image,
+                team?.teamLogo,
+                team?.teamLogoUrl,
+              ]) ?? ""
+            ).trim(),
+            colorPrimary: normalizeColor(String(firstNonEmpty([team?.colorPrimary]) ?? "")),
+            colorSecondary: normalizeColor(String(firstNonEmpty([team?.colorSecondary]) ?? "")),
+            isActive: toBoolean(firstNonEmpty([team?.isActive, team?.active, true])),
+          }
         })
-        .filter((team): team is UiTeamCard => team !== null)
-    } catch {
+        .filter((team) => team.id && team.name)
+    } catch (error) {
+      console.error("Error cargando equipos:", error)
       return []
     }
   })
 
-const teams = ref<UiTeamCard[]>([])
+const allTeams = computed<UiTeamCard[]>(() => teamsData.value ?? [])
 
-watch(
-  () => teamsData.value,
-  (value) => {
-    teams.value = [...(value ?? [])]
-  },
-  { immediate: true }
+const seasonOptions = computed<OptionItem[]>(() =>
+  buildOptions(allTeams.value.map((team) => ({
+    label: team.seasonLabel,
+    value: team.seasonValue,
+  })))
 )
 
-const categoryOptions = computed(() =>
-  uniqueSorted(
-    teams.value
-      .map((t) => t.categoryLabel)
-      .filter((value) => value && value !== "Sin categoría")
-  )
+const categoryOptions = computed<OptionItem[]>(() =>
+  buildOptions(allTeams.value.map((team) => ({
+    label: team.categoryLabel,
+    value: team.categoryValue,
+  })))
 )
 
-const branchOptions = computed(() =>
-  uniqueSorted(
-    teams.value
-      .map((t) => t.branchLabel)
-      .filter((value) => value && value !== "Sin rama")
-  )
+const branchOptions = computed<OptionItem[]>(() =>
+  buildOptions(allTeams.value.map((team) => ({
+    label: team.branchLabel,
+    value: team.branchValue,
+  })))
 )
+
+const hasSeasonMeta = computed(() => seasonOptions.value.length > 0)
+const hasCategoryMeta = computed(() => categoryOptions.value.length > 0)
+const hasBranchMeta = computed(() => branchOptions.value.length > 0)
+const hasAnyMeta = computed(() => hasSeasonMeta.value || hasCategoryMeta.value || hasBranchMeta.value)
 
 const filteredTeams = computed<UiTeamCard[]>(() => {
   const q = normalizeText(search.value)
 
-  return teams.value.filter((t) => {
+  return allTeams.value.filter((team) => {
+    const matchesSeason =
+      !hasSeasonMeta.value ||
+      selectedSeason.value === "ALL" ||
+      team.seasonValue === selectedSeason.value
+
     const matchesCategory =
-      selectedCategory.value === "ALL" || t.categoryLabel === selectedCategory.value
+      !hasCategoryMeta.value ||
+      selectedCategory.value === "ALL" ||
+      team.categoryValue === selectedCategory.value
 
     const matchesBranch =
-      selectedBranch.value === "ALL" || t.branchLabel === selectedBranch.value
+      !hasBranchMeta.value ||
+      selectedBranch.value === "ALL" ||
+      team.branchValue === selectedBranch.value
 
-    const matchesStatus =
-      selectedStatus.value === "ALL" ||
-      (selectedStatus.value === "ACTIVE" && t.isActive) ||
-      (selectedStatus.value === "INACTIVE" && !t.isActive)
+    const searchable = normalizeText(
+      [
+        team.name,
+        team.shortName,
+        team.categoryLabel,
+        team.branchLabel,
+        team.seasonLabel,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    )
 
-    const matchesSearch =
-      !q ||
-      normalizeText(
-        `${t.name} ${t.shortName || ""} ${t.categoryLabel || ""} ${t.branchLabel || ""} ${t.divisionLabel || ""}`
-      ).includes(q)
+    const matchesSearch = !q || searchable.includes(q)
 
-    return matchesCategory && matchesBranch && matchesStatus && matchesSearch
+    return matchesSeason && matchesCategory && matchesBranch && matchesSearch
   })
 })
 
-const totalTeamPages = computed(() => {
-  return Math.max(1, Math.ceil(filteredTeams.value.length / ITEMS_PER_PAGE))
-})
+const totalTeamPages = computed(() =>
+  Math.max(1, Math.ceil(filteredTeams.value.length / ITEMS_PER_PAGE))
+)
 
 const paginatedTeams = computed<UiTeamCard[]>(() => {
   const start = (currentPage.value - 1) * ITEMS_PER_PAGE
@@ -558,9 +508,7 @@ const visibleTeamPages = computed<number[]>(() => {
   const total = totalTeamPages.value
   const current = currentPage.value
 
-  if (total <= 5) {
-    return Array.from({ length: total }, (_, i) => i + 1)
-  }
+  if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
 
   let start = Math.max(1, current - 2)
   let end = Math.min(total, current + 2)
@@ -578,171 +526,28 @@ const visibleTeamPages = computed<number[]>(() => {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
-watch([search, selectedCategory, selectedBranch, selectedStatus], () => {
+watch([search, selectedSeason, selectedCategory, selectedBranch], () => {
   currentPage.value = 1
 })
+
+watch(
+  [hasSeasonMeta, hasCategoryMeta, hasBranchMeta],
+  ([seasonOk, categoryOk, branchOk]) => {
+    if (!seasonOk) selectedSeason.value = "ALL"
+    if (!categoryOk) selectedCategory.value = "ALL"
+    if (!branchOk) selectedBranch.value = "ALL"
+  },
+  { immediate: true }
+)
 
 watch(totalTeamPages, (pages) => {
   if (currentPage.value > pages) currentPage.value = pages
 })
 
-watch(
-  () => teams.value.length,
-  async (len) => {
-    if (len > 0) {
-      await enrichTeamsMeta()
-    }
-  },
-  { immediate: true }
-)
-
-async function enrichTeamsMeta() {
-  if (!teams.value.length) return
-
-  metaLoading.value = true
-
-  const queue: string[] = teams.value
-    .map((team) => team.id)
-    .filter((id): id is string => Boolean(id))
-
-  let index = 0
-
-  const worker = async () => {
-    while (index < queue.length) {
-      const currentIndex = index++
-      const teamId = queue[currentIndex]
-      if (!teamId) continue
-      await enrichSingleTeam(teamId)
-    }
-  }
-
-  const workers = Array.from(
-    { length: Math.min(META_CONCURRENCY, queue.length) },
-    () => worker()
-  )
-
-  await Promise.allSettled(workers)
-  metaLoading.value = false
-}
-
-async function enrichSingleTeam(teamId: string) {
-  const teamIndex = teams.value.findIndex((t) => t.id === teamId)
-  if (teamIndex === -1) return
-
-  const cached = readMetaCache(teamId)
-  if (cached) {
-    applyMetaToTeam(teamId, cached)
-    return
-  }
-
-  try {
-    const detail = await $fetch<any>(`/api/t5/teams/${teamId}/detail`, {
-      query: { league: leagueKey, leagueKey },
-    })
-
-    const detailTeam = detail?.team ?? {}
-
-    const categoryLabel =
-      String(
-        pick(detailTeam, [
-          "category.name",
-          "categoryName",
-          "categoria.nombre",
-          "categoria",
-        ]) ?? ""
-      ).trim() || "Sin categoría"
-
-    const branchLabel =
-      formatBranch(
-        String(
-          pick(detailTeam, [
-            "category.gender",
-            "gender",
-            "categoryGender",
-            "branch.name",
-            "branchName",
-            "rama.nombre",
-            "rama",
-          ]) ?? ""
-        ).trim()
-      ) || "Sin rama"
-
-    let divisionLabel = String(
-      pick(detailTeam, [
-        "division.name",
-        "divisionName",
-        "category.code",
-        "categoryCode",
-        "code",
-      ]) ?? ""
-    ).trim()
-
-    if (
-      divisionLabel &&
-      categoryLabel &&
-      normalizeText(divisionLabel) === normalizeText(categoryLabel)
-    ) {
-      divisionLabel = ""
-    }
-
-    const currentTeam = teams.value[teamIndex]
-
-    const meta: TeamMeta = {
-      categoryLabel,
-      branchLabel,
-      divisionLabel: formatDivision(divisionLabel),
-      isActive: Boolean(pick(detailTeam, ["isActive", "active"]) ?? currentTeam?.isActive ?? true),
-    }
-
-    writeMetaCache(teamId, meta)
-    applyMetaToTeam(teamId, meta)
-  } catch {
-    // no-op
-  }
-}
-
-function applyMetaToTeam(teamId: string, meta: TeamMeta) {
-  const idx = teams.value.findIndex((t) => t.id === teamId)
-  if (idx === -1) return
-
-  const current = teams.value[idx]
-  if (!current) return
-
-  const updated: UiTeamCard = {
-    id: current.id,
-    name: current.name,
-    shortName: current.shortName,
-    logoUrl: current.logoUrl,
-    colorPrimary: current.colorPrimary,
-    colorSecondary: current.colorSecondary,
-    isActive: meta.isActive,
-    categoryLabel: meta.categoryLabel,
-    branchLabel: meta.branchLabel,
-    divisionLabel: meta.divisionLabel,
-  }
-
-  teams.value[idx] = updated
-}
-
-function readMetaCache(teamId: string): TeamMeta | null {
-  if (typeof window === "undefined") return null
-
-  try {
-    const raw = sessionStorage.getItem(`${META_CACHE_PREFIX}${teamId}`)
-    return raw ? (JSON.parse(raw) as TeamMeta) : null
-  } catch {
-    return null
-  }
-}
-
-function writeMetaCache(teamId: string, meta: TeamMeta) {
-  if (typeof window === "undefined") return
-
-  try {
-    sessionStorage.setItem(`${META_CACHE_PREFIX}${teamId}`, JSON.stringify(meta))
-  } catch {
-    // no-op
-  }
+function filterSelectClass(disabled: boolean) {
+  return disabled
+    ? "cursor-not-allowed border-white/10 bg-[#0b1223]/60 text-slate-500"
+    : "border-white/10 bg-[#0b1223] text-white focus:border-orange-400/40 focus:bg-[#0d1428]"
 }
 
 function goToTeamPage(page: number) {
@@ -750,15 +555,113 @@ function goToTeamPage(page: number) {
 }
 
 function resetFilters() {
+  search.value = ""
+  selectedSeason.value = "ALL"
   selectedCategory.value = "ALL"
   selectedBranch.value = "ALL"
-  selectedStatus.value = "ALL"
-  search.value = ""
   currentPage.value = 1
 }
 
+function buildOptions(items: Array<{ label: string; value: string }>): OptionItem[] {
+  const map = new Map<string, string>()
+
+  for (const item of items) {
+    const label = String(item.label || "").trim()
+    const value = String(item.value || "").trim()
+
+    if (!label || !value) continue
+
+    if (!map.has(value)) {
+      map.set(value, label)
+    }
+  }
+
+  return Array.from(map.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "es"))
+}
+
+function flattenObject(obj: any, prefix = "", result: Record<string, any> = {}) {
+  if (obj === null || obj === undefined) return result
+
+  if (Array.isArray(obj)) {
+    obj.forEach((item, index) => {
+      const nextPrefix = prefix ? `${prefix}.${index}` : String(index)
+      flattenObject(item, nextPrefix, result)
+    })
+    return result
+  }
+
+  if (typeof obj !== "object") {
+    if (prefix) result[prefix] = obj
+    return result
+  }
+
+  for (const key of Object.keys(obj)) {
+    const value = obj[key]
+    const nextPrefix = prefix ? `${prefix}.${key}` : key
+
+    if (value !== null && typeof value === "object") {
+      flattenObject(value, nextPrefix, result)
+    } else {
+      result[nextPrefix] = value
+    }
+  }
+
+  return result
+}
+
+function findExactMeta(flattened: Record<string, any>, paths: string[]) {
+  for (const path of paths) {
+    const value = flattened[path]
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return value
+    }
+  }
+  return ""
+}
+
+function firstNonEmpty(values: any[]) {
+  for (const value of values) {
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return value
+    }
+  }
+  return ""
+}
+
+function stringValue(value: any) {
+  return String(value ?? "").trim()
+}
+
+function normalizeText(value: string) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim()
+}
+
+function formatBranchLabel(value: string) {
+  const v = normalizeText(value)
+
+  if (v === "varonil" || v === "masculino" || v === "male") return "Varonil"
+  if (v === "femenil" || v === "femenino" || v === "female") return "Femenil"
+  if (v === "mixto" || v === "mixed") return "Mixto"
+
+  return String(value || "").trim()
+}
+
+function toBoolean(value: any) {
+  if (typeof value === "boolean") return value
+  const v = normalizeText(String(value))
+  if (v === "false" || v === "0" || v === "inactive" || v === "inactivo") return false
+  return true
+}
+
 function normalizeColor(value: string): string {
-  const color = String(value || "").trim()
+  const color = value.trim()
   if (!color) return ""
   if (color.startsWith("#")) return color
 
@@ -787,36 +690,6 @@ function getTeamInitials(name: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase()
-}
-
-function formatBranch(value: string) {
-  const v = String(value || "").trim()
-  const upper = v.toUpperCase()
-
-  if (upper === "VARONIL") return "Varonil"
-  if (upper === "FEMENIL") return "Femenil"
-  if (upper === "MIXTO") return "Mixto"
-
-  return v
-}
-
-function formatDivision(value: string) {
-  const v = String(value || "").trim()
-  if (!v) return ""
-  if (/^[A-Z0-9 -]+$/i.test(v)) return v.toUpperCase()
-  return v
-}
-
-function uniqueSorted(values: string[]) {
-  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"))
-}
-
-function normalizeText(value: string) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
 }
 
 async function openTeam(id: string) {

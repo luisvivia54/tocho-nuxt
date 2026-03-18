@@ -1,13 +1,13 @@
-consola admin:
-<!-- app/pages/admin/partidos.vue -->
 <template>
   <main class="min-h-screen bg-[#050816] text-slate-50" :class="{ 'no-blur': isScrolling }">
+    <JuevesHeader />
+
     <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <!-- HEADER -->
         <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Tochero5 · Consola Admin</p>
+            <p class="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">Liga de Jueves · Consola Admin</p>
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Partidos</h1>
             <p class="mt-1 text-sm text-slate-400">
               Flujo: <b>Categoría</b> → <b>Local</b> y <b>Visitante</b> → <b>Fecha/Hora</b> → <b>Jornada</b> → <b>Cancha</b> → Finalizar + Stats
@@ -24,7 +24,7 @@ consola admin:
             </button>
 
             <NuxtLink
-              to="/"
+              to="/jueves"
               class="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500"
             >
               Inicio
@@ -45,7 +45,6 @@ consola admin:
 
         <!-- ADMIN UI -->
         <div v-else class="mt-8 space-y-6">
-          <!-- CREATE / EDIT (se mantiene arriba; en la lista NO hay botón Editar) -->
           <section class="rounded-2xl border border-slate-700 bg-slate-900/60 shadow-lg backdrop-blur overflow-hidden">
             <div class="h-1.5 bg-gradient-to-r from-cyan-400 to-fuchsia-500"></div>
 
@@ -76,9 +75,7 @@ consola admin:
                 </div>
               </div>
 
-              <!-- FORM GRID -->
               <div class="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <!-- Category -->
                 <div class="lg:col-span-4">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Categoría (rama + gender)</label>
                   <select
@@ -101,7 +98,6 @@ consola admin:
                   </p>
                 </div>
 
-                <!-- Home -->
                 <div class="lg:col-span-4">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Local</label>
 
@@ -174,7 +170,6 @@ consola admin:
                   </p>
                 </div>
 
-                <!-- Away -->
                 <div class="lg:col-span-4">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Visitante</label>
 
@@ -257,7 +252,6 @@ consola admin:
                 </div>
               </div>
 
-              <!-- Fecha/Hora/Jornada/Cancha + Actions -->
               <div class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                 <div class="md:col-span-3">
                   <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha</label>
@@ -338,7 +332,6 @@ consola admin:
             </div>
           </section>
 
-          <!-- GAMES LIST -->
           <section class="rounded-2xl border border-slate-700 bg-slate-900/60 shadow-lg backdrop-blur overflow-hidden">
             <div class="h-1.5 bg-gradient-to-r from-amber-300 to-cyan-400"></div>
 
@@ -376,7 +369,6 @@ consola admin:
                 </div>
               </div>
 
-              <!-- mensajes globales delete -->
               <div v-if="deleteError" class="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
                 {{ deleteError }}
               </div>
@@ -442,7 +434,6 @@ consola admin:
                             {{ g.homeScore }} - {{ g.awayScore }}
                           </span>
 
-                          <!-- ✅ CORREGIR SCORE (NO SE QUITA) -->
                           <button
                             v-if="upper(g.status) === 'FINAL'"
                             type="button"
@@ -452,16 +443,12 @@ consola admin:
                             Corregir score
                           </button>
 
-                          <!-- ✅ BORRAR (SCHEDULED hard delete / FINAL revert + CANCELLED) -->
                           <button
                             v-if="upper(g.status) !== 'CANCELLED'"
                             type="button"
                             class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] font-extrabold text-rose-100 hover:bg-rose-500/15 disabled:opacity-50 disabled:cursor-not-allowed"
                             :disabled="deletingId === g.id"
                             @click="deleteGame(g)"
-                            :title="upper(g.status) === 'FINAL'
-                              ? 'Revertir standings y cancelar el partido (CANCELLED).'
-                              : 'Hard delete (elimina de la BD).'"
                           >
                             {{ deletingId === g.id ? 'Borrando…' : (upper(g.status) === 'FINAL' ? 'Eliminar (revertir)' : 'Borrar') }}
                           </button>
@@ -477,7 +464,6 @@ consola admin:
                         </div>
                       </div>
 
-                      <!-- ✅ EDIT SCORE PANEL (solo FINAL) -->
                       <div
                         v-if="editScorePanelId === g.id"
                         class="mt-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3"
@@ -538,7 +524,6 @@ consola admin:
                         <p v-if="editScoreOk" class="mt-2 text-xs text-emerald-200">{{ editScoreOk }}</p>
                       </div>
 
-                      <!-- FINALIZAR PANEL -->
                       <div v-if="finishPanelId === g.id" class="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
                         <div class="flex items-center justify-between gap-2">
                           <p class="text-xs font-semibold text-emerald-100">Finalizar (guardar como FINAL)</p>
@@ -572,13 +557,12 @@ consola admin:
                           </div>
                         </div>
 
-                        <!-- STATS -->
                         <div class="mt-4 rounded-xl border border-slate-700 bg-slate-950/40 p-3">
                           <div class="flex items-center justify-between gap-2">
                             <div>
                               <p class="text-xs font-semibold text-slate-100">Estadísticas individuales</p>
                               <p class="text-[11px] text-slate-400">
-                                INT · TD · PASS_TD · SACK. Jugador: solo seleccionar del roster real (GET /teams/&lt;id&gt;/players)
+                                INT · TD · PASS_TD · SACK. Jugador: solo seleccionar del roster real.
                               </p>
                             </div>
                             <button
@@ -616,7 +600,7 @@ consola admin:
                             </div>
 
                             <div class="md:col-span-5">
-                              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Jugador (solo seleccionar)</label>
+                              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Jugador</label>
                               <select
                                 :key="rosterSelectKey"
                                 v-model.number="statDraft.playerId"
@@ -653,7 +637,6 @@ consola admin:
                             </div>
                           </div>
 
-                          <!-- list -->
                           <div v-if="finishStats.length" class="mt-3 space-y-2">
                             <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
                               <span class="text-slate-400">Resumen:</span>
@@ -728,7 +711,6 @@ consola admin:
                       </div>
                     </div>
 
-                    <!-- PAGINACIÓN -->
                     <div class="pt-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <p class="text-[11px] text-slate-400">
                         Página <span class="text-slate-100 font-semibold">{{ currentPage }}</span> de
@@ -805,16 +787,15 @@ consola admin:
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, shallowRef, onMounted, onBeforeUnmount } from 'vue'
-import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from '#imports'
-import { useAuthz } from '~/composables/useAuthz'
+import { computed, ref, watch, shallowRef, onMounted, onBeforeUnmount } from "vue"
+import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from "#imports"
+import { useAuthz } from "~/composables/useAuthz"
+import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
-/** =========================
- *  PERF: quitar blur ANTES del scroll
- *  ========================= */
 const isScrolling = ref(false)
 let scrollTO: ReturnType<typeof setTimeout> | null = null
 let rafId = 0
+
 function kickNoBlur() {
   if (rafId) return
   rafId = requestAnimationFrame(() => {
@@ -824,47 +805,47 @@ function kickNoBlur() {
     scrollTO = setTimeout(() => (isScrolling.value = false), 140)
   })
 }
+
 function onKeyKick(e: KeyboardEvent) {
-  const keys = ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']
+  const keys = ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "]
   if (keys.includes(e.key)) kickNoBlur()
 }
+
 onMounted(() => {
-  window.addEventListener('wheel', kickNoBlur, { passive: true })
-  window.addEventListener('pointerdown', kickNoBlur, { passive: true })
-  window.addEventListener('touchstart', kickNoBlur, { passive: true })
-  window.addEventListener('touchmove', kickNoBlur, { passive: true })
-  window.addEventListener('keydown', onKeyKick)
-  window.addEventListener('scroll', kickNoBlur, { passive: true })
+  window.addEventListener("wheel", kickNoBlur, { passive: true })
+  window.addEventListener("pointerdown", kickNoBlur, { passive: true })
+  window.addEventListener("touchstart", kickNoBlur, { passive: true })
+  window.addEventListener("touchmove", kickNoBlur, { passive: true })
+  window.addEventListener("keydown", onKeyKick)
+  window.addEventListener("scroll", kickNoBlur, { passive: true })
 })
+
 onBeforeUnmount(() => {
-  window.removeEventListener('wheel', kickNoBlur)
-  window.removeEventListener('pointerdown', kickNoBlur)
-  window.removeEventListener('touchstart', kickNoBlur)
-  window.removeEventListener('touchmove', kickNoBlur)
-  window.removeEventListener('keydown', onKeyKick)
-  window.removeEventListener('scroll', kickNoBlur)
+  window.removeEventListener("wheel", kickNoBlur)
+  window.removeEventListener("pointerdown", kickNoBlur)
+  window.removeEventListener("touchstart", kickNoBlur)
+  window.removeEventListener("touchmove", kickNoBlur)
+  window.removeEventListener("keydown", onKeyKick)
+  window.removeEventListener("scroll", kickNoBlur)
   if (scrollTO) clearTimeout(scrollTO)
   if (rafId) cancelAnimationFrame(rafId)
 })
 
-/** =========================
- *  AUTH (Keycloak)
- *  ========================= */
 const nuxtApp = useNuxtApp()
-const kcReady = useState<boolean>('kcReady', () => false)
+const kcReady = useState<boolean>("kcReady", () => false)
 const authz: any = useAuthz()
 
 const isAdmin = computed<boolean>(() => {
   const v = authz?.isAdmin
-  if (typeof v === 'boolean') return v
-  if (v && typeof v === 'object' && 'value' in v) return !!v.value
+  if (typeof v === "boolean") return v
+  if (v && typeof v === "object" && "value" in v) return !!v.value
 
   const kc = (nuxtApp as any).$kc
   const roles: string[] =
     kc?.tokenParsed?.realm_access?.roles ||
-    kc?.tokenParsed?.resource_access?.['nuxt-app']?.roles ||
+    kc?.tokenParsed?.resource_access?.["nuxt-app"]?.roles ||
     []
-  return roles.map((r) => String(r).toLowerCase()).includes('admin')
+  return roles.map((r) => String(r).toLowerCase()).includes("admin")
 })
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -884,11 +865,8 @@ async function authHeaders(): Promise<Record<string, string>> {
   return headers
 }
 
-/** =========================
- *  API
- *  ========================= */
 const config = useRuntimeConfig()
-const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
+const API_BASE = (config.public as any)?.apiBase || "https://tocho5-api.tochero5.mx/api"
 const DEFAULT_SEASON_ID = Number((config.public as any)?.seasonId ?? 2)
 
 const API_GAMES = `${API_BASE}/games`
@@ -899,20 +877,10 @@ const API_CATEGORIES = `${API_BASE}/categories`
 const API_PARTIDO_UPDATE = `${API_BASE}/partido/update`
 const API_TEAM_PLAYERS = (teamId: number) => `${API_BASE}/teams/${teamId}/players`
 const PLAYER_STATS_URL = (gameId: number) => `${API_BASE}/games/${gameId}/player-stats`
-
-/** DELETE:
- * - SCHEDULED: tu Controller actual ya tiene DELETE /api/games/{id}
- * - FINAL: usa tu endpoint “revert + CANCELLED” (DELETE /api/admin/games/{id})
- */
 const API_GAME_DELETE_SCHEDULED = (gameId: number) => `${API_BASE}/games/${gameId}`
 const API_GAME_DELETE_ADMIN = (gameId: number) => `${API_BASE}/admin/games/${gameId}`
-
-/** CORREGIR SCORE: PATCH /api/admin/games/{id}/score */
 const API_GAME_EDIT_SCORE = (gameId: number) => `${API_BASE}/admin/games/${gameId}/score`
 
-/** =========================
- *  TYPES
- *  ========================= */
 type Category = { id: number; name: string; code: string; gender: string }
 type Team = {
   teamId: number
@@ -937,15 +905,14 @@ type GameVM = {
   homeTeamId?: number
   awayTeamId?: number
   jornada?: number
-  field?: string // venue/cancha
+  field?: string
   homeScore?: number | null
   awayScore?: number | null
   _search?: string
 }
 type Player = { id: number; fullName: string; jerseyNumber: number | null; photoUrl?: string | null }
-
-type StatKind = 'TD' | 'PASS_TD' | 'INT' | 'SACK'
-type StatSide = 'HOME' | 'AWAY'
+type StatKind = "TD" | "PASS_TD" | "INT" | "SACK"
+type StatSide = "HOME" | "AWAY"
 type StatEntry = {
   id: string
   kind: StatKind
@@ -956,9 +923,6 @@ type StatEntry = {
   qty: number
 }
 
-/** =========================
- *  HELPERS
- *  ========================= */
 function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
@@ -966,21 +930,21 @@ function unwrapList<T>(x: any): T[] {
   return []
 }
 function upper(v: any) {
-  return String(v ?? '').trim().toUpperCase()
+  return String(v ?? "").trim().toUpperCase()
 }
 function initials(text: string) {
-  const s = String(text || '').trim()
-  if (!s) return 'T5'
+  const s = String(text || "").trim()
+  if (!s) return "T5"
   const parts = s.split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase()).join('')
+  return parts.map((p) => p[0]?.toUpperCase()).join("")
 }
 function toLocalDateTime(iso: string) {
   const d = new Date(ensureUtc(iso))
   const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, "0")
+  const dd = String(d.getDate()).padStart(2, "0")
+  const hh = String(d.getHours()).padStart(2, "0")
+  const mi = String(d.getMinutes()).padStart(2, "0")
   return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${mi}` }
 }
 function localToUtcIso(date: string, time: string) {
@@ -988,24 +952,24 @@ function localToUtcIso(date: string, time: string) {
   return d.toISOString()
 }
 function niceGender(g: string) {
-  const x = String(g || '').toUpperCase()
-  if (x === 'VARONIL') return 'Varonil'
-  if (x === 'FEMENIL') return 'Femenil'
-  if (x === 'MIXTO') return 'Mixto'
+  const x = String(g || "").toUpperCase()
+  if (x === "VARONIL") return "Varonil"
+  if (x === "FEMENIL") return "Femenil"
+  if (x === "MIXTO") return "Mixto"
   return g
 }
 function categoryLabel(c: Category) {
   return `${c.name} · ${niceGender(c.gender)} · ${String(c.code).toUpperCase()}`
 }
 function debounceLowerRef(src: any, ms: number) {
-  const out = ref('')
+  const out = ref("")
   let t: ReturnType<typeof setTimeout> | null = null
   watch(
     src,
     (v) => {
       if (t) clearTimeout(t)
       t = setTimeout(() => {
-        out.value = String(v || '').trim().toLowerCase()
+        out.value = String(v || "").trim().toLowerCase()
       }, ms)
     },
     { immediate: true }
@@ -1013,22 +977,16 @@ function debounceLowerRef(src: any, ms: number) {
   return out
 }
 
-/** =========================
- *  Native pickers
- *  ========================= */
 const dateEl = ref<HTMLInputElement | null>(null)
 const timeEl = ref<HTMLInputElement | null>(null)
 function openNativePicker(elOrRef: any) {
   const el: HTMLInputElement | null =
-    elOrRef && typeof elOrRef === 'object' && 'value' in elOrRef ? elOrRef.value : elOrRef
+    elOrRef && typeof elOrRef === "object" && "value" in elOrRef ? elOrRef.value : elOrRef
   if (!el) return
   ;(el as any).showPicker?.()
   el.focus()
 }
 
-/** =========================
- *  DATA
- *  ========================= */
 const categories = shallowRef<Category[]>([])
 const categoryById = shallowRef<Map<number, Category>>(new Map())
 
@@ -1038,9 +996,8 @@ const teamsByCategory = shallowRef<Map<number, Team[]>>(new Map())
 
 const gamesVm = shallowRef<GameVM[]>([])
 
-/** --- fetch categories --- */
 const { data: catData } = useAsyncData(
-  'admin-categories-lite-fast',
+  "jueves-admin-categories-lite-fast",
   async () => {
     try {
       return unwrapList<any>(await $fetch(API_CATEGORIES))
@@ -1059,8 +1016,8 @@ watch(
       .map((x) => ({
         id: Number(x.id ?? x.categoryId ?? x.category_id),
         name: String(x.name ?? x.categoryName ?? `Categoría ${x.id ?? x.categoryId ?? x.category_id}`),
-        code: String(x.code ?? ''),
-        gender: String(x.gender ?? ''),
+        code: String(x.code ?? ""),
+        gender: String(x.gender ?? ""),
       }))
       .filter((c) => Number.isFinite(c.id))
 
@@ -1073,7 +1030,6 @@ watch(
   { immediate: true }
 )
 
-/** --- fetch teams --- */
 async function fetchTeamsSmart() {
   try {
     return unwrapList<any>(await $fetch(API_TEAMS_LIST))
@@ -1081,8 +1037,9 @@ async function fetchTeamsSmart() {
     return unwrapList<any>(await $fetch(API_TEAMS))
   }
 }
+
 const { data: teamsRaw, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
-  'admin-teams-lite-fast',
+  "jueves-admin-teams-lite-fast",
   fetchTeamsSmart,
   { server: false }
 )
@@ -1096,23 +1053,23 @@ watch(
 
     const arr: Team[] = list.map((x) => {
       const teamId = Number(x.teamId ?? x.team_id ?? x.id)
-      const name = String(x.name ?? x.teamName ?? 'Equipo')
-      const shortName = String(x.shortName ?? x.short_name ?? '')
+      const name = String(x.name ?? x.teamName ?? "Equipo")
+      const shortName = String(x.shortName ?? x.short_name ?? "")
       const logoUrl = x.logoUrl ?? x.logo_url ?? x.photoUrl ?? x.photo_url ?? null
 
       const cid = Number(x.categoryId ?? x.category_id ?? x.category?.id ?? 0) || null
-      const codeLoose = String(x.code ?? x.categoryCode ?? x.category?.code ?? '').trim()
-      const genderLoose = String(x.gender ?? x.categoryGender ?? x.category?.gender ?? '').trim()
-      const nameLoose = String(x.categoryName ?? x.category?.name ?? '').trim()
+      const codeLoose = String(x.code ?? x.categoryCode ?? x.category?.code ?? "").trim()
+      const genderLoose = String(x.gender ?? x.categoryGender ?? x.category?.gender ?? "").trim()
+      const nameLoose = String(x.categoryName ?? x.category?.name ?? "").trim()
       const catFromMap = cid ? catMap.get(cid) : null
 
       const mergedCat: Category | null =
         cid || codeLoose || genderLoose || nameLoose || catFromMap
           ? {
               id: Number(cid ?? catFromMap?.id ?? 0) || 0,
-              name: String(nameLoose || catFromMap?.name || ''),
-              code: String(codeLoose || catFromMap?.code || ''),
-              gender: String(genderLoose || catFromMap?.gender || ''),
+              name: String(nameLoose || catFromMap?.name || ""),
+              code: String(codeLoose || catFromMap?.code || ""),
+              gender: String(genderLoose || catFromMap?.gender || ""),
             }
           : null
 
@@ -1145,9 +1102,8 @@ watch(
   { immediate: true }
 )
 
-/** --- fetch games --- */
 const { data: gamesRaw, pending: gamesPending, error: gamesErr, refresh: refreshGames } = useAsyncData(
-  'admin-games-lite-fast',
+  "jueves-admin-games-lite-fast",
   async () => {
     const [scheduled, finals] = await Promise.all([
       $fetch<any>(API_GAMES).catch(() => []),
@@ -1174,15 +1130,15 @@ watch(
 
     const arr: GameVM[] = list.map((g: any) => {
       const id = Number(g.game_id ?? g.gameId ?? g.id)
-      const iso = ensureUtc(String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? ''))
-      const status = String(g.status ?? 'SCHEDULED')
+      const iso = ensureUtc(String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? ""))
+      const status = String(g.status ?? "SCHEDULED")
 
       const d = iso ? new Date(iso) : new Date()
-      const dateLabel = d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: '2-digit' })
-      const timeLabel = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+      const dateLabel = d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "2-digit" })
+      const timeLabel = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
 
-      const homeName = String(g.home_team ?? g.homeTeam?.name ?? 'Local')
-      const awayName = String(g.away_team ?? g.awayTeam?.name ?? 'Visitante')
+      const homeName = String(g.home_team ?? g.homeTeam?.name ?? "Local")
+      const awayName = String(g.away_team ?? g.awayTeam?.name ?? "Visitante")
 
       const categoryId = Number(g.category_id ?? g.categoryId ?? g.category?.id ?? 0) || undefined
       const cat = categoryId ? catMap.get(categoryId) : null
@@ -1192,13 +1148,12 @@ watch(
 
       const categoryLabelStr = [catName, catGender ? niceGender(catGender) : null, catCode ? String(catCode).toUpperCase() : null]
         .filter(Boolean)
-        .join(' · ')
+        .join(" · ")
 
       const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? 0) || undefined
       const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined
 
-      const venue = String(g.venue ?? g.field ?? g.location ?? '') // 👈 aquí se muestra la cancha
-
+      const venue = String(g.venue ?? g.field ?? g.location ?? "")
       const jornada = Number(g.jornada ?? g.matchday ?? g.round ?? g.week ?? 0) || undefined
 
       return {
@@ -1233,9 +1188,6 @@ watch(
   { immediate: true }
 )
 
-/** =========================
- *  FORM
- *  ========================= */
 const editingId = ref<number | null>(null)
 const homeTeamId = ref<number | null>(null)
 const awayTeamId = ref<number | null>(null)
@@ -1246,55 +1198,55 @@ const awayTeam = computed(() => (awayTeamId.value ? teamsById.value.get(awayTeam
 const form = ref({
   seasonId: DEFAULT_SEASON_ID,
   categoryId: 0,
-  date: '',
-  time: '',
+  date: "",
+  time: "",
   jornada: 0,
-  field: '',
+  field: "",
 })
 
 const catHint = computed(() => {
   const c = categoryById.value.get(Number(form.value.categoryId))
-  return c ? categoryLabel(c) : ''
+  return c ? categoryLabel(c) : ""
 })
 
 const saving = ref(false)
-const formError = ref('')
-const formOk = ref('')
+const formError = ref("")
+const formOk = ref("")
 
 function clearForm() {
   editingId.value = null
   homeTeamId.value = null
   awayTeamId.value = null
-  homeInput.value = ''
-  awayInput.value = ''
+  homeInput.value = ""
+  awayInput.value = ""
   homeOpen.value = false
   awayOpen.value = false
-  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: '', time: '', jornada: 0, field: '' }
-  formError.value = ''
-  formOk.value = ''
+  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: "", time: "", jornada: 0, field: "" }
+  formError.value = ""
+  formOk.value = ""
 }
 
 function ensureUtc(iso: string) {
-  const s = String(iso ?? '').trim()
+  const s = String(iso ?? "").trim()
   if (!s) return s
   if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
   return `${s}Z`
 }
 
 function validateForm() {
-  if (!form.value.categoryId || form.value.categoryId < 1) return 'Selecciona categoría del partido.'
-  if (!homeTeamId.value) return 'Selecciona equipo Local.'
-  if (!awayTeamId.value) return 'Selecciona equipo Visitante.'
-  if (homeTeamId.value === awayTeamId.value) return 'Local y Visitante no pueden ser el mismo equipo.'
-  if (!form.value.date) return 'Falta la fecha.'
-  if (!form.value.time) return 'Falta la hora.'
-  if (!form.value.jornada || Number(form.value.jornada) < 1) return 'Falta la jornada.'
-  return ''
+  if (!form.value.categoryId || form.value.categoryId < 1) return "Selecciona categoría del partido."
+  if (!homeTeamId.value) return "Selecciona equipo Local."
+  if (!awayTeamId.value) return "Selecciona equipo Visitante."
+  if (homeTeamId.value === awayTeamId.value) return "Local y Visitante no pueden ser el mismo equipo."
+  if (!form.value.date) return "Falta la fecha."
+  if (!form.value.time) return "Falta la hora."
+  if (!form.value.jornada || Number(form.value.jornada) < 1) return "Falta la jornada."
+  return ""
 }
 
 async function saveGame() {
-  formError.value = ''
-  formOk.value = ''
+  formError.value = ""
+  formOk.value = ""
   const msg = validateForm()
   if (msg) return (formError.value = msg)
 
@@ -1317,8 +1269,6 @@ async function saveGame() {
       matchDateUtc: isoUtc,
       round_label: `J${Number(form.value.jornada)}`,
       roundLabel: `J${Number(form.value.jornada)}`,
-
-      // cancha (si backend lo soporta; si no, lo ignora por @JsonIgnoreProperties)
       venue: form.value.field,
       field: form.value.field,
       location: form.value.field,
@@ -1334,12 +1284,10 @@ async function saveGame() {
       categoryId: form.value.categoryId,
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
-      status: 'SCHEDULED',
-
+      status: "SCHEDULED",
       venue: form.value.field,
       field: form.value.field,
       location: form.value.field,
-
       jornada: Number(form.value.jornada),
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
@@ -1348,11 +1296,11 @@ async function saveGame() {
     }
 
     if (!isEdit) {
-      const resp: any = await $fetch(API_GAMES, { method: 'POST', body: payloadCreate })
+      const resp: any = await $fetch(API_GAMES, { method: "POST", body: payloadCreate })
       const newId = Number(resp?.gameId ?? resp?.game_id ?? resp?.id ?? 0) || null
-      formOk.value = newId ? `Partido creado (ID ${newId}).` : 'Partido creado.'
+      formOk.value = newId ? `Partido creado (ID ${newId}).` : "Partido creado."
     } else {
-      await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payloadEdit })
+      await $fetch(API_PARTIDO_UPDATE, { method: "POST", body: payloadEdit })
       formOk.value = `Partido actualizado (ID ${editingId.value}).`
     }
 
@@ -1361,9 +1309,9 @@ async function saveGame() {
     const ok = formOk.value
     clearForm()
     formOk.value = ok
-    setTimeout(() => (formOk.value = ''), 1500)
+    setTimeout(() => (formOk.value = ""), 1500)
   } catch (e: any) {
-    formError.value = e?.data?.message || e?.message || 'No se pudo guardar. Revisa el backend.'
+    formError.value = e?.data?.message || e?.message || "No se pudo guardar. Revisa el backend."
   } finally {
     saving.value = false
   }
@@ -1378,12 +1326,9 @@ function swapTeams() {
   awayInput.value = tmp
 }
 
-/** =========================
- *  TEAM PICKER
- *  ========================= */
 const filterTeamsByCategory = ref(true)
-const homeInput = ref('')
-const awayInput = ref('')
+const homeInput = ref("")
+const awayInput = ref("")
 const homeOpen = ref(false)
 const awayOpen = ref(false)
 
@@ -1414,7 +1359,7 @@ function suggest(q: string, excludeId: number | null) {
 
   for (const t of arr) {
     if (t.teamId === excludeId) continue
-    if ((t._search || '').includes(query)) out.push(t)
+    if ((t._search || "").includes(query)) out.push(t)
     if (out.length >= LIMIT) break
   }
   return out
@@ -1435,11 +1380,11 @@ function pickAway(t: Team) {
 }
 function clearHome() {
   homeTeamId.value = null
-  homeInput.value = ''
+  homeInput.value = ""
 }
 function clearAway() {
   awayTeamId.value = null
-  awayInput.value = ''
+  awayInput.value = ""
 }
 function closeHomeLater() {
   setTimeout(() => (homeOpen.value = false), 80)
@@ -1448,11 +1393,8 @@ function closeAwayLater() {
   setTimeout(() => (awayOpen.value = false), 80)
 }
 
-/** =========================
- *  GAMES FILTERS + PAGINACIÓN
- *  ========================= */
-const gameStatusPick = ref<'ALL' | 'SCHEDULED' | 'FINAL'>('SCHEDULED')
-const gameQuery = ref('')
+const gameStatusPick = ref<"ALL" | "SCHEDULED" | "FINAL">("SCHEDULED")
+const gameQuery = ref("")
 const gameQ = debounceLowerRef(gameQuery, 100)
 
 const filteredGamesVm = computed(() => {
@@ -1460,13 +1402,13 @@ const filteredGamesVm = computed(() => {
   const s = gameStatusPick.value
   const src = gamesVm.value
 
-  if (!q && s === 'ALL') return src
+  if (!q && s === "ALL") return src
 
   return src.filter((g) => {
     const st = upper(g.status)
-    if (s !== 'ALL' && st !== s) return false
+    if (s !== "ALL" && st !== s) return false
     if (!q) return true
-    return (g._search || '').includes(q)
+    return (g._search || "").includes(q)
   })
 })
 
@@ -1495,40 +1437,37 @@ const pageTabs = computed(() => {
 
   if (total <= maxTabs) return Array.from({ length: total }, (_, i) => i + 1)
 
-  const out: (number | '…')[] = []
+  const out: (number | "…")[] = []
   out.push(1)
 
   const left = Math.max(2, cur - 2)
   const right = Math.min(total - 1, cur + 2)
 
-  if (left > 2) out.push('…')
+  if (left > 2) out.push("…")
   for (let i = left; i <= right; i++) out.push(i)
-  if (right < total - 1) out.push('…')
+  if (right < total - 1) out.push("…")
 
   out.push(total)
   return out
 })
 
-/** =========================
- *  ✅ DELETE
- *  ========================= */
 const deletingId = ref<number | null>(null)
-const deleteError = ref('')
-const deleteOk = ref('')
+const deleteError = ref("")
+const deleteOk = ref("")
 
 async function deleteGame(g: GameVM) {
-  deleteError.value = ''
-  deleteOk.value = ''
+  deleteError.value = ""
+  deleteOk.value = ""
 
   const gid = Number(g?.id || 0)
-  if (!gid) return (deleteError.value = 'No hay gameId válido.')
+  if (!gid) return (deleteError.value = "No hay gameId válido.")
 
   const st = upper(g.status)
 
   const msg =
-    st === 'FINAL'
-      ? `¿Eliminar partido #${gid}?\n\nEsto revierte standings (GP/W/D/L/PF/PA/TP) y lo marca como CANCELLED.\n\n¿Seguro?`
-      : `¿Borrar partido #${gid}?\n\nEsto es HARD DELETE (se elimina de la BD).\n\n¿Seguro?`
+    st === "FINAL"
+      ? `¿Eliminar partido #${gid}?\n\nEsto revierte standings y lo marca como CANCELLED.\n\n¿Seguro?`
+      : `¿Borrar partido #${gid}?\n\nEsto es HARD DELETE.\n\n¿Seguro?`
 
   if (!window.confirm(msg)) return
 
@@ -1536,117 +1475,107 @@ async function deleteGame(g: GameVM) {
   try {
     const headers = await authHeaders()
 
-    if (st === 'FINAL') {
-      // requiere endpoint DELETE /api/admin/games/{id} -> gameservice.deleteGameAndRevert(id)
-      await $fetch(API_GAME_DELETE_ADMIN(gid), { method: 'DELETE', headers })
+    if (st === "FINAL") {
+      await $fetch(API_GAME_DELETE_ADMIN(gid), { method: "DELETE", headers })
       deleteOk.value = `Partido #${gid} eliminado y revertido (CANCELLED).`
     } else {
-      // endpoint que ya tienes: DELETE /api/games/{id}
-      await $fetch(API_GAME_DELETE_SCHEDULED(gid), { method: 'DELETE', headers })
+      await $fetch(API_GAME_DELETE_SCHEDULED(gid), { method: "DELETE", headers })
       deleteOk.value = `Partido #${gid} borrado.`
     }
 
-    // UI optimista
     gamesVm.value = gamesVm.value.filter((x) => x.id !== gid)
     if (finishPanelId.value === gid) closeFinish()
     if (editScorePanelId.value === gid) closeEditScore()
 
     await refreshGames()
-    setTimeout(() => (deleteOk.value = ''), 2200)
+    setTimeout(() => (deleteOk.value = ""), 2200)
   } catch (e: any) {
     deleteError.value =
       e?.data?.message ||
       e?.message ||
-      'No se pudo borrar. Revisa endpoints/rol admin.'
+      "No se pudo borrar. Revisa endpoints/rol admin."
   } finally {
     deletingId.value = null
   }
 }
 
-/** =========================
- *  ✅ EDIT SCORE (FINAL)
- *  ========================= */
 const editScorePanelId = ref<number | null>(null)
 const editHomeScore = ref<number>(0)
 const editAwayScore = ref<number>(0)
 const editingScore = ref(false)
-const editScoreError = ref('')
-const editScoreOk = ref('')
+const editScoreError = ref("")
+const editScoreOk = ref("")
 
 function openEditScore(g: GameVM) {
-  // solo 1 panel a la vez
   finishPanelId.value = null
-  finishError.value = ''
-  finishOk.value = ''
+  finishError.value = ""
+  finishOk.value = ""
 
   editScorePanelId.value = g.id
   editHomeScore.value = Number(g.homeScore ?? 0)
   editAwayScore.value = Number(g.awayScore ?? 0)
-  editScoreError.value = ''
-  editScoreOk.value = ''
+  editScoreError.value = ""
+  editScoreOk.value = ""
 }
 
 function closeEditScore() {
   editScorePanelId.value = null
-  editScoreError.value = ''
-  editScoreOk.value = ''
+  editScoreError.value = ""
+  editScoreOk.value = ""
 }
 
 async function saveEditedScore(g: GameVM) {
-  editScoreError.value = ''
-  editScoreOk.value = ''
+  editScoreError.value = ""
+  editScoreOk.value = ""
 
   const gid = Number(g?.id || 0)
-  if (!gid) return (editScoreError.value = 'No hay gameId válido.')
+  if (!gid) return (editScoreError.value = "No hay gameId válido.")
 
-  if (upper(g.status) !== 'FINAL') return (editScoreError.value = 'Solo puedes corregir score si está FINAL.')
+  if (upper(g.status) !== "FINAL") return (editScoreError.value = "Solo puedes corregir score si está FINAL.")
 
   const hs = Number(editHomeScore.value ?? 0)
   const as = Number(editAwayScore.value ?? 0)
   if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
-    return (editScoreError.value = 'Scores inválidos.')
+    return (editScoreError.value = "Scores inválidos.")
   }
 
   editingScore.value = true
   try {
     const headers = await authHeaders()
     await $fetch(API_GAME_EDIT_SCORE(gid), {
-      method: 'PATCH',
+      method: "PATCH",
       headers,
       body: { homeScore: hs, awayScore: as },
     })
 
     editScoreOk.value = `Score actualizado (${hs} - ${as}).`
     await refreshGames()
-    setTimeout(() => (editScoreOk.value = ''), 1800)
+    setTimeout(() => (editScoreOk.value = ""), 1800)
   } catch (e: any) {
     editScoreError.value =
       e?.data?.message ||
       e?.message ||
-      'No se pudo actualizar el score. (¿Token/rol admin? ¿endpoint?)'
+      "No se pudo actualizar el score."
   } finally {
     editingScore.value = false
   }
 }
 
-/** =========================
- *  FINALIZAR + STATS
- *  ========================= */
 const finishPanelId = ref<number | null>(null)
 const finishHomeScore = ref<number>(0)
 const finishAwayScore = ref<number>(0)
 const finishing = ref(false)
-const finishError = ref('')
-const finishOk = ref('')
+const finishError = ref("")
+const finishOk = ref("")
 
 const statsOpen = ref(true)
-const statsWarn = ref('')
-const statsOk = ref('')
-const rosterHint = ref('')
+const statsWarn = ref("")
+const statsOk = ref("")
+const rosterHint = ref("")
 
-/** --- stats cache --- */
 const statsMap = shallowRef<Map<number, StatEntry[]>>(new Map())
 const statsTick = ref(0)
+
 function getStats(gameId: number) {
   statsTick.value
   return statsMap.value.get(gameId) || []
@@ -1656,7 +1585,6 @@ function setStats(gameId: number, entries: StatEntry[]) {
   statsTick.value++
 }
 
-/** --- roster cache --- */
 const rosterMap = shallowRef<Map<number, Player[]>>(new Map())
 const rosterTick = ref(0)
 const rosterLoading = ref<Set<number>>(new Set())
@@ -1679,7 +1607,7 @@ async function ensureRoster(teamId: number) {
       teamId,
       arr.map((p: any) => ({
         id: Number(p.id ?? p.playerId ?? p.player_id),
-        fullName: String(p.fullName ?? p.full_name ?? p.name ?? ''),
+        fullName: String(p.fullName ?? p.full_name ?? p.name ?? ""),
         jerseyNumber: p.jerseyNumber ?? p.jersey_number ?? null,
         photoUrl: p.photoUrl ?? p.photo_url ?? null,
       }))
@@ -1692,10 +1620,9 @@ async function ensureRoster(teamId: number) {
   }
 }
 
-/** --- draft --- */
 const statDraft = ref<{ kind: StatKind; side: StatSide; playerId: number; qty: number }>({
-  kind: 'TD',
-  side: 'HOME',
+  kind: "TD",
+  side: "HOME",
   playerId: 0,
   qty: 1,
 })
@@ -1709,7 +1636,7 @@ const currentGame = computed(() => {
 const currentSideTeamId = computed(() => {
   const g = currentGame.value
   if (!g) return 0
-  return statDraft.value.side === 'HOME' ? (g.homeTeamId || 0) : (g.awayTeamId || 0)
+  return statDraft.value.side === "HOME" ? (g.homeTeamId || 0) : (g.awayTeamId || 0)
 })
 
 const currentRosterOptions = computed(() => {
@@ -1727,7 +1654,7 @@ const rosterSelectKey = computed(() => {
 
 watch([finishPanelId, () => statDraft.value.side], async () => {
   statDraft.value.playerId = 0
-  rosterHint.value = ''
+  rosterHint.value = ""
 
   const g = currentGame.value
   if (!g) return
@@ -1736,7 +1663,7 @@ watch([finishPanelId, () => statDraft.value.side], async () => {
 
   const roster = teamId ? getRoster(teamId) : []
   if (teamId && roster.length === 0) {
-    rosterHint.value = `Roster ${statDraft.value.side === 'HOME' ? 'local' : 'visitante'} vacío o no cargó (team #${teamId}).`
+    rosterHint.value = `Roster ${statDraft.value.side === "HOME" ? "local" : "visitante"} vacío o no cargó (team #${teamId}).`
   }
 })
 
@@ -1753,7 +1680,7 @@ function countKind(kind: StatKind) {
 }
 
 function playerOptionLabel(p: Player) {
-  const jersey = p.jerseyNumber != null ? `#${p.jerseyNumber} · ` : ''
+  const jersey = p.jerseyNumber != null ? `#${p.jerseyNumber} · ` : ""
   return `${jersey}${p.fullName}`
 }
 
@@ -1764,8 +1691,8 @@ const canAddStat = computed(() => {
 })
 
 function addStatForGame(g: GameVM) {
-  statsWarn.value = ''
-  statsOk.value = ''
+  statsWarn.value = ""
+  statsOk.value = ""
 
   const gid = g.id
   const pid = Number(statDraft.value.playerId || 0)
@@ -1774,7 +1701,7 @@ function addStatForGame(g: GameVM) {
   const roster = currentRosterOptions.value
   const p = roster.find((x) => Number(x.id) === pid)
 
-  if (!p) return (statsWarn.value = 'Selecciona un jugador válido del roster.')
+  if (!p) return (statsWarn.value = "Selecciona un jugador válido del roster.")
 
   const entry: StatEntry = {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -1800,42 +1727,41 @@ function removeStat(gameId: number, statId: string) {
 
 function clearStats(gameId: number) {
   setStats(gameId, [])
-  statsWarn.value = ''
-  statsOk.value = ''
+  statsWarn.value = ""
+  statsOk.value = ""
 }
 
 async function openFinish(g: GameVM) {
-  // solo 1 panel a la vez
   editScorePanelId.value = null
-  editScoreError.value = ''
-  editScoreOk.value = ''
+  editScoreError.value = ""
+  editScoreOk.value = ""
 
   finishPanelId.value = g.id
   finishHomeScore.value = Number(g.homeScore ?? 0)
   finishAwayScore.value = Number(g.awayScore ?? 0)
-  finishError.value = ''
-  finishOk.value = ''
-  statsWarn.value = ''
-  statsOk.value = ''
-  rosterHint.value = ''
+  finishError.value = ""
+  finishOk.value = ""
+  statsWarn.value = ""
+  statsOk.value = ""
+  rosterHint.value = ""
   statsOpen.value = true
 
   const h = g.homeTeamId || 0
   const a = g.awayTeamId || 0
   await Promise.all([h ? ensureRoster(h) : Promise.resolve(), a ? ensureRoster(a) : Promise.resolve()])
 
-  statDraft.value.side = 'HOME'
+  statDraft.value.side = "HOME"
   statDraft.value.playerId = 0
   statDraft.value.qty = 1
 }
 
 function closeFinish() {
   finishPanelId.value = null
-  finishError.value = ''
-  finishOk.value = ''
-  statsWarn.value = ''
-  statsOk.value = ''
-  rosterHint.value = ''
+  finishError.value = ""
+  finishOk.value = ""
+  statsWarn.value = ""
+  statsOk.value = ""
+  rosterHint.value = ""
 }
 
 async function tryPostPlayerStats(gameId: number) {
@@ -1845,15 +1771,14 @@ async function tryPostPlayerStats(gameId: number) {
   try {
     const payload = entries.map((e) => ({ kind: e.kind, side: e.side, playerId: e.playerId, qty: e.qty }))
     const headers = await authHeaders()
-    await $fetch(PLAYER_STATS_URL(gameId), { method: 'PUT', body: payload, headers })
-    statsOk.value = 'Stats individuales guardadas.'
-    statsWarn.value = ''
+    await $fetch(PLAYER_STATS_URL(gameId), { method: "PUT", body: payload, headers })
+    statsOk.value = "Stats individuales guardadas."
+    statsWarn.value = ""
   } catch {
-    statsWarn.value = 'No se pudieron guardar stats (endpoint no existe o backend aún no soporta). El FINAL sí se guardó.'
+    statsWarn.value = "No se pudieron guardar stats. El FINAL sí se guardó."
   }
 }
 
-/** FINALIZAR: body mínimo EXACTO a /partido/update */
 async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: number) {
   const body = {
     game_id: String(gameId),
@@ -1861,21 +1786,21 @@ async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: nu
     away_score: Number(awayScore),
   }
   const headers = await authHeaders()
-  return await $fetch<any>(API_PARTIDO_UPDATE, { method: 'POST', body, headers })
+  return await $fetch<any>(API_PARTIDO_UPDATE, { method: "POST", body, headers })
 }
 
 async function finishGame(g: GameVM) {
-  finishError.value = ''
-  finishOk.value = ''
-  statsWarn.value = ''
-  statsOk.value = ''
+  finishError.value = ""
+  finishOk.value = ""
+  statsWarn.value = ""
+  statsOk.value = ""
 
-  if (!g?.id) return (finishError.value = 'No hay game_id válido.')
+  if (!g?.id) return (finishError.value = "No hay game_id válido.")
 
   const hs = Number(finishHomeScore.value ?? 0)
   const as = Number(finishAwayScore.value ?? 0)
   if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
-    return (finishError.value = 'Scores inválidos.')
+    return (finishError.value = "Scores inválidos.")
   }
 
   finishing.value = true
@@ -1884,29 +1809,26 @@ async function finishGame(g: GameVM) {
     finishOk.value = `Partido ${g.id} finalizado (${hs} - ${as}).`
     await refreshGames()
     await tryPostPlayerStats(g.id)
-    setTimeout(() => (finishOk.value = ''), 2000)
+    setTimeout(() => (finishOk.value = ""), 2000)
   } catch (e: any) {
-    finishError.value = e?.data?.message || e?.message || 'No se pudo finalizar. Revisa el backend.'
+    finishError.value = e?.data?.message || e?.message || "No se pudo finalizar. Revisa el backend."
   } finally {
     finishing.value = false
   }
 }
 
-/** =========================
- *  REFRESH
- *  ========================= */
 async function hardRefresh() {
-  formOk.value = ''
-  formError.value = ''
-  finishOk.value = ''
-  finishError.value = ''
-  deleteOk.value = ''
-  deleteError.value = ''
-  editScoreOk.value = ''
-  editScoreError.value = ''
-  statsWarn.value = ''
-  statsOk.value = ''
-  rosterHint.value = ''
+  formOk.value = ""
+  formError.value = ""
+  finishOk.value = ""
+  finishError.value = ""
+  deleteOk.value = ""
+  deleteError.value = ""
+  editScoreOk.value = ""
+  editScoreError.value = ""
+  statsWarn.value = ""
+  statsOk.value = ""
+  rosterHint.value = ""
   await Promise.all([refreshTeams(), refreshGames()])
 }
 </script>
@@ -1923,7 +1845,6 @@ async function hardRefresh() {
   color: rgba(226, 232, 240, 0.95);
 }
 
-/* PERF: backdrop-filter es carísimo al scroll; lo apagamos mientras scroll */
 .no-blur .backdrop-blur,
 .no-blur .backdrop-blur-sm,
 .no-blur .backdrop-blur-md,
@@ -1934,4 +1855,3 @@ async function hardRefresh() {
   backdrop-filter: none !important;
 }
 </style>
-
