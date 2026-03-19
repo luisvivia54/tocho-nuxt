@@ -73,7 +73,7 @@
                   >
                     <option value="all">Todas</option>
                     <option v-for="g in categoriaOptions" :key="g" :value="g">
-                      {{ g }}
+                      {{ niceGender(g) }}
                     </option>
                   </select>
 
@@ -147,7 +147,7 @@
             </span>
 
             <span v-if="categoriesError" class="text-amber-200">
-              No se pudo cargar /categories (opciones de filtro). El listado de equipos sigue funcionando.
+              No se pudo cargar /categories de la liga 1. El listado de equipos sigue funcionando.
             </span>
           </div>
         </section>
@@ -203,7 +203,6 @@
                   <h2 class="font-display text-lg font-bold text-white truncate">{{ team.name }}</h2>
                   <p class="text-[11px] text-slate-200 truncate">{{ team.shortName || 'Sin abreviatura' }}</p>
 
-                  <!-- ✅ Rama + Categoría por equipo -->
                   <div class="mt-2 flex flex-wrap items-center gap-2 text-[10px]">
                     <span class="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/20 px-2 py-0.5 text-slate-100">
                       Rama:
@@ -314,7 +313,7 @@ type Nullable<T> = T | null
 
 interface ApiTeam {
   teamId: number
-  leagueId?: number
+  leagueId?: number | null
   name: string
   shortName: Nullable<string>
   colorPrimary: Nullable<string>
@@ -327,12 +326,12 @@ interface ApiTeam {
   categoryCode?: Nullable<string>
   gender?: Nullable<string>
   categoryGender?: Nullable<string>
-  category?: Nullable<{ code?: string; gender?: string; name?: string }>
+  category?: Nullable<{ code?: string; gender?: string; name?: string; leagueId?: number | null }>
 }
 
 interface CategoryDto {
   id: number
-  leagueId?: number
+  leagueId?: number | null
   name: string
   code: string
   gender: string
@@ -346,6 +345,8 @@ function unwrapList<T>(x: any): T[] {
   return []
 }
 
+const PAGE_LEAGUE_ID = 1
+
 const config = useRuntimeConfig()
 const API_BASE = `${normalizeApiBase(config.public.apiBase)}/`
 
@@ -354,31 +355,78 @@ const selectedRama = ref<string>('all')
 const selectedCategoria = ref<string>('all')
 const searchQuery = ref('')
 
-// ================== CATEGORÍAS ==================
+// ================== CATEGORÍAS (solo liga 1) ==================
+const categoriesQuery = computed(() => ({
+  leagueId: PAGE_LEAGUE_ID,
+}))
+
 const {
   data: categoriesRaw,
   pending: categoriesPending,
   error: categoriesError,
 } = useFetch<any>('categories', {
   baseURL: API_BASE,
+  query: categoriesQuery,
   default: () => [],
 })
 
-const categoriesList = computed<CategoryDto[]>(() => unwrapList<CategoryDto>(categoriesRaw.value))
+const allCategories = computed<CategoryDto[]>(() => unwrapList<CategoryDto>(categoriesRaw.value))
+
+const categoriesList = computed<CategoryDto[]>(() => {
+  const list = allCategories.value || []
+  const withLeagueMeta = list.some((c) => c?.leagueId !== null && c?.leagueId !== undefined)
+
+  if (!withLeagueMeta) return list
+  return list.filter((c) => Number(c?.leagueId) === PAGE_LEAGUE_ID)
+})
+
+const validCategoryCodes = computed<Set<string>>(() => {
+  const set = new Set<string>()
+
+  for (const c of categoriesList.value) {
+    const code = normalizeUpper(c?.code)
+    if (code) set.add(code)
+  }
+
+  return set
+})
+
+const validCategoryGenders = computed<Set<string>>(() => {
+  const set = new Set<string>()
+
+  for (const c of categoriesList.value) {
+    const gender = normalizeUpper(c?.gender)
+    if (gender) set.add(gender)
+  }
+
+  return set
+})
+
+const hasUsableCategoryCatalog = computed(() =>
+  !categoriesPending.value &&
+  !categoriesError.value &&
+  categoriesList.value.length > 0
+)
 
 const ramaOptions = computed(() => {
   const set = new Set<string>()
+
   for (const c of categoriesList.value) {
-    if (c?.code) set.add(String(c.code).toUpperCase())
+    const code = normalizeUpper(c?.code)
+    if (code) set.add(code)
   }
+
   return Array.from(set).sort()
 })
 
 const categoriaOptions = computed(() => {
   const set = new Set<string>()
+
   for (const c of categoriesList.value) {
-    if (c?.gender) set.add(String(c.gender).toUpperCase())
+    const gender = normalizeUpper(c?.gender)
+    if (gender) set.add(gender)
   }
+
   return Array.from(set).sort()
 })
 
@@ -390,8 +438,9 @@ const selectedCategoriaLabel = computed(() =>
   selectedCategoria.value === 'all' ? 'Todas las categorías' : niceGender(selectedCategoria.value)
 )
 
-// Query para el BACK: teams/list?categoryCode=...&gender=...
+// Query para el BACK: teams/list?leagueId=1&categoryCode=...&gender=...
 const teamsQuery = computed(() => ({
+  leagueId: PAGE_LEAGUE_ID,
   categoryCode: selectedRama.value === 'all' ? undefined : selectedRama.value,
   gender: selectedCategoria.value === 'all' ? undefined : selectedCategoria.value,
 }))
@@ -408,7 +457,11 @@ const {
   default: () => [],
 })
 
-const teamsList = computed<ApiTeam[]>(() => unwrapList<ApiTeam>(teamsRaw.value))
+const allTeams = computed<ApiTeam[]>(() => unwrapList<ApiTeam>(teamsRaw.value))
+
+const teamsList = computed<ApiTeam[]>(() => {
+  return (allTeams.value || []).filter((team) => teamBelongsToLeagueOne(team))
+})
 
 // ================== FILTRO LOCAL (búsqueda) ==================
 const filteredTeams = computed<ApiTeam[]>(() => {
@@ -489,6 +542,49 @@ const getTeamCode = (team: ApiTeam): string => {
 const getTeamGender = (team: ApiTeam): string => {
   const v = team.category?.gender || team.gender || team.categoryGender || null
   return v ? String(v).toUpperCase() : ''
+}
+
+function teamBelongsToLeagueOne(team: ApiTeam): boolean {
+  const teamLeagueId = toNullableNumber(team?.leagueId)
+  const nestedCategoryLeagueId = toNullableNumber(team?.category?.leagueId)
+
+  const teamCode = normalizeUpper(getTeamCode(team))
+  const teamGender = normalizeUpper(getTeamGender(team))
+
+  // Si viene leagueId directo en el equipo, debe ser 1
+  if (teamLeagueId !== null && teamLeagueId !== PAGE_LEAGUE_ID) {
+    return false
+  }
+
+  // Si viene leagueId dentro de category, también debe ser 1
+  if (nestedCategoryLeagueId !== null && nestedCategoryLeagueId !== PAGE_LEAGUE_ID) {
+    return false
+  }
+
+  // Blindaje extra:
+  // si el catálogo de categorías de liga 1 sí cargó, validamos contra ese catálogo
+  if (hasUsableCategoryCatalog.value) {
+    if (teamCode && !validCategoryCodes.value.has(teamCode)) {
+      return false
+    }
+
+    // Solo valida gender si el equipo no trae code usable
+    if (!teamCode && teamGender && !validCategoryGenders.value.has(teamGender)) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+function normalizeUpper(value: unknown): string {
+  return String(value || '').trim().toUpperCase()
 }
 
 function niceGender(g: string) {
