@@ -3,8 +3,16 @@
     <div class="mx-auto max-w-[1400px] px-4 sm:px-6">
       <div class="flex h-20 items-center justify-between gap-4">
         <!-- Left -->
-        <NuxtLink to="/jueves" class="flex shrink-0 items-center gap-3 whitespace-nowrap">
-          <span class="text-[2rem] font-black leading-none tracking-tight text-orange-400">T5</span>
+        <NuxtLink to="/jueves" class="group flex shrink-0 items-center gap-3 whitespace-nowrap">
+          <span
+            class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-orange-400/20 bg-white/[0.04] shadow-[0_8px_24px_rgba(0,0,0,0.22)] transition group-hover:border-orange-300/35 group-hover:bg-white/[0.07]"
+          >
+            <img
+              :src="brandLogo"
+              alt="Tochero5"
+              class="h-8 w-8 object-contain"
+            />
+          </span>
           <span class="text-[1rem] font-medium text-slate-300 lg:text-[1.08rem]">Liga de Jueves</span>
         </NuxtLink>
 
@@ -170,7 +178,15 @@
           <div class="border-b border-white/10 bg-[#050816]/95 px-4 py-4 backdrop-blur-xl">
             <div class="flex items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <span class="text-[2rem] font-black leading-none tracking-tight text-orange-400">T5</span>
+                <span
+                  class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-orange-400/20 bg-white/[0.04]"
+                >
+                  <img
+                    :src="brandLogo"
+                    alt="Tochero5"
+                    class="h-8 w-8 object-contain"
+                  />
+                </span>
                 <div class="leading-tight">
                   <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.25em] text-orange-300/90">
                     Menú
@@ -374,6 +390,8 @@ type AdminItem = {
   to: string
   icon: any
 }
+
+const brandLogo = "/img/sponsors/Tochero5.JPG"
 
 const route = useRoute()
 const nuxtApp = useNuxtApp()

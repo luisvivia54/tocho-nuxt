@@ -39,12 +39,17 @@
     <header class="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/25 backdrop-blur-xl">
       <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <!-- Brand -->
-        <NuxtLink to="/" class="flex items-center gap-3">
+        <NuxtLink to="/" class="group flex items-center gap-3">
           <div
-            class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/40"
+            class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-[0_8px_24px_rgba(0,0,0,0.22)] transition group-hover:border-emerald-300/30 group-hover:bg-black/55"
           >
-            <span class="text-sm font-extrabold tracking-tight text-emerald-300">T5</span>
+            <img
+              :src="brandLogo"
+              alt="Tochero5"
+              class="h-8 w-8 object-contain"
+            />
           </div>
+
           <span class="text-sm font-semibold text-slate-200">
             Tochero<span class="text-emerald-300">5</span>Liga
           </span>
@@ -133,6 +138,21 @@
       <!-- Mobile panel -->
       <div v-if="mobileOpen" class="border-t border-white/5 bg-black/60 backdrop-blur-xl md:hidden">
         <div class="mx-auto max-w-6xl px-4 py-3 sm:px-6">
+          <div class="mb-3 flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.03] px-3 py-3">
+            <div
+              class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40"
+            >
+              <img
+                :src="brandLogo"
+                alt="Tochero5"
+                class="h-8 w-8 object-contain"
+              />
+            </div>
+            <span class="text-sm font-semibold text-slate-200">
+              Tochero<span class="text-emerald-300">5</span>Liga
+            </span>
+          </div>
+
           <div class="flex flex-col gap-2">
             <button
               class="rounded-xl px-3 py-2 text-left text-xs font-semibold uppercase tracking-[0.22em] text-slate-200 hover:bg-white/5"
@@ -431,8 +451,12 @@
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-3">
-            <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/40">
-              <span class="text-sm font-extrabold tracking-tight text-emerald-300">T5</span>
+            <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40">
+              <img
+                :src="brandLogo"
+                alt="Tochero5"
+                class="h-8 w-8 object-contain"
+              />
             </div>
             <div class="text-sm text-slate-300">
               <div class="font-semibold text-slate-200">Temporada {{ season }}</div>
@@ -468,6 +492,9 @@ const season = 2026;
 const teamsTotal = 26;
 const gamesSeason = 52;
 const rounds = 18;
+
+// Logo de marca
+const brandLogo = "/img/sponsors/Tochero5.JPG";
 
 // Logo de fondo
 const logoBg = "/img/sponsors/Tochero5.JPG";
