@@ -23,30 +23,7 @@
         <div
           class="mt-10 rounded-[28px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] md:p-5"
         >
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div class="space-y-2">
-              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
-                Temporada
-              </label>
-              <select
-                v-model="selectedSeason"
-                :disabled="!hasSeasonMeta"
-                class="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition"
-                :class="filterSelectClass(!hasSeasonMeta)"
-              >
-                <option value="ALL">
-                  {{ hasSeasonMeta ? 'Todas' : 'No disponible' }}
-                </option>
-                <option
-                  v-for="option in seasonOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             <div class="space-y-2">
               <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
                 Categoría
@@ -126,7 +103,7 @@
             v-if="!hasAnyMeta"
             class="mt-4 text-xs text-amber-200/90"
           >
-            Este endpoint solo trae datos básicos del equipo. Temporada, categoría y rama no vienen en la respuesta, por eso esos filtros están deshabilitados.
+            Este endpoint solo trae datos básicos del equipo. Categoría y rama no vienen en la respuesta, por eso esos filtros están deshabilitados.
           </p>
         </div>
       </div>
@@ -304,6 +281,8 @@ import { computed, ref, watch } from "vue"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 import { useJuevesData } from "~/composables/useJuevesData"
 
+const LEAGUE_ID = 2
+
 type FilterValue = "ALL" | string
 
 type OptionItem = {
@@ -332,26 +311,19 @@ const ITEMS_PER_PAGE = 9
 const search = ref("")
 const currentPage = ref(1)
 
-const selectedSeason = ref<FilterValue>("ALL")
 const selectedCategory = ref<FilterValue>("ALL")
 const selectedBranch = ref<FilterValue>("ALL")
 
-const { leagueKey, toList } = useJuevesData()
+const { toList } = useJuevesData()
 
 const { data: teamsData, pending: pendingTeams, error: teamsError } =
   await useAsyncData<UiTeamCard[]>("jueves-equipos-page", async () => {
     try {
       const raw = await $fetch<any>("/api/t5/teams", {
-        query: {
-          league: leagueKey,
-          leagueKey,
-        },
+        query: { leagueId: LEAGUE_ID },
       })
 
       const list = toList(raw)
-
-      console.log("TOTAL EQUIPOS:", list.length)
-      console.log("PRIMER TEAM JUEVES:", list?.[0])
 
       return list
         .map((team: any) => {
@@ -421,21 +393,29 @@ const { data: teamsData, pending: pendingTeams, error: teamsError } =
     }
   })
 
+const { data: categoriesData } = await useAsyncData<any[]>("jueves-categories-league2", async () => {
+  try {
+    const raw = await $fetch<any>("/api/t5/categories", {
+      query: { leagueId: LEAGUE_ID },
+    })
+    return Array.isArray(raw) ? raw : []
+  } catch {
+    return []
+  }
+})
+
 const allTeams = computed<UiTeamCard[]>(() => teamsData.value ?? [])
 
-const seasonOptions = computed<OptionItem[]>(() =>
-  buildOptions(allTeams.value.map((team) => ({
-    label: team.seasonLabel,
-    value: team.seasonValue,
-  })))
-)
-
-const categoryOptions = computed<OptionItem[]>(() =>
-  buildOptions(allTeams.value.map((team) => ({
-    label: team.categoryLabel,
-    value: team.categoryValue,
-  })))
-)
+const categoryOptions = computed<OptionItem[]>(() => {
+  const cats = categoriesData.value ?? []
+  return cats
+    .map((c: any) => {
+      const label = String(c.name ?? c.categoryName ?? c.label ?? "").trim()
+      return { label, value: normalizeText(label) }
+    })
+    .filter((o) => o.label && o.value)
+    .sort((a, b) => a.label.localeCompare(b.label, "es"))
+})
 
 const branchOptions = computed<OptionItem[]>(() =>
   buildOptions(allTeams.value.map((team) => ({
@@ -444,20 +424,14 @@ const branchOptions = computed<OptionItem[]>(() =>
   })))
 )
 
-const hasSeasonMeta = computed(() => seasonOptions.value.length > 0)
 const hasCategoryMeta = computed(() => categoryOptions.value.length > 0)
 const hasBranchMeta = computed(() => branchOptions.value.length > 0)
-const hasAnyMeta = computed(() => hasSeasonMeta.value || hasCategoryMeta.value || hasBranchMeta.value)
+const hasAnyMeta = computed(() => hasCategoryMeta.value || hasBranchMeta.value)
 
 const filteredTeams = computed<UiTeamCard[]>(() => {
   const q = normalizeText(search.value)
 
   return allTeams.value.filter((team) => {
-    const matchesSeason =
-      !hasSeasonMeta.value ||
-      selectedSeason.value === "ALL" ||
-      team.seasonValue === selectedSeason.value
-
     const matchesCategory =
       !hasCategoryMeta.value ||
       selectedCategory.value === "ALL" ||
@@ -469,20 +443,14 @@ const filteredTeams = computed<UiTeamCard[]>(() => {
       team.branchValue === selectedBranch.value
 
     const searchable = normalizeText(
-      [
-        team.name,
-        team.shortName,
-        team.categoryLabel,
-        team.branchLabel,
-        team.seasonLabel,
-      ]
+      [team.name, team.shortName, team.categoryLabel, team.branchLabel, team.seasonLabel]
         .filter(Boolean)
         .join(" ")
     )
 
     const matchesSearch = !q || searchable.includes(q)
 
-    return matchesSeason && matchesCategory && matchesBranch && matchesSearch
+    return matchesCategory && matchesBranch && matchesSearch
   })
 })
 
@@ -513,27 +481,19 @@ const visibleTeamPages = computed<number[]>(() => {
   let start = Math.max(1, current - 2)
   let end = Math.min(total, current + 2)
 
-  if (current <= 3) {
-    start = 1
-    end = 5
-  }
-
-  if (current >= total - 2) {
-    start = total - 4
-    end = total
-  }
+  if (current <= 3) { start = 1; end = 5 }
+  if (current >= total - 2) { start = total - 4; end = total }
 
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
-watch([search, selectedSeason, selectedCategory, selectedBranch], () => {
+watch([search, selectedCategory, selectedBranch], () => {
   currentPage.value = 1
 })
 
 watch(
-  [hasSeasonMeta, hasCategoryMeta, hasBranchMeta],
-  ([seasonOk, categoryOk, branchOk]) => {
-    if (!seasonOk) selectedSeason.value = "ALL"
+  [hasCategoryMeta, hasBranchMeta],
+  ([categoryOk, branchOk]) => {
     if (!categoryOk) selectedCategory.value = "ALL"
     if (!branchOk) selectedBranch.value = "ALL"
   },
@@ -556,7 +516,6 @@ function goToTeamPage(page: number) {
 
 function resetFilters() {
   search.value = ""
-  selectedSeason.value = "ALL"
   selectedCategory.value = "ALL"
   selectedBranch.value = "ALL"
   currentPage.value = 1
@@ -564,18 +523,12 @@ function resetFilters() {
 
 function buildOptions(items: Array<{ label: string; value: string }>): OptionItem[] {
   const map = new Map<string, string>()
-
   for (const item of items) {
     const label = String(item.label || "").trim()
     const value = String(item.value || "").trim()
-
     if (!label || !value) continue
-
-    if (!map.has(value)) {
-      map.set(value, label)
-    }
+    if (!map.has(value)) map.set(value, label)
   }
-
   return Array.from(map.entries())
     .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label, "es"))
@@ -583,49 +536,39 @@ function buildOptions(items: Array<{ label: string; value: string }>): OptionIte
 
 function flattenObject(obj: any, prefix = "", result: Record<string, any> = {}) {
   if (obj === null || obj === undefined) return result
-
   if (Array.isArray(obj)) {
     obj.forEach((item, index) => {
-      const nextPrefix = prefix ? `${prefix}.${index}` : String(index)
-      flattenObject(item, nextPrefix, result)
+      flattenObject(item, prefix ? `${prefix}.${index}` : String(index), result)
     })
     return result
   }
-
   if (typeof obj !== "object") {
     if (prefix) result[prefix] = obj
     return result
   }
-
   for (const key of Object.keys(obj)) {
     const value = obj[key]
     const nextPrefix = prefix ? `${prefix}.${key}` : key
-
     if (value !== null && typeof value === "object") {
       flattenObject(value, nextPrefix, result)
     } else {
       result[nextPrefix] = value
     }
   }
-
   return result
 }
 
 function findExactMeta(flattened: Record<string, any>, paths: string[]) {
   for (const path of paths) {
     const value = flattened[path]
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return value
-    }
+    if (value !== null && value !== undefined && String(value).trim() !== "") return value
   }
   return ""
 }
 
 function firstNonEmpty(values: any[]) {
   for (const value of values) {
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return value
-    }
+    if (value !== null && value !== undefined && String(value).trim() !== "") return value
   }
   return ""
 }
@@ -645,11 +588,9 @@ function normalizeText(value: string) {
 
 function formatBranchLabel(value: string) {
   const v = normalizeText(value)
-
   if (v === "varonil" || v === "masculino" || v === "male") return "Varonil"
   if (v === "femenil" || v === "femenino" || v === "female") return "Femenil"
   if (v === "mixto" || v === "mixed") return "Mixto"
-
   return String(value || "").trim()
 }
 
@@ -664,18 +605,15 @@ function normalizeColor(value: string): string {
   const color = value.trim()
   if (!color) return ""
   if (color.startsWith("#")) return color
-
   const hexOnly = color.replace(/[^0-9a-fA-F]/g, "")
   if (hexOnly.length === 6) return `#${hexOnly}`
   if (hexOnly.length === 3) return `#${hexOnly}`
-
   return color
 }
 
 function getCardGradientStyle(team: UiTeamCard) {
   const primary = team.colorPrimary || "#0f172a"
   const secondary = team.colorSecondary || "#1e293b"
-
   return {
     backgroundImage: `linear-gradient(135deg, ${primary}, ${secondary})`,
     backgroundBlendMode: "soft-light",
