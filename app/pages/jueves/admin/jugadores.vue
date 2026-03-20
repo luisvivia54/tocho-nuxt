@@ -677,6 +677,8 @@ type TeamVM = {
   name: string
   code: string | null
   gender: string | null
+  leagueId: number | null
+  seasonId: number | null
 }
 
 type PlayerVM = {
@@ -700,6 +702,9 @@ type CategoryDto = {
   code: string
   gender: string
 }
+
+const JUEVES_LEAGUE_ID = 2
+const JUEVES_SEASON_ID = 3
 
 const config = useRuntimeConfig()
 const nuxtApp = useNuxtApp()
@@ -810,6 +815,7 @@ function unwrapList<T>(x: unknown): T[] {
     const obj = x as Record<string, unknown>
     if (Array.isArray(obj.content)) return obj.content as T[]
     if (Array.isArray(obj.items)) return obj.items as T[]
+    if (Array.isArray(obj.data)) return obj.data as T[]
   }
 
   return []
@@ -818,6 +824,11 @@ function unwrapList<T>(x: unknown): T[] {
 function toNum(v: unknown) {
   if (typeof v === 'number' && Number.isFinite(v)) return v
   return Number(v) || 0
+}
+
+function toNumOrNull(v: unknown): number | null {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
 }
 
 function initials(text: string) {
@@ -881,11 +892,14 @@ const {
 
     try {
       const raw = await $fetch<unknown>(API_CATEGORIES, {
+        query: { leagueId: JUEVES_LEAGUE_ID },
         headers: Object.keys(h).length ? h : undefined
       })
       return unwrapList<CategoryDto>(raw)
     } catch {
-      const raw = await $fetch<unknown>(API_CATEGORIES)
+      const raw = await $fetch<unknown>(API_CATEGORIES, {
+        query: { leagueId: JUEVES_LEAGUE_ID }
+      })
       return unwrapList<CategoryDto>(raw)
     }
   },
@@ -929,15 +943,19 @@ const {
 
     try {
       const raw = await $fetch<unknown>(API_TEAMS_LIST, {
+        query: { leagueId: JUEVES_LEAGUE_ID },
         headers: Object.keys(h).length ? h : undefined
       })
       return unwrapList<Record<string, unknown>>(raw)
     } catch {
       try {
-        const raw2 = await $fetch<unknown>(API_TEAMS_LIST)
+        const raw2 = await $fetch<unknown>(API_TEAMS_LIST, {
+          query: { leagueId: JUEVES_LEAGUE_ID }
+        })
         return unwrapList<Record<string, unknown>>(raw2)
       } catch {
         const raw3 = await $fetch<unknown>(API_TEAMS, {
+          query: { leagueId: JUEVES_LEAGUE_ID },
           headers: Object.keys(h).length ? h : undefined
         })
         return unwrapList<Record<string, unknown>>(raw3)
@@ -949,34 +967,58 @@ const {
 
 const teamsVm = computed<TeamVM[]>(() => {
   const list = unwrapList<Record<string, unknown>>(teamsData.value)
+  const out = new Map<number, TeamVM>()
 
-  return list
-    .map((x) => {
-      const category = (x['category'] as Record<string, unknown> | undefined) || undefined
+  for (const x of list) {
+    const category = (x['category'] as Record<string, unknown> | undefined) || undefined
 
-      const codeVal =
-        category?.['code'] ??
-        x['categoryCode'] ??
-        x['code'] ??
-        x['category_code'] ??
-        null
+    const codeVal =
+      category?.['code'] ??
+      x['categoryCode'] ??
+      x['code'] ??
+      x['category_code'] ??
+      null
 
-      const genderVal =
-        category?.['gender'] ??
-        x['gender'] ??
-        x['categoryGender'] ??
-        x['category_gender'] ??
-        null
+    const genderVal =
+      category?.['gender'] ??
+      x['gender'] ??
+      x['categoryGender'] ??
+      x['category_gender'] ??
+      null
 
-      return {
-        teamId: Number(x['teamId'] ?? x['team_id'] ?? x['id']),
-        name: String(x['name'] ?? x['teamName'] ?? 'Equipo'),
-        code: codeVal ? String(codeVal).toUpperCase() : null,
-        gender: genderVal ? String(genderVal).toUpperCase() : null
-      }
+    const teamId = Number(x['teamId'] ?? x['team_id'] ?? x['id'])
+    if (!Number.isFinite(teamId)) continue
+
+    const leagueId = toNumOrNull(
+      x['leagueId'] ??
+      x['league_id'] ??
+      (x['league'] as Record<string, unknown> | undefined)?.['league_id'] ??
+      (x['league'] as Record<string, unknown> | undefined)?.['leagueId'] ??
+      (x['league'] as Record<string, unknown> | undefined)?.['id']
+    )
+
+    const seasonId = toNumOrNull(
+      x['seasonId'] ??
+      x['season_id'] ??
+      (x['season'] as Record<string, unknown> | undefined)?.['id']
+    )
+
+    const leagueOk = leagueId === null || leagueId === JUEVES_LEAGUE_ID
+    const seasonOk = seasonId === null || seasonId === JUEVES_SEASON_ID
+
+    if (!leagueOk || !seasonOk) continue
+
+    out.set(teamId, {
+      teamId,
+      name: String(x['name'] ?? x['teamName'] ?? 'Equipo'),
+      code: codeVal ? String(codeVal).toUpperCase() : null,
+      gender: genderVal ? String(genderVal).toUpperCase() : null,
+      leagueId,
+      seasonId
     })
-    .filter((t) => Number.isFinite(t.teamId))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  return Array.from(out.values()).sort((a, b) => a.name.localeCompare(b.name))
 })
 
 const teamById = computed(() => {
@@ -984,6 +1026,8 @@ const teamById = computed(() => {
   for (const t of teamsVm.value) map.set(t.teamId, t)
   return map
 })
+
+const validTeamIds = computed(() => new Set(teamsVm.value.map((t) => t.teamId)))
 
 /* =========================
    Players
@@ -1047,9 +1091,11 @@ const {
 )
 
 watch(
-  () => teamsVm.value.length,
-  async () => {
-    await refreshPlayers()
+  () => teamsVm.value.map((t) => t.teamId).join(','),
+  async (ids, oldIds) => {
+    if (ids !== oldIds) {
+      await refreshPlayers()
+    }
   }
 )
 
@@ -1087,7 +1133,6 @@ const playersVm = computed<PlayerVM[]>(() => {
         null
 
       const teamId = teamIdRaw == null ? null : Number(teamIdRaw) || null
-
       const t = teamId != null ? teamById.value.get(teamId) : undefined
 
       const teamNameFromApi = String(x['teamName'] ?? x['team_name'] ?? team?.['name'] ?? '').trim()
@@ -1142,6 +1187,7 @@ const playersVm = computed<PlayerVM[]>(() => {
       }
     })
     .filter((p) => Number.isFinite(p.id))
+    .filter((p) => p.teamId != null && validTeamIds.value.has(p.teamId))
 })
 
 /* =========================
@@ -1302,7 +1348,7 @@ async function downloadCurpPdf() {
     const dateStr = ymdLocal(new Date())
 
     doc.setFontSize(16)
-    doc.text('Listado de CURP (Jugadores · Jueves Admin)', 40, 48)
+    doc.text('Listado de CURP (Jugadores · Jueves Admin · Liga 2 / Temp 3)', 40, 48)
 
     doc.setFontSize(10)
     const filtros = [
@@ -1310,6 +1356,8 @@ async function downloadCurpPdf() {
       selectedRama.value !== 'all' ? `Rama: ${selectedRama.value}` : 'Rama: Todas',
       selectedCategoria.value !== 'all' ? `Categoría: ${niceGender(selectedCategoria.value)}` : 'Categoría: Todas',
       q.value.trim() ? `Búsqueda: "${q.value.trim()}"` : null,
+      `Liga: ${JUEVES_LEAGUE_ID}`,
+      `Temporada: ${JUEVES_SEASON_ID}`,
       `Total CURP: ${rows.length}`
     ].filter(Boolean) as string[]
 
@@ -1345,7 +1393,7 @@ async function downloadCurpPdf() {
     })
 
     const namePart = sanitizeFileName(teamPick.value !== 'ALL' ? teamPickLabel.value : 'Todos')
-    doc.save(`CURP_Jueves_${namePart}_${dateStr}.pdf`)
+    doc.save(`CURP_Jueves_L${JUEVES_LEAGUE_ID}_S${JUEVES_SEASON_ID}_${namePart}_${dateStr}.pdf`)
     setNotice('ok', `PDF generado: ${rows.length} CURP`)
   } catch (e) {
     console.error(e)

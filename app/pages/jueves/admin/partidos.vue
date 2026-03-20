@@ -4,7 +4,6 @@
 
     <section class="pt-24 md:pt-28 lg:pt-32">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
-        <!-- HEADER -->
         <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p class="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">Liga de Jueves · Consola Admin</p>
@@ -32,7 +31,6 @@
           </div>
         </header>
 
-        <!-- GATES -->
         <div v-if="!kcReady" class="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-5 shadow-lg backdrop-blur">
           <p class="text-sm font-semibold text-slate-100">Inicializando sesión…</p>
           <p class="mt-1 text-xs text-slate-400">Espera a que Keycloak esté listo.</p>
@@ -43,7 +41,6 @@
           <p class="mt-1 text-xs text-rose-200/80">Tu usuario no tiene rol <b>admin</b>.</p>
         </div>
 
-        <!-- ADMIN UI -->
         <div v-else class="mt-8 space-y-6">
           <section class="rounded-2xl border border-slate-700 bg-slate-900/60 shadow-lg backdrop-blur overflow-hidden">
             <div class="h-1.5 bg-gradient-to-r from-cyan-400 to-fuchsia-500"></div>
@@ -352,6 +349,7 @@
                       <option value="ALL">Todos</option>
                       <option value="SCHEDULED">SCHEDULED</option>
                       <option value="FINAL">FINAL</option>
+                      <option value="CANCELLED">CANCELLED</option>
                     </select>
                   </div>
 
@@ -419,23 +417,32 @@
                         <div class="flex flex-wrap items-center gap-2">
                           <span
                             class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
-                            :class="upper(g.status) === 'FINAL'
+                            :class="displayStatus(g.status) === 'FINAL'
                               ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
-                              : 'border-cyan-400/40 bg-cyan-500/10 text-cyan-200'"
+                              : displayStatus(g.status) === 'CANCELLED'
+                                ? 'border-rose-400/40 bg-rose-500/10 text-rose-200'
+                                : 'border-cyan-400/40 bg-cyan-500/10 text-cyan-200'"
                           >
-                            <span class="h-1.5 w-1.5 rounded-full" :class="upper(g.status) === 'FINAL' ? 'bg-emerald-400' : 'bg-cyan-400'"></span>
-                            {{ upper(g.status) }}
+                            <span
+                              class="h-1.5 w-1.5 rounded-full"
+                              :class="displayStatus(g.status) === 'FINAL'
+                                ? 'bg-emerald-400'
+                                : displayStatus(g.status) === 'CANCELLED'
+                                  ? 'bg-rose-400'
+                                  : 'bg-cyan-400'"
+                            />
+                            {{ displayStatus(g.status) }}
                           </span>
 
                           <span
-                            v-if="upper(g.status) === 'FINAL' && g.homeScore != null && g.awayScore != null"
+                            v-if="displayStatus(g.status) === 'FINAL' && g.homeScore != null && g.awayScore != null"
                             class="text-[11px] font-extrabold text-emerald-200"
                           >
                             {{ g.homeScore }} - {{ g.awayScore }}
                           </span>
 
                           <button
-                            v-if="upper(g.status) === 'FINAL'"
+                            v-if="displayStatus(g.status) === 'FINAL'"
                             type="button"
                             class="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] font-extrabold text-amber-100 hover:bg-amber-500/15"
                             @click="openEditScore(g)"
@@ -444,17 +451,17 @@
                           </button>
 
                           <button
-                            v-if="upper(g.status) !== 'CANCELLED'"
+                            v-if="displayStatus(g.status) !== 'CANCELLED'"
                             type="button"
                             class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] font-extrabold text-rose-100 hover:bg-rose-500/15 disabled:opacity-50 disabled:cursor-not-allowed"
                             :disabled="deletingId === g.id"
                             @click="deleteGame(g)"
                           >
-                            {{ deletingId === g.id ? 'Borrando…' : (upper(g.status) === 'FINAL' ? 'Eliminar (revertir)' : 'Borrar') }}
+                            {{ deletingId === g.id ? 'Borrando…' : (displayStatus(g.status) === 'FINAL' ? 'Eliminar (revertir)' : 'Borrar') }}
                           </button>
 
                           <button
-                            v-if="upper(g.status) !== 'FINAL'"
+                            v-if="displayStatus(g.status) === 'SCHEDULED'"
                             type="button"
                             class="rounded-xl bg-white px-3 py-2 text-[11px] font-extrabold text-slate-900 hover:bg-amber-100"
                             @click="openFinish(g)"
@@ -792,6 +799,9 @@ import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from "#imports"
 import { useAuthz } from "~/composables/useAuthz"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
+const JUEVES_LEAGUE_ID = 2
+const JUEVES_SEASON_ID = 3
+
 const isScrolling = ref(false)
 let scrollTO: ReturnType<typeof setTimeout> | null = null
 let rafId = 0
@@ -848,6 +858,12 @@ const isAdmin = computed<boolean>(() => {
   return roles.map((r) => String(r).toLowerCase()).includes("admin")
 })
 
+function normalizeApiBase(v: string) {
+  const s = String(v || "").trim().replace(/\/+$/, "")
+  if (!s) return "https://tocho5-api.tochero5.mx/api"
+  return s.endsWith("/api") ? s : `${s}/api`
+}
+
 async function authHeaders(): Promise<Record<string, string>> {
   const kc = (nuxtApp as any).$kc
 
@@ -857,17 +873,12 @@ async function authHeaders(): Promise<Record<string, string>> {
 
   const token = kc?.token as string | undefined
   const headers: Record<string, string> = {}
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
+  if (token) headers.Authorization = `Bearer ${token}`
   return headers
 }
 
 const config = useRuntimeConfig()
-const API_BASE = (config.public as any)?.apiBase || "https://tocho5-api.tochero5.mx/api"
-const DEFAULT_SEASON_ID = Number((config.public as any)?.seasonId ?? 2)
+const API_BASE = normalizeApiBase((config.public as any)?.apiBase || "https://tocho5-api.tochero5.mx")
 
 const API_GAMES = `${API_BASE}/games`
 const API_GAMES_FINAL = `${API_BASE}/gamesFinal`
@@ -889,6 +900,8 @@ type Team = {
   logoUrl?: string | null
   categoryId?: number | null
   category?: Category | null
+  leagueId?: number | null
+  seasonId?: number | null
   _search?: string
 }
 type GameVM = {
@@ -901,6 +914,7 @@ type GameVM = {
   awayName: string
   categoryLabel: string
   seasonId?: number
+  leagueId?: number
   categoryId?: number
   homeTeamId?: number
   awayTeamId?: number
@@ -927,30 +941,33 @@ function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
   if (x && Array.isArray(x.items)) return x.items
+  if (x && Array.isArray(x.data)) return x.data
   return []
 }
+
 function upper(v: any) {
   return String(v ?? "").trim().toUpperCase()
 }
+
+function displayStatus(v: any): "SCHEDULED" | "FINAL" | "CANCELLED" {
+  const s = upper(v)
+  if (s === "FINAL" || s === "FINISHED") return "FINAL"
+  if (s === "CANCELLED") return "CANCELLED"
+  return "SCHEDULED"
+}
+
 function initials(text: string) {
   const s = String(text || "").trim()
   if (!s) return "T5"
   const parts = s.split(/\s+/).slice(0, 2)
   return parts.map((p) => p[0]?.toUpperCase()).join("")
 }
-function toLocalDateTime(iso: string) {
-  const d = new Date(ensureUtc(iso))
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const dd = String(d.getDate()).padStart(2, "0")
-  const hh = String(d.getHours()).padStart(2, "0")
-  const mi = String(d.getMinutes()).padStart(2, "0")
-  return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${mi}` }
-}
+
 function localToUtcIso(date: string, time: string) {
   const d = new Date(`${date}T${time}:00`)
   return d.toISOString()
 }
+
 function niceGender(g: string) {
   const x = String(g || "").toUpperCase()
   if (x === "VARONIL") return "Varonil"
@@ -958,9 +975,11 @@ function niceGender(g: string) {
   if (x === "MIXTO") return "Mixto"
   return g
 }
+
 function categoryLabel(c: Category) {
   return `${c.name} · ${niceGender(c.gender)} · ${String(c.code).toUpperCase()}`
 }
+
 function debounceLowerRef(src: any, ms: number) {
   const out = ref("")
   let t: ReturnType<typeof setTimeout> | null = null
@@ -977,8 +996,21 @@ function debounceLowerRef(src: any, ms: number) {
   return out
 }
 
+function toNumOrNull(value: any): number | null {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+function ensureUtc(iso: string) {
+  const s = String(iso ?? "").trim()
+  if (!s) return s
+  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
+  return `${s}Z`
+}
+
 const dateEl = ref<HTMLInputElement | null>(null)
 const timeEl = ref<HTMLInputElement | null>(null)
+
 function openNativePicker(elOrRef: any) {
   const el: HTMLInputElement | null =
     elOrRef && typeof elOrRef === "object" && "value" in elOrRef ? elOrRef.value : elOrRef
@@ -996,11 +1028,18 @@ const teamsByCategory = shallowRef<Map<number, Team[]>>(new Map())
 
 const gamesVm = shallowRef<GameVM[]>([])
 
-const { data: catData } = useAsyncData(
+const {
+  data: catData,
+  refresh: refreshCategories,
+} = useAsyncData(
   "jueves-admin-categories-lite-fast",
   async () => {
     try {
-      return unwrapList<any>(await $fetch(API_CATEGORIES))
+      return unwrapList<any>(
+        await $fetch(API_CATEGORIES, {
+          query: { leagueId: JUEVES_LEAGUE_ID },
+        })
+      )
     } catch {
       return []
     }
@@ -1032,9 +1071,17 @@ watch(
 
 async function fetchTeamsSmart() {
   try {
-    return unwrapList<any>(await $fetch(API_TEAMS_LIST))
+    return unwrapList<any>(
+      await $fetch(API_TEAMS_LIST, {
+        query: { leagueId: JUEVES_LEAGUE_ID },
+      })
+    )
   } catch {
-    return unwrapList<any>(await $fetch(API_TEAMS))
+    return unwrapList<any>(
+      await $fetch(API_TEAMS, {
+        query: { leagueId: JUEVES_LEAGUE_ID },
+      })
+    )
   }
 }
 
@@ -1050,53 +1097,78 @@ watch(
   () => {
     const list = unwrapList<any>(teamsRaw.value)
     const catMap = categoryById.value
+    const byId = new Map<number, Team>()
 
-    const arr: Team[] = list.map((x) => {
+    for (const x of list) {
       const teamId = Number(x.teamId ?? x.team_id ?? x.id)
+      if (!Number.isFinite(teamId) || teamId <= 0) continue
+
       const name = String(x.name ?? x.teamName ?? "Equipo")
       const shortName = String(x.shortName ?? x.short_name ?? "")
       const logoUrl = x.logoUrl ?? x.logo_url ?? x.photoUrl ?? x.photo_url ?? null
 
-      const cid = Number(x.categoryId ?? x.category_id ?? x.category?.id ?? 0) || null
+      const categoryId = toNumOrNull(x.categoryId ?? x.category_id ?? x.category?.id)
+      const leagueId = toNumOrNull(
+        x.leagueId ??
+        x.league_id ??
+        x.league?.league_id ??
+        x.league?.leagueId ??
+        x.league?.id
+      )
+      const seasonId = toNumOrNull(
+        x.seasonId ??
+        x.season_id ??
+        x.season?.id
+      )
+
       const codeLoose = String(x.code ?? x.categoryCode ?? x.category?.code ?? "").trim()
       const genderLoose = String(x.gender ?? x.categoryGender ?? x.category?.gender ?? "").trim()
       const nameLoose = String(x.categoryName ?? x.category?.name ?? "").trim()
-      const catFromMap = cid ? catMap.get(cid) : null
+      const catFromMap = categoryId ? catMap.get(categoryId) : null
 
       const mergedCat: Category | null =
-        cid || codeLoose || genderLoose || nameLoose || catFromMap
+        categoryId || codeLoose || genderLoose || nameLoose || catFromMap
           ? {
-              id: Number(cid ?? catFromMap?.id ?? 0) || 0,
+              id: Number(categoryId ?? catFromMap?.id ?? 0) || 0,
               name: String(nameLoose || catFromMap?.name || ""),
               code: String(codeLoose || catFromMap?.code || ""),
               gender: String(genderLoose || catFromMap?.gender || ""),
             }
           : null
 
-      return {
+      const leagueOk = leagueId === null || leagueId === JUEVES_LEAGUE_ID
+      const seasonOk = seasonId === null || seasonId === JUEVES_SEASON_ID
+      if (!leagueOk || !seasonOk) continue
+
+      byId.set(teamId, {
         teamId,
         name,
         shortName,
         logoUrl,
-        categoryId: cid,
+        categoryId,
         category: mergedCat,
+        leagueId,
+        seasonId,
         _search: `${name} ${shortName}`.toLowerCase(),
-      }
-    })
+      })
+    }
 
+    const arr = Array.from(byId.values())
     teams.value = arr
 
-    const byId = new Map<number, Team>()
+    const teamsMap = new Map<number, Team>()
     const byCat = new Map<number, Team[]>()
+
     for (const t of arr) {
-      byId.set(t.teamId, t)
+      teamsMap.set(t.teamId, t)
       const c = Number(t.categoryId || 0)
       if (c) {
         if (!byCat.has(c)) byCat.set(c, [])
         byCat.get(c)!.push(t)
       }
     }
-    teamsById.value = byId
+
+    teamsById.value = teamsMap
     teamsByCategory.value = byCat
   },
   { immediate: true }
@@ -1106,16 +1178,23 @@ const { data: gamesRaw, pending: gamesPending, error: gamesErr, refresh: refresh
   "jueves-admin-games-lite-fast",
   async () => {
     const [scheduled, finals] = await Promise.all([
-      $fetch<any>(API_GAMES).catch(() => []),
-      $fetch<any>(API_GAMES_FINAL).catch(() => []),
+      $fetch<any>(API_GAMES, {
+        query: { leagueId: JUEVES_LEAGUE_ID },
+      }).catch(() => []),
+      $fetch<any>(API_GAMES_FINAL, {
+        query: { leagueId: JUEVES_LEAGUE_ID, all: true, size: 500 },
+      }).catch(() => []),
     ])
+
     const all = [...unwrapList<any>(scheduled), ...unwrapList<any>(finals)]
     const map = new Map<number, any>()
+
     for (const g of all) {
       const id = Number(g.game_id ?? g.gameId ?? g.id)
       if (!id) continue
       map.set(id, g)
     }
+
     return Array.from(map.values())
   },
   { server: false }
@@ -1123,22 +1202,29 @@ const { data: gamesRaw, pending: gamesPending, error: gamesErr, refresh: refresh
 const gamesError = computed(() => !!gamesErr.value)
 
 watch(
-  [gamesRaw, categoryById],
+  [gamesRaw, categoryById, teamsById],
   () => {
     const list = unwrapList<any>(gamesRaw.value)
     const catMap = categoryById.value
+    const validTeams = teamsById.value
+    const arr: GameVM[] = []
 
-    const arr: GameVM[] = list.map((g: any) => {
+    for (const g of list) {
       const id = Number(g.game_id ?? g.gameId ?? g.id)
-      const iso = ensureUtc(String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? ""))
+      if (!id) continue
+
+      const iso = ensureUtc(String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? g.startTime ?? ""))
       const status = String(g.status ?? "SCHEDULED")
 
       const d = iso ? new Date(iso) : new Date()
       const dateLabel = d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "2-digit" })
       const timeLabel = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
 
-      const homeName = String(g.home_team ?? g.homeTeam?.name ?? "Local")
-      const awayName = String(g.away_team ?? g.awayTeam?.name ?? "Visitante")
+      const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? g.homeTeam?.id ?? 0) || undefined
+      const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? g.awayTeam?.id ?? 0) || undefined
+
+      const homeName = String(g.home_team ?? g.homeTeam?.name ?? validTeams.get(homeTeamId || 0)?.name ?? "Local")
+      const awayName = String(g.away_team ?? g.awayTeam?.name ?? validTeams.get(awayTeamId || 0)?.name ?? "Visitante")
 
       const categoryId = Number(g.category_id ?? g.categoryId ?? g.category?.id ?? 0) || undefined
       const cat = categoryId ? catMap.get(categoryId) : null
@@ -1150,13 +1236,38 @@ watch(
         .filter(Boolean)
         .join(" · ")
 
-      const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? 0) || undefined
-      const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined
-
       const venue = String(g.venue ?? g.field ?? g.location ?? "")
-      const jornada = Number(g.jornada ?? g.matchday ?? g.round ?? g.week ?? 0) || undefined
+      const jornada = Number(
+        g.jornada ??
+        g.matchday ??
+        g.round ??
+        g.week ??
+        g.roundNumber ??
+        0
+      ) || undefined
 
-      return {
+      const seasonId = toNumOrNull(g.season_id ?? g.seasonId ?? g.season?.id) ?? undefined
+      const leagueId = toNumOrNull(
+        g.league_id ??
+        g.leagueId ??
+        g.league?.league_id ??
+        g.league?.leagueId ??
+        g.league?.id
+      ) ?? undefined
+
+      const leagueOk =
+        leagueId === undefined ||
+        leagueId === JUEVES_LEAGUE_ID ||
+        (!!homeTeamId && !!awayTeamId && validTeams.has(homeTeamId) && validTeams.has(awayTeamId))
+
+      const seasonOk =
+        seasonId === undefined ||
+        seasonId === JUEVES_SEASON_ID ||
+        (!!homeTeamId && !!awayTeamId && validTeams.has(homeTeamId) && validTeams.has(awayTeamId))
+
+      if (!leagueOk || !seasonOk) continue
+
+      arr.push({
         id,
         status,
         match_date_utc: iso,
@@ -1165,7 +1276,8 @@ watch(
         homeName,
         awayName,
         categoryLabel: categoryLabelStr,
-        seasonId: Number(g.season_id ?? g.seasonId ?? 0) || undefined,
+        seasonId,
+        leagueId,
         categoryId,
         homeTeamId,
         awayTeamId,
@@ -1174,8 +1286,8 @@ watch(
         homeScore: g.homeScore ?? g.home_score ?? null,
         awayScore: g.awayScore ?? g.away_score ?? null,
         _search: `${homeName} ${awayName}`.toLowerCase(),
-      }
-    })
+      })
+    }
 
     arr.sort((a, b) => {
       const da = a.match_date_utc ? new Date(a.match_date_utc).getTime() : 0
@@ -1196,7 +1308,7 @@ const homeTeam = computed(() => (homeTeamId.value ? teamsById.value.get(homeTeam
 const awayTeam = computed(() => (awayTeamId.value ? teamsById.value.get(awayTeamId.value) || null : null))
 
 const form = ref({
-  seasonId: DEFAULT_SEASON_ID,
+  seasonId: JUEVES_SEASON_ID,
   categoryId: 0,
   date: "",
   time: "",
@@ -1221,16 +1333,9 @@ function clearForm() {
   awayInput.value = ""
   homeOpen.value = false
   awayOpen.value = false
-  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: "", time: "", jornada: 0, field: "" }
+  form.value = { seasonId: JUEVES_SEASON_ID, categoryId: 0, date: "", time: "", jornada: 0, field: "" }
   formError.value = ""
   formOk.value = ""
-}
-
-function ensureUtc(iso: string) {
-  const s = String(iso ?? "").trim()
-  if (!s) return s
-  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
-  return `${s}Z`
 }
 
 function validateForm() {
@@ -1253,7 +1358,7 @@ async function saveGame() {
   saving.value = true
   try {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
-    const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
+    const seasonId = JUEVES_SEASON_ID
     const isEdit = !!editingId.value
 
     const payloadCreate: any = {
@@ -1393,7 +1498,7 @@ function closeAwayLater() {
   setTimeout(() => (awayOpen.value = false), 80)
 }
 
-const gameStatusPick = ref<"ALL" | "SCHEDULED" | "FINAL">("SCHEDULED")
+const gameStatusPick = ref<"ALL" | "SCHEDULED" | "FINAL" | "CANCELLED">("ALL")
 const gameQuery = ref("")
 const gameQ = debounceLowerRef(gameQuery, 100)
 
@@ -1402,10 +1507,8 @@ const filteredGamesVm = computed(() => {
   const s = gameStatusPick.value
   const src = gamesVm.value
 
-  if (!q && s === "ALL") return src
-
   return src.filter((g) => {
-    const st = upper(g.status)
+    const st = displayStatus(g.status)
     if (s !== "ALL" && st !== s) return false
     if (!q) return true
     return (g._search || "").includes(q)
@@ -1462,7 +1565,7 @@ async function deleteGame(g: GameVM) {
   const gid = Number(g?.id || 0)
   if (!gid) return (deleteError.value = "No hay gameId válido.")
 
-  const st = upper(g.status)
+  const st = displayStatus(g.status)
 
   const msg =
     st === "FINAL"
@@ -1531,7 +1634,9 @@ async function saveEditedScore(g: GameVM) {
   const gid = Number(g?.id || 0)
   if (!gid) return (editScoreError.value = "No hay gameId válido.")
 
-  if (upper(g.status) !== "FINAL") return (editScoreError.value = "Solo puedes corregir score si está FINAL.")
+  if (displayStatus(g.status) !== "FINAL") {
+    return (editScoreError.value = "Solo puedes corregir score si está FINAL.")
+  }
 
   const hs = Number(editHomeScore.value ?? 0)
   const as = Number(editAwayScore.value ?? 0)
@@ -1602,7 +1707,7 @@ async function ensureRoster(teamId: number) {
   rosterLoading.value.add(teamId)
   try {
     const players = await $fetch<any>(API_TEAM_PLAYERS(teamId))
-    const arr = Array.isArray(players) ? players : []
+    const arr = Array.isArray(players) ? players : unwrapList<any>(players)
     rosterMap.value.set(
       teamId,
       arr.map((p: any) => ({
@@ -1829,7 +1934,12 @@ async function hardRefresh() {
   statsWarn.value = ""
   statsOk.value = ""
   rosterHint.value = ""
-  await Promise.all([refreshTeams(), refreshGames()])
+
+  await Promise.all([
+    refreshCategories(),
+    refreshTeams(),
+    refreshGames(),
+  ])
 }
 </script>
 
