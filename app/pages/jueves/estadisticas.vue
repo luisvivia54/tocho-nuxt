@@ -79,8 +79,14 @@
                     v-model="selectedSeason"
                     class="w-full rounded-2xl border border-white/10 bg-[#0b152a] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/50"
                   >
-                    <option v-for="item in seasonOptions" :key="item" :value="item" class="bg-[#0b152a] text-white">
-                      {{ item }}
+                    <option value="ALL" class="bg-[#0b152a] text-white">Todas</option>
+                    <option
+                      v-for="item in seasonOptions"
+                      :key="item.value"
+                      :value="item.value"
+                      class="bg-[#0b152a] text-white"
+                    >
+                      {{ item.label }}
                     </option>
                   </select>
                 </label>
@@ -91,8 +97,14 @@
                     v-model="selectedCategory"
                     class="w-full rounded-2xl border border-white/10 bg-[#0b152a] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/50"
                   >
-                    <option v-for="item in categoryOptions" :key="item" :value="item" class="bg-[#0b152a] text-white">
-                      {{ item }}
+                    <option value="ALL" class="bg-[#0b152a] text-white">Todas</option>
+                    <option
+                      v-for="item in categoryOptions"
+                      :key="item.value"
+                      :value="item.value"
+                      class="bg-[#0b152a] text-white"
+                    >
+                      {{ item.label }}
                     </option>
                   </select>
                 </label>
@@ -103,8 +115,14 @@
                     v-model="selectedBranch"
                     class="w-full rounded-2xl border border-white/10 bg-[#0b152a] px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/50"
                   >
-                    <option v-for="item in branchOptions" :key="item" :value="item" class="bg-[#0b152a] text-white">
-                      {{ item }}
+                    <option value="ALL" class="bg-[#0b152a] text-white">Todas</option>
+                    <option
+                      v-for="item in branchOptions"
+                      :key="item.value"
+                      :value="item.value"
+                      class="bg-[#0b152a] text-white"
+                    >
+                      {{ item.label }}
                     </option>
                   </select>
                 </label>
@@ -116,7 +134,7 @@
                   <input
                     v-model="search"
                     type="text"
-                    :placeholder="view === 'equipos' ? 'Ej. Buhos, Águilas...' : 'Endpoint pendiente...'"
+                    :placeholder="view === 'equipos' ? 'Ej. Buhos, Águilas...' : 'Ej. Juan, Carlos...'"
                     class="w-full rounded-2xl border border-white/10 bg-[#0b152a] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/50"
                   />
                 </label>
@@ -155,25 +173,38 @@
 
               <div v-if="view === 'jugadores'">
                 Jugadores:
-                <span class="font-semibold text-white">0</span>
+                <span class="font-semibold text-white">{{ filteredPlayers.length }}</span>
+              </div>
+
+              <div v-if="view === 'jugadores'">
+                Activos:
+                <span class="font-semibold text-white">{{ activePlayersCount }}</span>
               </div>
             </div>
           </div>
         </section>
 
         <section
-          v-if="loadError && !teamRows.length"
+          v-if="currentLoadError && view === 'equipos' && !teamRows.length"
           class="mt-6 rounded-[24px] border border-rose-400/20 bg-rose-500/10 p-5 text-rose-100"
         >
           <h2 class="text-base font-bold">No se pudieron cargar las estadísticas</h2>
-          <p class="mt-2 text-sm text-rose-100/90">{{ loadError }}</p>
+          <p class="mt-2 text-sm text-rose-100/90">{{ currentLoadError }}</p>
+        </section>
+
+        <section
+          v-else-if="currentLoadError && view === 'jugadores' && !playerRows.length"
+          class="mt-6 rounded-[24px] border border-rose-400/20 bg-rose-500/10 p-5 text-rose-100"
+        >
+          <h2 class="text-base font-bold">No se pudieron cargar las estadísticas</h2>
+          <p class="mt-2 text-sm text-rose-100/90">{{ currentLoadError }}</p>
         </section>
 
         <section
           v-else-if="view === 'equipos'"
           class="mt-6 overflow-hidden rounded-[24px] border border-white/10 bg-[#0b152a] shadow-[0_30px_80px_rgba(2,6,23,0.45)]"
         >
-          <div v-if="pending && !teamRows.length" class="space-y-3 p-5">
+          <div v-if="pendingTeamsView && !teamRows.length" class="space-y-3 p-5">
             <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
             <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
             <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
@@ -311,11 +342,125 @@
           v-else
           class="mt-6 overflow-hidden rounded-[24px] border border-white/10 bg-[#0b152a] shadow-[0_30px_80px_rgba(2,6,23,0.45)]"
         >
-          <div class="p-10 text-center">
-            <p class="text-lg font-semibold text-white">La vista de jugadores aún no está conectada</p>
-            <p class="mt-2 text-sm text-slate-400">
-              Falta confirmar el endpoint real del backend para estadísticas individuales.
+          <div v-if="pendingPlayersView && !playerRows.length" class="space-y-3 p-5">
+            <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
+            <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
+            <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
+            <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
+          </div>
+
+          <div v-else-if="paginatedPlayers.length" class="overflow-x-auto">
+            <table class="min-w-full border-separate border-spacing-0 text-sm">
+              <thead>
+                <tr class="bg-white/[0.03] text-left text-[13px] font-bold text-slate-400">
+                  <th class="px-4 py-4">Jugador</th>
+                  <th class="px-4 py-4">Equipo</th>
+                  <th class="px-4 py-4">Temporada</th>
+                  <th class="px-4 py-4">Categoría</th>
+                  <th class="px-4 py-4">Rama</th>
+                  <th class="px-4 py-4 text-center">PJ</th>
+                  <th class="px-4 py-4 text-center">TD</th>
+                  <th class="px-4 py-4 text-center">Pass Yds</th>
+                  <th class="px-4 py-4 text-center">Rush Yds</th>
+                  <th class="px-4 py-4 text-center">Rec Yds</th>
+                  <th class="px-4 py-4 text-center">INT</th>
+                  <th class="px-4 py-4 text-center">Sacks</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr
+                  v-for="player in paginatedPlayers"
+                  :key="player.rowKey"
+                  class="transition hover:bg-white/[0.03]"
+                >
+                  <td class="border-t border-white/5 px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <div class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5 text-xs font-bold text-cyan-200">
+                        <span>{{ initials(player.playerName) }}</span>
+                      </div>
+
+                      <div class="min-w-0">
+                        <p class="truncate text-[15px] font-semibold text-white">{{ player.playerName }}</p>
+                        <p class="mt-0.5 text-xs text-slate-500">#{{ player.position }}</p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="border-t border-white/5 px-4 py-4">{{ player.teamName }}</td>
+                  <td class="border-t border-white/5 px-4 py-4">{{ player.season }}</td>
+                  <td class="border-t border-white/5 px-4 py-4">{{ player.category }}</td>
+                  <td class="border-t border-white/5 px-4 py-4">
+                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="branchBadgeClass(player.branch)">
+                      {{ player.branch }}
+                    </span>
+                  </td>
+                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.gamesPlayed }}</td>
+                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.touchdowns }}</td>
+                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.passingYards }}</td>
+                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.rushingYards }}</td>
+                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.receivingYards }}</td>
+                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.interceptions }}</td>
+                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.sacks }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-else class="p-10 text-center">
+            <p class="text-lg font-semibold text-white">No hay jugadores para mostrar</p>
+            <p class="mt-2 text-sm text-slate-400">Prueba con otros filtros.</p>
+          </div>
+
+          <div
+            v-if="playerTotalPages > 1"
+            class="flex flex-col gap-3 border-t border-white/10 bg-[#081122] px-5 py-4 md:flex-row md:items-center md:justify-between"
+          >
+            <p class="text-sm text-slate-400">
+              Mostrando
+              <span class="font-semibold text-slate-200">{{ playerStartIndex + 1 }}</span>
+              -
+              <span class="font-semibold text-slate-200">{{ playerEndIndex }}</span>
+              de
+              <span class="font-semibold text-white">{{ filteredPlayers.length }}</span>
+              jugadores
             </p>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="playerPage === 1"
+                @click="goToPlayerPage(playerPage - 1)"
+              >
+                Anterior
+              </button>
+
+              <template v-for="node in playerPagination" :key="node.key">
+                <span v-if="node.ellipsis" class="px-1 text-slate-500">...</span>
+
+                <button
+                  v-else
+                  type="button"
+                  class="min-w-[40px] rounded-xl px-3 py-2 text-sm font-semibold transition"
+                  :class="node.active
+                    ? 'bg-cyan-400 text-slate-950'
+                    : 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'"
+                  @click="handlePlayerPageNode(node.value)"
+                >
+                  {{ node.label }}
+                </button>
+              </template>
+
+              <button
+                type="button"
+                class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="playerPage === playerTotalPages"
+                @click="goToPlayerPage(playerPage + 1)"
+              >
+                Siguiente
+              </button>
+            </div>
           </div>
         </section>
       </div>
@@ -324,6 +469,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch, useAsyncData, useHead } from "#imports"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
 useHead({
@@ -333,12 +479,41 @@ useHead({
 type AnyRow = Record<string, unknown>
 type ViewMode = "equipos" | "jugadores"
 
+type OptionItem = {
+  value: string
+  label: string
+}
+
+type PageNode = {
+  key: string
+  label: string
+  value: number | null
+  active: boolean
+  ellipsis: boolean
+}
+
+type TeamMeta = {
+  id: string
+  teamName: string
+  seasonValue: string
+  season: string
+  categoryValue: string
+  category: string
+  branchValue: string
+  branch: string
+  active: boolean
+  logo: string | null
+}
+
 type TeamStanding = {
   rowKey: string
   teamId: number | string | null
   teamName: string
+  seasonValue: string
   season: string
+  categoryValue: string
   category: string
+  branchValue: string
   branch: string
   played: number
   won: number
@@ -353,259 +528,133 @@ type TeamStanding = {
   logo: string | null
 }
 
-type PageNode = {
-  key: string
-  label: string
-  value: number | null
+type PlayerSeasonRow = {
+  rowKey: string
+  playerId: number | string | null
+  playerName: string
+  teamName: string
+  seasonValue: string
+  season: string
+  categoryValue: string
+  category: string
+  branchValue: string
+  branch: string
+  gamesPlayed: number
+  touchdowns: number
+  passingYards: number
+  rushingYards: number
+  receivingYards: number
+  interceptions: number
+  sacks: number
   active: boolean
-  ellipsis: boolean
 }
 
-type TeamMeta = {
-  id: string
-  teamName: string
-  category: string
-  branch: string
-  season: string
-  active: boolean
-  logo: string | null
-}
+const JUEVES_LEAGUE_ID = 2
 
 const stadiumBg = "/img/hero-stadium.jpg"
 
 const view = ref<ViewMode>("equipos")
 const search = ref("")
-const selectedSeason = ref("Todas")
-const selectedCategory = ref("Todas")
-const selectedBranch = ref("Todas")
+const selectedSeason = ref("ALL")
+const selectedCategory = ref("ALL")
+const selectedBranch = ref("ALL")
 const onlyActive = ref(true)
 
 const teamPage = ref(1)
+const playerPage = ref(1)
 const pageSize = 10
 
-const API_POINTS_URL = "https://tocho5-webservice.onrender.com/api/points"
-const API_TEAMS_URL = "https://tocho5-webservice.onrender.com/api/teams"
+const seasonQueryValue = computed(() => {
+  if (selectedSeason.value === "ALL") return null
+  const match = String(selectedSeason.value).match(/^SEASON_(\d+)$/)
+  return match ? Number(match[1]) : null
+})
 
-function toNumber(value: unknown, fallback = 0): number {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : fallback
-}
+const teamFilterQuery = computed(() => ({
+  leagueId: JUEVES_LEAGUE_ID,
+  categoryCode: selectedBranch.value === "ALL" ? undefined : selectedBranch.value,
+  gender: selectedCategory.value === "ALL" ? undefined : selectedCategory.value,
+}))
 
-function toText(value: unknown, fallback = "—"): string {
-  if (typeof value === "string" && value.trim()) return value.trim()
-  if (typeof value === "number") return String(value)
-  return fallback
-}
+const playerFilterQuery = computed(() => ({
+  leagueId: JUEVES_LEAGUE_ID,
+  seasonId: selectedSeason.value === "ALL" ? undefined : seasonQueryValue.value ?? undefined,
+}))
 
-function toBoolean(value: unknown, fallback = true): boolean {
-  if (typeof value === "boolean") return value
-  if (typeof value === "number") return value === 1
-
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase()
-    if (["true", "1", "yes", "si", "sí", "active", "activo"].includes(normalized)) return true
-    if (["false", "0", "no", "inactive", "inactivo"].includes(normalized)) return false
+const { data: seasonsRaw } = await useAsyncData(
+  "jueves-stats-seasons-page",
+  async () => {
+    return await $fetch<unknown>("/api/t5/seasons/list", {
+      query: { leagueId: JUEVES_LEAGUE_ID },
+    }).catch(() => [])
   }
+)
 
-  return fallback
-}
-
-function pick(row: AnyRow, keys: string[], fallback: unknown = null): unknown {
-  for (const key of keys) {
-    const value = key.split(".").reduce<unknown>((acc, part) => {
-      if (acc && typeof acc === "object" && part in (acc as Record<string, unknown>)) {
-        return (acc as Record<string, unknown>)[part]
-      }
-      return undefined
-    }, row)
-
-    if (value !== undefined && value !== null && value !== "") {
-      return value
-    }
+const { data: categoriesRaw } = await useAsyncData(
+  "jueves-stats-categories-page",
+  async () => {
+    return await $fetch<unknown>("/api/t5/categories", {
+      query: { leagueId: JUEVES_LEAGUE_ID },
+    }).catch(() => [])
   }
+)
 
-  return fallback
-}
-
-function normalizeCollection(payload: unknown): AnyRow[] {
-  if (Array.isArray(payload)) return payload as AnyRow[]
-
-  if (payload && typeof payload === "object") {
-    const source = payload as Record<string, unknown>
-    if (Array.isArray(source.data)) return source.data as AnyRow[]
-    if (Array.isArray(source.items)) return source.items as AnyRow[]
-    if (Array.isArray(source.content)) return source.content as AnyRow[]
-    if (Array.isArray(source.results)) return source.results as AnyRow[]
-    if (Array.isArray(source.teams)) return source.teams as AnyRow[]
+const {
+  data: teamsMetaRaw,
+  pending: pendingTeamsMeta,
+  error: teamsMetaError,
+  refresh: refreshTeamsMeta,
+} = await useAsyncData(
+  "jueves-stats-team-meta",
+  async () => {
+    return await $fetch<unknown>("/api/t5/teams", {
+      query: { leagueId: JUEVES_LEAGUE_ID },
+    }).catch(() => [])
   }
-
-  return []
-}
-
-async function fetchArray(url: string, timeout = 12000): Promise<AnyRow[]> {
-  const response = await $fetch<unknown>(url, {
-    method: "GET",
-    timeout,
-  })
-  return normalizeCollection(response)
-}
-
-function normalizePct(value: number): number {
-  if (!Number.isFinite(value)) return 0
-  return value <= 1 ? value * 100 : value
-}
-
-function normalizeBranch(value: string): string {
-  const normalized = value.trim().toLowerCase()
-
-  if (["varonil", "masculino", "male", "m"].includes(normalized)) return "Varonil"
-  if (["femenil", "femenino", "female", "f"].includes(normalized)) return "Femenil"
-  if (["mixto", "mixta", "mixed"].includes(normalized)) return "Mixto"
-
-  return value || "Mixto"
-}
-
-function normalizeKey(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase()
-}
-
-function normalizeTeamMeta(row: AnyRow): TeamMeta {
-  const rawId = pick(row, ["team_id", "teamId", "id"], "")
-  const id = String(rawId ?? "").trim()
-
-  const categoryName = toText(
-    pick(row, ["category.name", "categoryName", "category", "categoria", "division.name", "divisionName"]),
-    "Sin categoría"
-  )
-
-  const branchRaw = toText(
-    pick(row, ["category.gender", "branch", "rama", "gender", "genre"]),
-    "Mixto"
-  )
-
-  return {
-    id,
-    teamName: toText(pick(row, ["team_name", "teamName", "name"]), "Equipo"),
-    category: categoryName,
-    branch: normalizeBranch(branchRaw),
-    season: toText(
-      pick(row, ["season.name", "seasonName", "season", "temporada", "seasonCode"]),
-      "WT"
-    ),
-    active: toBoolean(pick(row, ["isActive", "active"]), true),
-    logo: (() => {
-      const value = pick(row, ["logoUrl", "logo", "imageUrl", "photo", "avatar"], null)
-      return value ? String(value) : null
-    })(),
-  }
-}
-
-function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: number): TeamStanding {
-  const rawTeamId = pick(pointRow, ["team_id", "teamId", "id"], null)
-
-  const teamId =
-    rawTeamId === null || rawTeamId === undefined
-      ? null
-      : (typeof rawTeamId === "number" || typeof rawTeamId === "string"
-          ? rawTeamId
-          : String(rawTeamId))
-
-  const played = toNumber(pick(pointRow, ["gp", "games_played", "played", "jj", "pj"]), 0)
-  const won = toNumber(pick(pointRow, ["wins", "won", "jg", "pg"]), 0)
-  const tied = toNumber(pick(pointRow, ["ties", "tied", "empates", "je"]), 0)
-  const lost = toNumber(
-    pick(pointRow, ["losses", "lost", "jp", "pp"]),
-    Math.max(played - won - tied, 0)
-  )
-
-  const pointsFor = toNumber(
-    pick(pointRow, ["points_for", "gf", "pointsFor", "pf", "favor"]),
-    0
-  )
-
-  const pointsAgainst = toNumber(
-    pick(pointRow, ["points_against", "gc", "pointsAgainst", "pc", "against"]),
-    0
-  )
-
-  const pointDiff = toNumber(
-    pick(pointRow, ["pointDiff", "difference", "dif", "diff"]),
-    pointsFor - pointsAgainst
-  )
-
-  const pctValue = pick(pointRow, ["pct", "percentage", "winPct"], null)
-  const pct =
-    pctValue !== null && pctValue !== undefined
-      ? normalizePct(toNumber(pctValue))
-      : (played > 0 ? (won / played) * 100 : 0)
-
-  const teamName = toText(
-    pick(pointRow, ["team_name", "teamName", "name"]),
-    meta?.teamName || "Equipo"
-  )
-
-  return {
-    rowKey: `team-${teamId ?? teamName}-${index}`,
-    teamId,
-    teamName,
-    season: meta?.season || toText(pick(pointRow, ["season", "seasonName", "temporada"]), "WT"),
-    category: meta?.category || toText(pick(pointRow, ["category", "categoryName", "categoria"]), "Sin categoría"),
-    branch: meta?.branch || normalizeBranch(toText(pick(pointRow, ["branch", "rama", "gender"]), "Mixto")),
-    played,
-    won,
-    lost,
-    tied,
-    pointsFor,
-    pointsAgainst,
-    pointDiff,
-    standingPoints: toNumber(
-      pick(pointRow, ["table_points", "pts", "points", "standingPoints", "puntos"]),
-      0
-    ),
-    pct,
-    active: meta?.active ?? true,
-    logo: meta?.logo ?? null,
-  }
-}
+)
 
 const {
   data: pointsData,
   pending: pendingPoints,
   error: pointsError,
   refresh: refreshPoints,
-} = useLazyAsyncData(
-  "jueves-points",
+} = await useAsyncData(
+  "jueves-stats-points",
   async () => {
-    return await fetchArray(API_POINTS_URL, 12000)
+    return await $fetch<unknown>("/api/t5/points", {
+      query: teamFilterQuery.value,
+    }).catch(() => [])
   },
   {
-    server: false,
-    default: () => [],
+    watch: [teamFilterQuery],
   }
 )
 
 const {
-  data: teamsData,
-  pending: pendingTeams,
-  error: teamsError,
-  refresh: refreshTeams,
-} = useLazyAsyncData(
-  "jueves-teams",
+  data: playersData,
+  pending: pendingPlayers,
+  error: playersError,
+  refresh: refreshPlayers,
+} = await useAsyncData(
+  "jueves-stats-players",
   async () => {
-    return await fetchArray(API_TEAMS_URL, 12000)
+    return await $fetch<unknown>("/api/t5/stats/players", {
+      query: playerFilterQuery.value,
+    }).catch(() => [])
   },
   {
-    server: false,
-    default: () => [],
+    watch: [playerFilterQuery],
   }
 )
 
-const pending = computed(() => pendingPoints.value || pendingTeams.value)
+const pendingTeamsView = computed(() => pendingPoints.value || pendingTeamsMeta.value)
+const pendingPlayersView = computed(() => pendingPlayers.value || pendingTeamsMeta.value)
+const pending = computed(() => pendingTeamsView.value || pendingPlayersView.value)
 
 const teamMetaById = computed(() => {
   const map = new Map<string, TeamMeta>()
 
-  for (const row of (teamsData.value ?? []) as AnyRow[]) {
+  for (const row of normalizeCollection(teamsMetaRaw.value)) {
     const meta = normalizeTeamMeta(row)
     if (meta.id) map.set(normalizeKey(meta.id), meta)
   }
@@ -616,7 +665,7 @@ const teamMetaById = computed(() => {
 const teamMetaByName = computed(() => {
   const map = new Map<string, TeamMeta>()
 
-  for (const row of (teamsData.value ?? []) as AnyRow[]) {
+  for (const row of normalizeCollection(teamsMetaRaw.value)) {
     const meta = normalizeTeamMeta(row)
     const key = normalizeKey(meta.teamName)
     if (key) map.set(key, meta)
@@ -626,7 +675,7 @@ const teamMetaByName = computed(() => {
 })
 
 const teamRows = computed<TeamStanding[]>(() => {
-  const rows = (pointsData.value ?? []) as AnyRow[]
+  const rows = normalizeCollection(pointsData.value)
 
   return rows.map((row, index) => {
     const rawTeamId = pick(row, ["team_id", "teamId", "id"], "")
@@ -639,56 +688,131 @@ const teamRows = computed<TeamStanding[]>(() => {
   })
 })
 
-const loadError = computed(() => {
-  const pointErr = pointsError.value as { data?: { message?: string }; message?: string } | null
-  const teamErr = teamsError.value as { data?: { message?: string }; message?: string } | null
+const playerRows = computed<PlayerSeasonRow[]>(() => {
+  const rows = normalizeCollection(playersData.value)
 
-  return (
-    pointErr?.data?.message ||
-    pointErr?.message ||
-    teamErr?.data?.message ||
-    teamErr?.message ||
-    ""
+  return rows.map((row, index) => {
+    const rawTeamId = pick(row, ["teamId", "team_id", "team.id"], "")
+    const rawTeamName = pick(row, ["teamName", "team_name", "team.name"], "")
+    const meta =
+      teamMetaById.value.get(normalizeKey(rawTeamId)) ||
+      teamMetaByName.value.get(normalizeKey(rawTeamName))
+
+    return buildPlayerRow(row, meta, index)
+  })
+})
+
+const seasonOptions = computed<OptionItem[]>(() => {
+  const fromApi = normalizeCollection(seasonsRaw.value)
+    .map((row) => {
+      const seasonId = toNullableNumber(pick(row, ["id", "seasonId"]))
+      const label =
+        toText(pick(row, ["name", "label", "title", "seasonName"]), "") ||
+        (seasonId !== null ? `Temporada ${seasonId}` : "")
+
+      if (!label) return null
+
+      return {
+        value: buildSeasonValue(seasonId, label),
+        label,
+      }
+    })
+    .filter(Boolean) as OptionItem[]
+
+  const fromTeams = teamRows.value
+    .filter((row) => row.seasonValue && row.season && row.seasonValue !== "ALL")
+    .map((row) => ({
+      value: row.seasonValue,
+      label: row.season,
+    }))
+
+  const fromPlayers = playerRows.value
+    .filter((row) => row.seasonValue && row.season && row.seasonValue !== "ALL")
+    .map((row) => ({
+      value: row.seasonValue,
+      label: row.season,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromTeams, ...fromPlayers]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
   )
 })
 
-const activeTeamsCount = computed(() => filteredTeams.value.filter(item => item.active).length)
+const categoryOptions = computed<OptionItem[]>(() => {
+  const fromApi = normalizeCollection(categoriesRaw.value)
+    .map((row) => {
+      const gender = normalizeGenderValue(pick(row, ["gender"]))
+      if (!gender) return null
 
-const seasonOptions = computed<string[]>(() => {
-  const values = Array.from(new Set(teamRows.value.map(item => item.season).filter(Boolean)))
-  return ["Todas", ...values.sort((a, b) => a.localeCompare(b, "es"))]
+      return {
+        value: gender,
+        label: formatGenderLabel(gender),
+      }
+    })
+    .filter(Boolean) as OptionItem[]
+
+  const fromTeams = teamRows.value
+    .filter((row) => row.categoryValue && row.category)
+    .map((row) => ({
+      value: row.categoryValue,
+      label: row.category,
+    }))
+
+  const fromPlayers = playerRows.value
+    .filter((row) => row.categoryValue && row.category)
+    .map((row) => ({
+      value: row.categoryValue,
+      label: row.category,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromTeams, ...fromPlayers]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
 })
 
-const categoryOptions = computed<string[]>(() => {
-  const values = Array.from(new Set(teamRows.value.map(item => item.category).filter(Boolean)))
-  return ["Todas", ...values.sort((a, b) => a.localeCompare(b, "es"))]
-})
+const branchOptions = computed<OptionItem[]>(() => {
+  const fromApi = normalizeCollection(categoriesRaw.value)
+    .map((row) => {
+      const code = normalizeCodeValue(pick(row, ["code"]))
+      if (!code) return null
 
-const branchOptions = computed<string[]>(() => {
-  const values = Array.from(new Set(teamRows.value.map(item => item.branch).filter(Boolean)))
-  return ["Todas", ...values.sort((a, b) => a.localeCompare(b, "es"))]
-})
+      return {
+        value: code,
+        label: code,
+      }
+    })
+    .filter(Boolean) as OptionItem[]
 
-const viewDescription = computed(() => {
-  return view.value === "equipos"
-    ? "Partidos jugados, ganados, perdidos, puntos a favor y en contra, diferencia e índice de victorias."
-    : "La vista de jugadores queda lista en cuanto confirmemos el endpoint real del backend."
+  const fromTeams = teamRows.value
+    .filter((row) => row.branchValue && row.branch)
+    .map((row) => ({
+      value: row.branchValue,
+      label: row.branch,
+    }))
+
+  const fromPlayers = playerRows.value
+    .filter((row) => row.branchValue && row.branch)
+    .map((row) => ({
+      value: row.branchValue,
+      label: row.branch,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromTeams, ...fromPlayers]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
 })
 
 const filteredTeams = computed<TeamStanding[]>(() => {
-  const query = search.value.trim().toLowerCase()
+  const query = normalizeText(search.value)
 
   return [...teamRows.value]
-    .filter(item => selectedSeason.value === "Todas" || item.season === selectedSeason.value)
-    .filter(item => selectedCategory.value === "Todas" || item.category === selectedCategory.value)
-    .filter(item => selectedBranch.value === "Todas" || item.branch === selectedBranch.value)
-    .filter(item => !onlyActive.value || item.active)
-    .filter(item => {
+    .filter((item) => selectedSeason.value === "ALL" || item.seasonValue === selectedSeason.value)
+    .filter((item) => selectedCategory.value === "ALL" || item.categoryValue === selectedCategory.value)
+    .filter((item) => selectedBranch.value === "ALL" || item.branchValue === selectedBranch.value)
+    .filter((item) => !onlyActive.value || item.active)
+    .filter((item) => {
       if (!query) return true
-      return [item.teamName, item.category, item.branch, item.season]
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
+      return normalizeText([item.teamName, item.category, item.branch, item.season].join(" ")).includes(query)
     })
     .sort((a, b) => {
       return (
@@ -699,6 +823,51 @@ const filteredTeams = computed<TeamStanding[]>(() => {
         a.teamName.localeCompare(b.teamName, "es")
       )
     })
+})
+
+const filteredPlayers = computed<PlayerSeasonRow[]>(() => {
+  const query = normalizeText(search.value)
+
+  return [...playerRows.value]
+    .filter((item) => selectedSeason.value === "ALL" || item.seasonValue === selectedSeason.value)
+    .filter((item) => selectedCategory.value === "ALL" || item.categoryValue === selectedCategory.value)
+    .filter((item) => selectedBranch.value === "ALL" || item.branchValue === selectedBranch.value)
+    .filter((item) => !onlyActive.value || item.active)
+    .filter((item) => {
+      if (!query) return true
+      return normalizeText([item.playerName, item.teamName, item.category, item.branch, item.season].join(" ")).includes(query)
+    })
+    .sort((a, b) => {
+      const yardsA = a.passingYards + a.rushingYards + a.receivingYards
+      const yardsB = b.passingYards + b.rushingYards + b.receivingYards
+
+      return (
+        b.touchdowns - a.touchdowns ||
+        yardsB - yardsA ||
+        b.interceptions - a.interceptions ||
+        b.sacks - a.sacks ||
+        a.playerName.localeCompare(b.playerName, "es")
+      )
+    })
+})
+
+const activeTeamsCount = computed(() => filteredTeams.value.filter((item) => item.active).length)
+const activePlayersCount = computed(() => filteredPlayers.value.filter((item) => item.active).length)
+
+const viewDescription = computed(() => {
+  return view.value === "equipos"
+    ? "Tabla de rendimiento por equipo, conectada al backend real de la liga de jueves."
+    : "Líderes individuales por temporada, conectados al endpoint real de estadísticas de jugadores."
+})
+
+const currentLoadError = computed(() => {
+  if (view.value === "equipos") {
+    const err = pointsError.value || teamsMetaError.value
+    return extractErrorMessage(err)
+  }
+
+  const err = playersError.value || teamsMetaError.value
+  return extractErrorMessage(err)
 })
 
 const teamTotalPages = computed(() => Math.max(1, Math.ceil(filteredTeams.value.length / pageSize)))
@@ -714,25 +883,52 @@ const paginatedTeams = computed(() => {
     }))
 })
 
+const playerTotalPages = computed(() => Math.max(1, Math.ceil(filteredPlayers.value.length / pageSize)))
+const playerStartIndex = computed(() => (playerPage.value - 1) * pageSize)
+const playerEndIndex = computed(() => Math.min(playerStartIndex.value + pageSize, filteredPlayers.value.length))
+
+const paginatedPlayers = computed(() => {
+  return filteredPlayers.value
+    .slice(playerStartIndex.value, playerStartIndex.value + pageSize)
+    .map((item, index) => ({
+      ...item,
+      position: playerStartIndex.value + index + 1,
+    }))
+})
+
 watch([search, selectedSeason, selectedCategory, selectedBranch, onlyActive, view], () => {
   teamPage.value = 1
+  playerPage.value = 1
 })
 
-watch(seasonOptions, (options) => {
-  if (!options.includes(selectedSeason.value)) {
-    selectedSeason.value = "Todas"
-  }
-})
+watch(
+  seasonOptions,
+  (options) => {
+    if (
+      selectedSeason.value !== "ALL" &&
+      !options.some((option) => option.value === selectedSeason.value)
+    ) {
+      selectedSeason.value = "ALL"
+    }
+  },
+  { immediate: true }
+)
 
 watch(categoryOptions, (options) => {
-  if (!options.includes(selectedCategory.value)) {
-    selectedCategory.value = "Todas"
+  if (
+    selectedCategory.value !== "ALL" &&
+    !options.some((option) => option.value === selectedCategory.value)
+  ) {
+    selectedCategory.value = "ALL"
   }
 })
 
 watch(branchOptions, (options) => {
-  if (!options.includes(selectedBranch.value)) {
-    selectedBranch.value = "Todas"
+  if (
+    selectedBranch.value !== "ALL" &&
+    !options.some((option) => option.value === selectedBranch.value)
+  ) {
+    selectedBranch.value = "ALL"
   }
 })
 
@@ -741,6 +937,15 @@ watch(filteredTeams, () => {
     teamPage.value = teamTotalPages.value
   }
 })
+
+watch(filteredPlayers, () => {
+  if (playerPage.value > playerTotalPages.value) {
+    playerPage.value = playerTotalPages.value
+  }
+})
+
+const teamPagination = computed<PageNode[]>(() => buildPagination(teamPage.value, teamTotalPages.value))
+const playerPagination = computed<PageNode[]>(() => buildPagination(playerPage.value, playerTotalPages.value))
 
 function buildPagination(current: number, total: number): PageNode[] {
   if (total <= 7) {
@@ -786,27 +991,15 @@ function buildPagination(current: number, total: number): PageNode[] {
   return nodes
 }
 
-const teamPagination = computed<PageNode[]>(() => buildPagination(teamPage.value, teamTotalPages.value))
-
-function goToTeamPage(page: number): void {
-  if (page < 1 || page > teamTotalPages.value) return
-  teamPage.value = page
-}
-
-function handleTeamPageNode(page: number | null): void {
-  if (typeof page !== "number") return
-  goToTeamPage(page)
-}
-
 function setView(next: ViewMode): void {
   view.value = next
 }
 
 function clearFilters(): void {
   search.value = ""
-  selectedSeason.value = "Todas"
-  selectedCategory.value = "Todas"
-  selectedBranch.value = "Todas"
+  selectedSeason.value = "ALL"
+  selectedCategory.value = "ALL"
+  selectedBranch.value = "ALL"
   onlyActive.value = true
 }
 
@@ -816,15 +1009,41 @@ function toggleOnlyActive(): void {
 
 async function reloadData(): Promise<void> {
   teamPage.value = 1
-  await Promise.allSettled([refreshPoints(), refreshTeams()])
+  playerPage.value = 1
+
+  await Promise.allSettled([
+    refreshPoints(),
+    refreshTeamsMeta(),
+    refreshPlayers(),
+  ])
+}
+
+function goToTeamPage(page: number): void {
+  if (page < 1 || page > teamTotalPages.value) return
+  teamPage.value = page
+}
+
+function goToPlayerPage(page: number): void {
+  if (page < 1 || page > playerTotalPages.value) return
+  playerPage.value = page
+}
+
+function handleTeamPageNode(page: number | null): void {
+  if (typeof page !== "number") return
+  goToTeamPage(page)
+}
+
+function handlePlayerPageNode(page: number | null): void {
+  if (typeof page !== "number") return
+  goToPlayerPage(page)
 }
 
 function initials(name: string): string {
-  return name
+  return String(name || "")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map(part => part.charAt(0).toUpperCase())
+    .map((part) => part.charAt(0).toUpperCase())
     .join("")
 }
 
@@ -838,8 +1057,8 @@ function formatPct(value: number): string {
 }
 
 function branchBadgeClass(branch: string): string {
-  if (branch === "Varonil") return "bg-cyan-400/15 text-cyan-200"
-  if (branch === "Femenil") return "bg-pink-400/15 text-pink-200"
+  const normalized = normalizeCodeValue(branch)
+  if (!normalized) return "bg-slate-400/15 text-slate-200"
   return "bg-amber-400/15 text-amber-200"
 }
 
@@ -847,5 +1066,315 @@ function diffBadgeClass(value: number): string {
   if (value > 0) return "bg-emerald-400/15 text-emerald-200"
   if (value < 0) return "bg-rose-400/15 text-rose-200"
   return "bg-slate-400/15 text-slate-200"
+}
+
+function extractErrorMessage(error: unknown): string {
+  const err = error as { data?: { message?: string }; message?: string } | null
+  return err?.data?.message || err?.message || ""
+}
+
+function normalizeCollection(payload: unknown): AnyRow[] {
+  if (Array.isArray(payload)) return payload as AnyRow[]
+
+  if (payload && typeof payload === "object") {
+    const source = payload as Record<string, unknown>
+    if (Array.isArray(source.data)) return source.data as AnyRow[]
+    if (Array.isArray(source.items)) return source.items as AnyRow[]
+    if (Array.isArray(source.content)) return source.content as AnyRow[]
+    if (Array.isArray(source.results)) return source.results as AnyRow[]
+    if (Array.isArray(source.teams)) return source.teams as AnyRow[]
+  }
+
+  return []
+}
+
+function pick(row: AnyRow, keys: string[], fallback: unknown = null): unknown {
+  for (const key of keys) {
+    const value = key.split(".").reduce<unknown>((acc, part) => {
+      if (acc && typeof acc === "object" && part in (acc as Record<string, unknown>)) {
+        return (acc as Record<string, unknown>)[part]
+      }
+      return undefined
+    }, row)
+
+    if (value !== undefined && value !== null && value !== "") {
+      return value
+    }
+  }
+
+  return fallback
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function toNullableNumber(value: unknown): number | null {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function toText(value: unknown, fallback = "—"): string {
+  if (typeof value === "string" && value.trim()) return value.trim()
+  if (typeof value === "number") return String(value)
+  return fallback
+}
+
+function toBoolean(value: unknown, fallback = true): boolean {
+  if (typeof value === "boolean") return value
+  if (typeof value === "number") return value === 1
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+    if (["true", "1", "yes", "si", "sí", "active", "activo"].includes(normalized)) return true
+    if (["false", "0", "no", "inactive", "inactivo"].includes(normalized)) return false
+  }
+
+  return fallback
+}
+
+function normalizeText(value: unknown): string {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim()
+}
+
+function normalizeKey(value: unknown): string {
+  return normalizeText(value)
+}
+
+function normalizeGenderValue(value: unknown): string {
+  const normalized = normalizeText(value).toUpperCase()
+
+  if (!normalized) return ""
+  if (normalized === "MASCULINO" || normalized === "MALE") return "VARONIL"
+  if (normalized === "FEMENINO" || normalized === "FEMALE") return "FEMENIL"
+
+  return normalized
+}
+
+function formatGenderLabel(value: string): string {
+  const normalized = normalizeGenderValue(value)
+
+  if (normalized === "VARONIL") return "Varonil"
+  if (normalized === "FEMENIL") return "Femenil"
+  if (normalized === "MIXTO") return "Mixto"
+
+  return value || "Sin categoría"
+}
+
+function normalizeCodeValue(value: unknown): string {
+  return String(value ?? "").trim().toUpperCase()
+}
+
+function buildSeasonValue(seasonId: number | null, seasonLabel: string): string {
+  if (seasonId !== null) return `SEASON_${seasonId}`
+  return `LABEL_${normalizeText(seasonLabel)}`
+}
+
+function uniqueOptions(items: OptionItem[]): OptionItem[] {
+  const map = new Map<string, string>()
+
+  for (const item of items) {
+    const value = String(item?.value || "").trim()
+    const label = String(item?.label || "").trim()
+
+    if (!value || !label) continue
+    if (!map.has(value)) map.set(value, label)
+  }
+
+  return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
+}
+
+function normalizeTeamMeta(row: AnyRow): TeamMeta {
+  const seasonId = toNullableNumber(pick(row, ["season.id", "seasonId", "temporada.id"]))
+  const seasonLabel =
+    toText(pick(row, ["season.name", "seasonName", "temporada.name", "temporada", "season"]), "") ||
+    (seasonId !== null ? `Temporada ${seasonId}` : "Sin temporada")
+
+  const categoryValue = normalizeGenderValue(
+    pick(row, ["category.gender", "categoryGender", "gender", "division.gender"])
+  )
+
+  const branchValue = normalizeCodeValue(
+    pick(row, ["category.code", "categoryCode", "code", "division.code"])
+  )
+
+  const rawId = pick(row, ["teamId", "team_id", "id"], "")
+  const id = String(rawId ?? "").trim()
+
+  return {
+    id,
+    teamName: toText(pick(row, ["teamName", "team_name", "name"]), "Equipo"),
+    seasonValue: buildSeasonValue(seasonId, seasonLabel),
+    season: seasonLabel,
+    categoryValue,
+    category: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",
+    branchValue,
+    branch: branchValue || "Sin rama",
+    active: toBoolean(pick(row, ["isActive", "active"]), true),
+    logo: (() => {
+      const value = pick(row, ["logoUrl", "logo", "imageUrl", "photo", "avatar"], null)
+      return value ? String(value) : null
+    })(),
+  }
+}
+
+function normalizePct(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return value <= 1 ? value * 100 : value
+}
+
+function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: number): TeamStanding {
+  const rawTeamId = pick(pointRow, ["team_id", "teamId", "id"], null)
+
+  const teamId =
+    rawTeamId === null || rawTeamId === undefined
+      ? null
+      : (typeof rawTeamId === "number" || typeof rawTeamId === "string"
+          ? rawTeamId
+          : String(rawTeamId))
+
+  const rowSeasonId = toNullableNumber(pick(pointRow, ["seasonId", "season.id"]))
+  const rowSeasonLabel =
+    toText(pick(pointRow, ["seasonName", "season.name", "season", "temporada"]), "") ||
+    (rowSeasonId !== null ? `Temporada ${rowSeasonId}` : "")
+
+  const rowCategoryValue = normalizeGenderValue(
+    pick(pointRow, ["category.gender", "categoryGender", "gender"])
+  )
+
+  const rowBranchValue = normalizeCodeValue(
+    pick(pointRow, ["category.code", "categoryCode", "code"])
+  )
+
+  const played = toNumber(pick(pointRow, ["gp", "games_played", "played", "jj", "pj"]), 0)
+  const won = toNumber(pick(pointRow, ["wins", "won", "jg", "pg"]), 0)
+  const tied = toNumber(pick(pointRow, ["ties", "tied", "empates", "je"]), 0)
+  const lost = toNumber(
+    pick(pointRow, ["losses", "lost", "jp", "pp"]),
+    Math.max(played - won - tied, 0)
+  )
+
+  const pointsFor = toNumber(
+    pick(pointRow, ["points_for", "gf", "pointsFor", "pf", "favor"]),
+    0
+  )
+
+  const pointsAgainst = toNumber(
+    pick(pointRow, ["points_against", "gc", "pointsAgainst", "pc", "against"]),
+    0
+  )
+
+  const pointDiff = toNumber(
+    pick(pointRow, ["pointDiff", "difference", "dif", "diff"]),
+    pointsFor - pointsAgainst
+  )
+
+  const pctValue = pick(pointRow, ["pct", "percentage", "winPct"], null)
+  const pct =
+    pctValue !== null && pctValue !== undefined
+      ? normalizePct(toNumber(pctValue))
+      : (played > 0 ? (won / played) * 100 : 0)
+
+  const teamName = toText(
+    pick(pointRow, ["team_name", "teamName", "name"]),
+    meta?.teamName || "Equipo"
+  )
+
+  const effectiveSeasonLabel = meta?.season || rowSeasonLabel || "Sin temporada"
+  const effectiveSeasonValue =
+    meta?.seasonValue ||
+    (rowSeasonLabel ? buildSeasonValue(rowSeasonId, effectiveSeasonLabel) : "LABEL_sin-temporada")
+
+  const effectiveCategoryValue = meta?.categoryValue || rowCategoryValue
+  const effectiveBranchValue = meta?.branchValue || rowBranchValue
+
+  return {
+    rowKey: `team-${teamId ?? teamName}-${index}`,
+    teamId,
+    teamName,
+    seasonValue: effectiveSeasonValue,
+    season: effectiveSeasonLabel,
+    categoryValue: effectiveCategoryValue,
+    category: meta?.category || (effectiveCategoryValue ? formatGenderLabel(effectiveCategoryValue) : "Sin categoría"),
+    branchValue: effectiveBranchValue,
+    branch: meta?.branch || effectiveBranchValue || "Sin rama",
+    played,
+    won,
+    lost,
+    tied,
+    pointsFor,
+    pointsAgainst,
+    pointDiff,
+    standingPoints: toNumber(
+      pick(pointRow, ["table_points", "pts", "points", "standingPoints", "puntos"]),
+      0
+    ),
+    pct,
+    active: meta?.active ?? true,
+    logo: meta?.logo ?? null,
+  }
+}
+
+function buildPlayerRow(row: AnyRow, meta: TeamMeta | undefined, index: number): PlayerSeasonRow {
+  const playerId = pick(row, ["playerId", "player_id", "id"], null)
+  const gamesPlayed = toNumber(pick(row, ["gamesPlayed", "gp", "played", "pj", "games"]), 0)
+
+  const passingTouchdowns = toNumber(pick(row, ["passingTouchdowns", "passTds", "tdPass"]), 0)
+  const rushingTouchdowns = toNumber(pick(row, ["rushingTouchdowns", "rushTds", "tdRush"]), 0)
+  const receivingTouchdowns = toNumber(pick(row, ["receivingTouchdowns", "recTds", "tdRec"]), 0)
+
+  const directTouchdowns = toNullableNumber(pick(row, ["touchdowns", "td", "tds", "totalTouchdowns"]))
+
+  const seasonId = toNullableNumber(pick(row, ["seasonId", "season.id"]))
+  const rowSeasonLabel =
+    toText(pick(row, ["seasonName", "season.name", "season", "temporada"]), "") ||
+    (seasonId !== null ? `Temporada ${seasonId}` : "")
+
+  const rowCategoryValue = normalizeGenderValue(pick(row, ["gender", "categoryGender", "category.gender"]))
+  const rowBranchValue = normalizeCodeValue(pick(row, ["categoryCode", "code", "category.code"]))
+
+  const effectiveSeasonLabel = meta?.season || rowSeasonLabel || "Sin temporada"
+  const effectiveSeasonValue =
+    meta?.seasonValue ||
+    (rowSeasonLabel ? buildSeasonValue(seasonId, effectiveSeasonLabel) : "LABEL_sin-temporada")
+
+  const effectiveCategoryValue = meta?.categoryValue || rowCategoryValue
+  const effectiveBranchValue = meta?.branchValue || rowBranchValue
+
+  return {
+    rowKey: `player-${playerId ?? index}-${index}`,
+    playerId: playerId as number | string | null,
+    playerName: toText(
+      pick(row, ["playerName", "fullName", "name", "player.name", "athleteName"]),
+      "Jugador"
+    ),
+    teamName: toText(
+      pick(row, ["teamName", "team.name", "team_name"]),
+      meta?.teamName || "Equipo"
+    ),
+    seasonValue: effectiveSeasonValue,
+    season: effectiveSeasonLabel,
+    categoryValue: effectiveCategoryValue,
+    category: meta?.category || (effectiveCategoryValue ? formatGenderLabel(effectiveCategoryValue) : "Sin categoría"),
+    branchValue: effectiveBranchValue,
+    branch: meta?.branch || effectiveBranchValue || "Sin rama",
+    gamesPlayed,
+    touchdowns:
+      directTouchdowns !== null
+        ? directTouchdowns
+        : passingTouchdowns + rushingTouchdowns + receivingTouchdowns,
+    passingYards: toNumber(pick(row, ["passingYards", "passYards", "ydsPass", "passing_yds"]), 0),
+    rushingYards: toNumber(pick(row, ["rushingYards", "rushYards", "ydsRush", "rushing_yds"]), 0),
+    receivingYards: toNumber(pick(row, ["receivingYards", "recYards", "ydsRec", "receiving_yds"]), 0),
+    interceptions: toNumber(pick(row, ["interceptions", "ints", "defInterceptions"]), 0),
+    sacks: toNumber(pick(row, ["sacks", "qbSacks"]), 0),
+    active: meta?.active ?? true,
+  }
 }
 </script>

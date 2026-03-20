@@ -31,8 +31,8 @@
                 class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
               >
                 <option value="ALL">Todas</option>
-                <option v-for="option in seasonOptions" :key="option" :value="option">
-                  {{ option }}
+                <option v-for="option in seasonOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
                 </option>
               </select>
             </div>
@@ -46,8 +46,8 @@
                 class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
               >
                 <option value="ALL">Todas</option>
-                <option v-for="option in categoryOptions" :key="option" :value="option">
-                  {{ option }}
+                <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
                 </option>
               </select>
             </div>
@@ -61,8 +61,8 @@
                 class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
               >
                 <option value="ALL">Todas</option>
-                <option v-for="option in branchOptions" :key="option" :value="option">
-                  {{ option }}
+                <option v-for="option in branchOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
                 </option>
               </select>
             </div>
@@ -76,8 +76,8 @@
                 class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
               >
                 <option value="ALL">Todas</option>
-                <option v-for="option in roundOptions" :key="option" :value="option">
-                  {{ option }}
+                <option v-for="option in roundOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
                 </option>
               </select>
             </div>
@@ -150,11 +150,9 @@
 
                 <span
                   class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold"
-                  :class="m.status === 'FINISHED'
-                    ? 'border border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                    : 'border border-sky-400/20 bg-sky-400/10 text-sky-200'"
+                  :class="statusPillClass(m.status)"
                 >
-                  {{ m.status === 'FINISHED' ? 'Finalizado' : 'Programado' }}
+                  {{ statusLabel(m.status) }}
                 </span>
               </div>
 
@@ -278,23 +276,41 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch, useAsyncData } from "#imports"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
-import { useJuevesData, type UiMatch } from "~/composables/useJuevesData"
 
 type FilterValue = "ALL" | string
 
-type UiMatchCard = UiMatch & {
+type OptionItem = {
+  value: string
+  label: string
+}
+
+type UiMatchCard = {
+  id: string
+  timestamp: number
+  date: string
+  time: string
+  venue: string
+  home: string
+  away: string
   homeLogo?: string
   awayLogo?: string
   homeShort?: string
   awayShort?: string
+  seasonValue: string
   seasonLabel: string
+  categoryValue: string
   categoryLabel: string
+  branchValue: string
   branchLabel: string
+  roundValue: string
   roundLabel: string
   status: string
+  leagueId: number | null
 }
 
+const JUEVES_LEAGUE_ID = 2
 const ITEMS_PER_PAGE = 10
 
 const search = ref("")
@@ -305,111 +321,173 @@ const selectedCategory = ref<FilterValue>("ALL")
 const selectedBranch = ref<FilterValue>("ALL")
 const selectedRound = ref<FilterValue>("ALL")
 
-const { leagueKey, toList, toUiMatch } = useJuevesData()
+const backendMatchQuery = computed(() => ({
+  leagueId: JUEVES_LEAGUE_ID,
+  code: selectedBranch.value === "ALL" ? undefined : selectedBranch.value,
+  gender: selectedCategory.value === "ALL" ? undefined : selectedCategory.value,
+}))
 
-const { data: gamesData, pending: pendingGames, error: gamesError } =
-  await useAsyncData("jueves-partidos-page", async () => {
+const { data: seasonsRaw } = await useAsyncData(
+  "jueves-seasons-page",
+  async () => {
+    return await $fetch<any>("/api/t5/seasons/list", {
+      query: { leagueId: JUEVES_LEAGUE_ID },
+    }).catch(() => [])
+  }
+)
+
+const { data: categoriesRaw } = await useAsyncData(
+  "jueves-categories-page",
+  async () => {
+    return await $fetch<any>("/api/t5/categories", {
+      query: { leagueId: JUEVES_LEAGUE_ID },
+    }).catch(() => [])
+  }
+)
+
+const {
+  data: gamesData,
+  pending: pendingGames,
+  error: gamesError,
+} = await useAsyncData(
+  "jueves-partidos-page",
+  async () => {
+    const query = backendMatchQuery.value
+
     const [scheduled, finished] = await Promise.all([
       $fetch<any>("/api/t5/games", {
         query: {
-          league: leagueKey,
-          leagueKey,
-          status: "SCHEDULED",
-          sort: "startTime,asc",
-          limit: 200,
+          leagueId: query.leagueId,
+          code: query.code,
+          gender: query.gender,
         },
       }).catch(() => []),
       $fetch<any>("/api/t5/gamesFinal", {
         query: {
-          league: leagueKey,
-          leagueKey,
-          sort: "startTime,desc",
-          limit: 200,
+          leagueId: query.leagueId,
+          code: query.code,
+          gender: query.gender,
+          all: true,
         },
       }).catch(() => []),
     ])
 
     const merged = [...toList(scheduled), ...toList(finished)]
+    const unique = new Map<string, UiMatchCard>()
 
-    return merged.map((game: any) => {
-      const ui = toUiMatch(game)
+    for (const game of merged) {
+      const parsed = toUiMatchCard(game)
+      const existing = unique.get(parsed.id)
 
-      const status = normalizeText(
-        firstValue(game, [
-          "status",
-          "gameStatus",
-          "matchStatus",
-        ]) || "SCHEDULED"
-      )
+      if (!existing) {
+        unique.set(parsed.id, parsed)
+        continue
+      }
 
-      return {
-        ...ui,
-        homeLogo: firstValue(game, [
-          "homeTeam.logoUrl",
-          "homeTeam.logo",
-          "home_team.logo_url",
-          "home_team.logoUrl",
-          "home.logoUrl",
-          "localTeam.logoUrl",
-          "local.logoUrl",
-        ]),
-        awayLogo: firstValue(game, [
-          "awayTeam.logoUrl",
-          "awayTeam.logo",
-          "away_team.logo_url",
-          "away_team.logoUrl",
-          "away.logoUrl",
-          "visitorTeam.logoUrl",
-          "visitor.logoUrl",
-        ]),
-        homeShort: firstValue(game, [
-          "homeTeam.shortName",
-          "home_team.short_name",
-          "home.shortName",
-          "localTeam.shortName",
-        ]),
-        awayShort: firstValue(game, [
-          "awayTeam.shortName",
-          "away_team.short_name",
-          "away.shortName",
-          "visitorTeam.shortName",
-        ]),
-        seasonLabel: pickLabel(game, [
-          "season.name",
-          "seasonName",
-          "season.label",
-          "season.title",
-          "temporada.nombre",
-          "temporada",
-        ], "Sin temporada"),
-        categoryLabel: pickLabel(game, [
-          "category.name",
-          "categoryName",
-          "category.label",
-          "categoria.nombre",
-          "categoria",
-        ], "Sin categoría"),
-        branchLabel: pickLabel(game, [
-          "branch.name",
-          "branchName",
-          "gender",
-          "rama.nombre",
-          "rama",
-        ], "Sin rama"),
-        roundLabel: pickRoundLabel(game),
-        status,
-      } as UiMatchCard
-    })
-  })
+      if (normalizeStatus(existing.status) !== "FINISHED" && normalizeStatus(parsed.status) === "FINISHED") {
+        unique.set(parsed.id, parsed)
+      }
+    }
+
+    return Array.from(unique.values())
+      .filter((match) => match.leagueId === null || match.leagueId === JUEVES_LEAGUE_ID)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  },
+  {
+    watch: [backendMatchQuery],
+  }
+)
 
 const matches = computed<UiMatchCard[]>(() => gamesData.value ?? [])
 
-const seasonOptions = computed(() => uniqueSorted(matches.value.map((m) => m.seasonLabel)))
-const categoryOptions = computed(() => uniqueSorted(matches.value.map((m) => m.categoryLabel)))
-const branchOptions = computed(() => uniqueSorted(matches.value.map((m) => m.branchLabel)))
-const roundOptions = computed(() => {
-  const labels = uniqueSorted(matches.value.map((m) => m.roundLabel))
-  return labels.sort(sortRoundLabels)
+const seasonOptions = computed<OptionItem[]>(() => {
+  const fromApi = toList(seasonsRaw.value)
+    .map((season: any) => {
+      const seasonId = firstNumber(season, ["id", "seasonId"])
+      const label =
+        firstValue(season, ["name", "label", "title", "seasonName"]) ||
+        (seasonId !== null ? `Temporada ${seasonId}` : "")
+
+      if (!label) return null
+
+      return {
+        value: buildSeasonValue(seasonId, label),
+        label: String(label).trim(),
+      }
+    })
+    .filter(Boolean) as OptionItem[]
+
+  const fromRows = matches.value
+    .filter((m) => m.seasonValue && m.seasonLabel)
+    .map((m) => ({
+      value: m.seasonValue,
+      label: m.seasonLabel,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
+})
+
+const categoryOptions = computed<OptionItem[]>(() => {
+  const fromApi = toList(categoriesRaw.value)
+    .map((category: any) => {
+      const gender = normalizeGenderValue(firstValue(category, ["gender"]))
+      if (!gender) return null
+
+      return {
+        value: gender,
+        label: formatGenderLabel(gender),
+      }
+    })
+    .filter(Boolean) as OptionItem[]
+
+  const fromRows = matches.value
+    .filter((m) => m.categoryValue && m.categoryLabel)
+    .map((m) => ({
+      value: m.categoryValue,
+      label: m.categoryLabel,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
+})
+
+const branchOptions = computed<OptionItem[]>(() => {
+  const fromApi = toList(categoriesRaw.value)
+    .map((category: any) => {
+      const code = normalizeCodeValue(firstValue(category, ["code"]))
+      if (!code) return null
+
+      return {
+        value: code,
+        label: code,
+      }
+    })
+    .filter(Boolean) as OptionItem[]
+
+  const fromRows = matches.value
+    .filter((m) => m.branchValue && m.branchLabel)
+    .map((m) => ({
+      value: m.branchValue,
+      label: m.branchLabel,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
+})
+
+const roundOptions = computed<OptionItem[]>(() => {
+  return uniqueOptions(
+    matches.value
+      .filter((m) => m.roundValue)
+      .map((m) => ({
+        value: m.roundValue,
+        label: m.roundLabel,
+      }))
+  ).sort(sortRoundOptions)
 })
 
 const filteredMatches = computed<UiMatchCard[]>(() => {
@@ -417,16 +495,16 @@ const filteredMatches = computed<UiMatchCard[]>(() => {
 
   return matches.value.filter((m) => {
     const matchesSeason =
-      selectedSeason.value === "ALL" || m.seasonLabel === selectedSeason.value
+      selectedSeason.value === "ALL" || m.seasonValue === selectedSeason.value
 
     const matchesCategory =
-      selectedCategory.value === "ALL" || m.categoryLabel === selectedCategory.value
+      selectedCategory.value === "ALL" || m.categoryValue === selectedCategory.value
 
     const matchesBranch =
-      selectedBranch.value === "ALL" || m.branchLabel === selectedBranch.value
+      selectedBranch.value === "ALL" || m.branchValue === selectedBranch.value
 
     const matchesRound =
-      selectedRound.value === "ALL" || m.roundLabel === selectedRound.value
+      selectedRound.value === "ALL" || m.roundValue === selectedRound.value
 
     const matchesSearch =
       !q ||
@@ -485,6 +563,28 @@ watch(
   }
 )
 
+watch(
+  seasonOptions,
+  (options) => {
+    if (
+      selectedSeason.value !== "ALL" &&
+      !options.some((option) => option.value === selectedSeason.value)
+    ) {
+      selectedSeason.value = "ALL"
+    }
+  },
+  { immediate: true }
+)
+
+watch(roundOptions, (options) => {
+  if (
+    selectedRound.value !== "ALL" &&
+    !options.some((option) => option.value === selectedRound.value)
+  ) {
+    selectedRound.value = "ALL"
+  }
+})
+
 watch(totalMatchPages, (pages) => {
   if (currentPage.value > pages) currentPage.value = pages
 })
@@ -512,22 +612,99 @@ function getTeamInitials(name: string) {
     .toUpperCase()
 }
 
-function uniqueSorted(values: string[]) {
-  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"))
+function statusLabel(status: string) {
+  const normalized = normalizeStatus(status)
+  if (normalized === "FINISHED") return "Finalizado"
+  if (normalized === "CANCELLED") return "Cancelado"
+  return "Programado"
 }
 
-function pickLabel(obj: any, paths: string[], fallback: string) {
-  for (const path of paths) {
-    const value = readPath(obj, path)
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return String(value).trim()
-    }
+function statusPillClass(status: string) {
+  const normalized = normalizeStatus(status)
+
+  if (normalized === "FINISHED") {
+    return "border border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
   }
-  return fallback
+
+  if (normalized === "CANCELLED") {
+    return "border border-rose-400/20 bg-rose-400/10 text-rose-200"
+  }
+
+  return "border border-sky-400/20 bg-sky-400/10 text-sky-200"
 }
 
-function pickRoundLabel(obj: any) {
-  const raw = firstValue(obj, [
+function toUiMatchCard(game: any): UiMatchCard {
+  const startRaw = firstValue(game, [
+    "startTime",
+    "dateTime",
+    "kickoff",
+    "gameDate",
+    "date",
+    "scheduledAt",
+  ])
+
+  const { timestamp, date, time } = formatDateParts(startRaw)
+
+  const home = firstValue(game, [
+    "homeTeam.name",
+    "home_team.name",
+    "home.name",
+    "homeName",
+    "localTeam.name",
+    "teamHome.name",
+  ]) || "Local"
+
+  const away = firstValue(game, [
+    "awayTeam.name",
+    "away_team.name",
+    "away.name",
+    "awayName",
+    "visitorTeam.name",
+    "teamAway.name",
+  ]) || "Visitante"
+
+  const seasonId = firstNumber(game, [
+    "season.id",
+    "seasonId",
+    "temporada.id",
+  ])
+
+  const seasonLabel =
+    firstValue(game, [
+      "season.name",
+      "seasonName",
+      "season.label",
+      "season.title",
+      "temporada.nombre",
+      "temporada.name",
+      "temporada",
+    ]) || (seasonId !== null ? `Temporada ${seasonId}` : "Sin temporada")
+
+  const seasonValue = buildSeasonValue(seasonId, seasonLabel)
+
+  const branchValue = normalizeCodeValue(
+    firstValue(game, [
+      "category.code",
+      "categoryCode",
+      "code",
+      "division.code",
+      "branch.code",
+      "rama.code",
+    ])
+  )
+
+  const categoryValue = normalizeGenderValue(
+    firstValue(game, [
+      "category.gender",
+      "gender",
+      "categoryGender",
+      "division.gender",
+      "rama.gender",
+    ])
+  )
+
+  const rawRound = firstValue(game, [
+    "roundLabel",
     "round",
     "roundNumber",
     "week",
@@ -538,49 +715,204 @@ function pickRoundLabel(obj: any) {
     "gameDay",
   ])
 
-  if (!raw) return "Sin jornada"
+  const roundValue = normalizeRoundValue(rawRound)
+  const roundLabel = formatRoundLabel(rawRound)
 
-  const clean = String(raw).trim()
+  const status = normalizeStatus(
+    firstValue(game, [
+      "status",
+      "gameStatus",
+      "matchStatus",
+    ]) || "SCHEDULED"
+  )
 
-  if (/^\d+$/.test(clean)) {
-    return `Jornada ${clean}`
+  return {
+    id: String(firstValue(game, ["game_id", "gameId", "id"]) || `${home}-${away}-${timestamp}`),
+    timestamp,
+    date,
+    time,
+    venue: firstValue(game, [
+      "venue",
+      "field",
+      "location",
+      "court",
+      "stadium",
+    ]),
+    home,
+    away,
+    homeLogo: firstValue(game, [
+      "homeTeam.logoUrl",
+      "homeTeam.logo",
+      "home_team.logo_url",
+      "home_team.logoUrl",
+      "home.logoUrl",
+      "localTeam.logoUrl",
+      "local.logoUrl",
+    ]),
+    awayLogo: firstValue(game, [
+      "awayTeam.logoUrl",
+      "awayTeam.logo",
+      "away_team.logo_url",
+      "away_team.logoUrl",
+      "away.logoUrl",
+      "visitorTeam.logoUrl",
+      "visitor.logoUrl",
+    ]),
+    homeShort: firstValue(game, [
+      "homeTeam.shortName",
+      "home_team.short_name",
+      "home.shortName",
+      "localTeam.shortName",
+    ]),
+    awayShort: firstValue(game, [
+      "awayTeam.shortName",
+      "away_team.short_name",
+      "away.shortName",
+      "visitorTeam.shortName",
+    ]),
+    seasonValue,
+    seasonLabel,
+    categoryValue,
+    categoryLabel: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",
+    branchValue,
+    branchLabel: branchValue || "Sin rama",
+    roundValue,
+    roundLabel,
+    status,
+    leagueId: firstNumber(game, [
+      "leagueId",
+      "league_id",
+      "league.league_id",
+      "league.leagueId",
+      "league.id",
+    ]),
   }
-
-  return clean.toLowerCase().startsWith("jornada") ? clean : `Jornada ${clean}`
 }
 
-function sortRoundLabels(a: string, b: string) {
-  const numA = extractRoundNumber(a)
-  const numB = extractRoundNumber(b)
+function toList(value: any): any[] {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.content)) return value.content
+  if (Array.isArray(value?.items)) return value.items
+  if (Array.isArray(value?.data)) return value.data
+  return []
+}
+
+function uniqueOptions(items: OptionItem[]) {
+  const map = new Map<string, string>()
+
+  for (const item of items) {
+    const value = String(item?.value || "").trim()
+    const label = String(item?.label || "").trim()
+
+    if (!value || !label) continue
+    if (!map.has(value)) map.set(value, label)
+  }
+
+  return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
+}
+
+function buildSeasonValue(seasonId: number | null, seasonLabel: string) {
+  if (seasonId !== null) return `SEASON_${seasonId}`
+  return `LABEL_${normalizeText(seasonLabel)}`
+}
+
+function sortRoundOptions(a: OptionItem, b: OptionItem) {
+  const numA = extractRoundNumber(a.label)
+  const numB = extractRoundNumber(b.label)
 
   if (numA !== null && numB !== null) return numA - numB
   if (numA !== null) return -1
   if (numB !== null) return 1
 
-  return a.localeCompare(b, "es")
+  return a.label.localeCompare(b.label, "es")
 }
 
 function extractRoundNumber(value: string) {
-  const match = String(value).match(/(\d+)/)
+  const match = String(value || "").match(/(\d+)/)
   return match ? Number(match[1]) : null
+}
+
+function formatRoundLabel(raw: unknown) {
+  const clean = String(raw || "").trim()
+
+  if (!clean) return "Sin jornada"
+
+  const normalized = normalizeRoundValue(clean)
+
+  if (/^\d+$/.test(normalized)) {
+    return `Jornada ${normalized}`
+  }
+
+  if (clean.toLowerCase().startsWith("jornada")) {
+    return clean
+  }
+
+  return clean
+}
+
+function normalizeRoundValue(raw: unknown) {
+  const clean = String(raw || "").trim()
+  if (!clean) return ""
+  const normalized = normalizeText(clean).replace(/^jornada\s+/, "").trim()
+  return normalized.toUpperCase()
+}
+
+function formatGenderLabel(value: string) {
+  const normalized = normalizeGenderValue(value)
+
+  if (normalized === "VARONIL") return "Varonil"
+  if (normalized === "FEMENIL") return "Femenil"
+  if (normalized === "MIXTO") return "Mixto"
+
+  return value
+}
+
+function normalizeGenderValue(value: unknown) {
+  const normalized = normalizeText(String(value || "")).toUpperCase()
+
+  if (!normalized) return ""
+  if (normalized === "MASCULINO" || normalized === "MALE") return "VARONIL"
+  if (normalized === "FEMENINO" || normalized === "FEMALE") return "FEMENIL"
+
+  return normalized
+}
+
+function normalizeCodeValue(value: unknown) {
+  return String(value || "").trim().toUpperCase()
+}
+
+function normalizeStatus(value: unknown) {
+  return String(value || "").trim().toUpperCase()
 }
 
 function normalizeText(value: string) {
   return String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
     .toLowerCase()
     .trim()
 }
 
-function firstValue(obj: any, paths: string[]): string {
+function firstValue(obj: any, paths: string[]) {
   for (const path of paths) {
     const value = readPath(obj, path)
     if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return String(value)
+      return String(value).trim()
     }
   }
   return ""
+}
+
+function firstNumber(obj: any, paths: string[]) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value === null || value === undefined || String(value).trim() === "") continue
+
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return null
 }
 
 function readPath(obj: any, path: string) {
@@ -588,5 +920,26 @@ function readPath(obj: any, path: string) {
     if (acc === null || acc === undefined) return undefined
     return acc[key]
   }, obj)
+}
+
+function formatDateParts(raw: unknown) {
+  const dateObj = raw ? new Date(String(raw)) : new Date()
+  const safeDate = Number.isNaN(dateObj.getTime()) ? new Date() : dateObj
+
+  return {
+    timestamp: safeDate.getTime(),
+    date: new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(safeDate).replace(".", ""),
+    time: new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(safeDate),
+  }
 }
 </script>

@@ -5,7 +5,7 @@
     <div class="fixed inset-0 -z-10 bg-[#020617]" />
 
     <section class="border-b border-white/6 pt-24">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 py-16">
+      <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <div class="max-w-3xl">
           <div
             class="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300"
@@ -35,7 +35,7 @@
                 :class="filterSelectClass(!hasCategoryMeta)"
               >
                 <option value="ALL">
-                  {{ hasCategoryMeta ? 'Todas' : 'No disponible' }}
+                  {{ hasCategoryMeta ? "Todas" : "No disponible" }}
                 </option>
                 <option
                   v-for="option in categoryOptions"
@@ -58,7 +58,7 @@
                 :class="filterSelectClass(!hasBranchMeta)"
               >
                 <option value="ALL">
-                  {{ hasBranchMeta ? 'Todas' : 'No disponible' }}
+                  {{ hasBranchMeta ? "Todas" : "No disponible" }}
                 </option>
                 <option
                   v-for="option in branchOptions"
@@ -99,18 +99,15 @@
             </button>
           </div>
 
-          <p
-            v-if="!hasAnyMeta"
-            class="mt-4 text-xs text-amber-200/90"
-          >
-            Este endpoint solo trae datos básicos del equipo. Categoría y rama no vienen en la respuesta, por eso esos filtros están deshabilitados.
+          <p v-if="!hasAnyMeta" class="mt-4 text-xs text-amber-200/90">
+            No se pudo enriquecer la metadata de categoría o rama desde el backend.
           </p>
         </div>
       </div>
     </section>
 
     <section>
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 py-10">
+      <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           <article
             v-for="team in paginatedTeams"
@@ -179,15 +176,17 @@
 
                     <span
                       class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold"
-                      :class="team.isActive
-                        ? 'border-emerald-400/30 bg-emerald-500/12 text-emerald-200'
-                        : 'border-slate-400/30 bg-slate-500/12 text-slate-200'"
+                      :class="
+                        team.isActive
+                          ? 'border-emerald-400/30 bg-emerald-500/12 text-emerald-200'
+                          : 'border-slate-400/30 bg-slate-500/12 text-slate-200'
+                      "
                     >
                       <span
                         class="h-2 w-2 rounded-full"
                         :class="team.isActive ? 'bg-emerald-400' : 'bg-slate-400'"
                       />
-                      {{ team.isActive ? 'Activo' : 'Inactivo' }}
+                      {{ team.isActive ? "Activo" : "Inactivo" }}
                     </span>
                   </div>
                 </div>
@@ -277,11 +276,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue"
+import { computed, ref, watch, useAsyncData, navigateTo } from "#imports"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
-import { useJuevesData } from "~/composables/useJuevesData"
 
-const LEAGUE_ID = 2
+const JUEVES_LEAGUE_ID = 2
+const ITEMS_PER_PAGE = 9
 
 type FilterValue = "ALL" | string
 
@@ -304,9 +303,8 @@ type UiTeamCard = {
   colorPrimary?: string
   colorSecondary?: string
   isActive: boolean
+  leagueId: number | null
 }
-
-const ITEMS_PER_PAGE = 9
 
 const search = ref("")
 const currentPage = ref(1)
@@ -314,115 +312,180 @@ const currentPage = ref(1)
 const selectedCategory = ref<FilterValue>("ALL")
 const selectedBranch = ref<FilterValue>("ALL")
 
-const { toList } = useJuevesData()
+const backendTeamsQuery = computed(() => ({
+  leagueId: JUEVES_LEAGUE_ID,
+  categoryCode: selectedBranch.value === "ALL" ? undefined : selectedBranch.value,
+  gender: selectedCategory.value === "ALL" ? undefined : selectedCategory.value,
+}))
+
+const { data: categoriesRaw } = await useAsyncData(
+  "jueves-teams-categories-page",
+  async () => {
+    return await $fetch<any>("/api/t5/categories", {
+      query: { leagueId: JUEVES_LEAGUE_ID },
+    }).catch(() => [])
+  }
+)
 
 const { data: teamsData, pending: pendingTeams, error: teamsError } =
-  await useAsyncData<UiTeamCard[]>("jueves-equipos-page", async () => {
-    try {
-      const raw = await $fetch<any>("/api/t5/teams", {
-        query: { leagueId: LEAGUE_ID },
-      })
+  await useAsyncData<UiTeamCard[]>(
+    "jueves-equipos-page",
+    async () => {
+      try {
+        const raw = await $fetch<any>("/api/t5/teams", {
+          query: backendTeamsQuery.value,
+        }).catch(() => [])
 
-      const list = toList(raw)
+        const list = toList(raw)
 
-      return list
-        .map((team: any) => {
-          const flattened = flattenObject(team)
+        return list
+          .map((team: any) => {
+            const flattened = flattenObject(team)
 
-          const categoryRaw = findExactMeta(flattened, [
-            "category.name",
-            "categoryName",
-            "division.name",
-            "divisionName",
-            "category",
-            "division",
-            "categoria",
-          ])
+            const seasonId = firstNumber(flattened, [
+              "season.id",
+              "seasonId",
+              "temporada.id",
+            ])
 
-          const branchRaw = findExactMeta(flattened, [
-            "category.gender",
-            "categoryGender",
-            "gender",
-            "branch",
-            "branchName",
-            "rama",
-            "sexo",
-          ])
+            const categoryCode = normalizeCodeValue(firstValue(flattened, [
+              "category.code",
+              "categoryCode",
+              "code",
+              "division.code",
+            ]))
 
-          const seasonRaw = findExactMeta(flattened, [
-            "season.name",
-            "seasonName",
-            "temporada.name",
-            "temporada",
-            "season",
-          ])
+            const genderValue = normalizeGenderValue(firstValue(flattened, [
+              "category.gender",
+              "categoryGender",
+              "gender",
+              "division.gender",
+              "sexo",
+            ]))
 
-          const categoryLabel = stringValue(categoryRaw)
-          const branchLabel = formatBranchLabel(stringValue(branchRaw))
-          const seasonLabel = stringValue(seasonRaw)
+            const categoryRaw = findExactMeta(flattened, [
+              "category.name",
+              "categoryName",
+              "division.name",
+              "divisionName",
+              "categoria.nombre",
+              "categoria",
+            ])
 
-          return {
-            id: String(firstNonEmpty([team?.teamId, team?.id]) ?? "").trim(),
-            name: String(firstNonEmpty([team?.name, team?.teamName, "Equipo"]) ?? "").trim(),
-            shortName: String(firstNonEmpty([team?.shortName, team?.alias]) ?? "").trim(),
-            categoryLabel,
-            categoryValue: normalizeText(categoryLabel),
-            branchLabel,
-            branchValue: normalizeText(branchLabel),
-            seasonLabel,
-            seasonValue: normalizeText(seasonLabel),
-            logoUrl: String(
-              firstNonEmpty([
-                team?.logoUrl,
-                team?.logo,
-                team?.imageUrl,
-                team?.image,
-                team?.teamLogo,
-                team?.teamLogoUrl,
-              ]) ?? ""
-            ).trim(),
-            colorPrimary: normalizeColor(String(firstNonEmpty([team?.colorPrimary]) ?? "")),
-            colorSecondary: normalizeColor(String(firstNonEmpty([team?.colorSecondary]) ?? "")),
-            isActive: toBoolean(firstNonEmpty([team?.isActive, team?.active, true])),
-          }
-        })
-        .filter((team) => team.id && team.name)
-    } catch (error) {
-      console.error("Error cargando equipos:", error)
-      return []
+            const seasonRaw = findExactMeta(flattened, [
+              "season.name",
+              "seasonName",
+              "temporada.name",
+              "temporada.nombre",
+              "temporada",
+            ])
+
+            const seasonLabel =
+              stringValue(seasonRaw) || (seasonId !== null ? `Temporada ${seasonId}` : "")
+
+            const categoryLabel =
+              stringValue(categoryRaw) || (genderValue ? formatGenderLabel(genderValue) : "")
+
+            const branchLabel = categoryCode || ""
+
+            return {
+              id: String(firstNonEmpty([team?.teamId, team?.id]) ?? "").trim(),
+              name: String(firstNonEmpty([team?.name, team?.teamName, "Equipo"]) ?? "").trim(),
+              shortName: String(firstNonEmpty([team?.shortName, team?.alias]) ?? "").trim(),
+              categoryLabel,
+              categoryValue: genderValue,
+              branchLabel,
+              branchValue: categoryCode,
+              seasonLabel,
+              seasonValue: buildSeasonValue(seasonId, seasonLabel),
+              logoUrl: String(
+                firstNonEmpty([
+                  team?.logoUrl,
+                  team?.logo,
+                  team?.imageUrl,
+                  team?.image,
+                  team?.teamLogo,
+                  team?.teamLogoUrl,
+                ]) ?? ""
+              ).trim(),
+              colorPrimary: normalizeColor(String(firstNonEmpty([team?.colorPrimary]) ?? "")),
+              colorSecondary: normalizeColor(String(firstNonEmpty([team?.colorSecondary]) ?? "")),
+              isActive: toBoolean(firstNonEmpty([team?.isActive, team?.active, true])),
+              leagueId: firstNumber(flattened, [
+                "leagueId",
+                "league_id",
+                "league.league_id",
+                "league.leagueId",
+                "league.id",
+              ]),
+            } as UiTeamCard
+          })
+          .filter((team) => {
+            if (!team.id || !team.name) return false
+            if (team.leagueId !== null && team.leagueId !== JUEVES_LEAGUE_ID) return false
+            return true
+          })
+      } catch (error) {
+        console.error("Error cargando equipos:", error)
+        return []
+      }
+    },
+    {
+      watch: [backendTeamsQuery],
     }
-  })
-
-const { data: categoriesData } = await useAsyncData<any[]>("jueves-categories-league2", async () => {
-  try {
-    const raw = await $fetch<any>("/api/t5/categories", {
-      query: { leagueId: LEAGUE_ID },
-    })
-    return Array.isArray(raw) ? raw : []
-  } catch {
-    return []
-  }
-})
+  )
 
 const allTeams = computed<UiTeamCard[]>(() => teamsData.value ?? [])
 
 const categoryOptions = computed<OptionItem[]>(() => {
-  const cats = categoriesData.value ?? []
-  return cats
-    .map((c: any) => {
-      const label = String(c.name ?? c.categoryName ?? c.label ?? "").trim()
-      return { label, value: normalizeText(label) }
+  const fromApi = toList(categoriesRaw.value)
+    .map((category: any) => {
+      const gender = normalizeGenderValue(firstValue(category, ["gender"]))
+      if (!gender) return null
+
+      return {
+        value: gender,
+        label: formatGenderLabel(gender),
+      }
     })
-    .filter((o) => o.label && o.value)
-    .sort((a, b) => a.label.localeCompare(b.label, "es"))
+    .filter(Boolean) as OptionItem[]
+
+  const fromRows = allTeams.value
+    .filter((team) => team.categoryValue && team.categoryLabel)
+    .map((team) => ({
+      value: team.categoryValue,
+      label: team.categoryLabel,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
 })
 
-const branchOptions = computed<OptionItem[]>(() =>
-  buildOptions(allTeams.value.map((team) => ({
-    label: team.branchLabel,
-    value: team.branchValue,
-  })))
-)
+const branchOptions = computed<OptionItem[]>(() => {
+  const fromApi = toList(categoriesRaw.value)
+    .map((category: any) => {
+      const code = normalizeCodeValue(firstValue(category, ["code"]))
+      if (!code) return null
+
+      return {
+        value: code,
+        label: code,
+      }
+    })
+    .filter(Boolean) as OptionItem[]
+
+  const fromRows = allTeams.value
+    .filter((team) => team.branchValue && team.branchLabel)
+    .map((team) => ({
+      value: team.branchValue,
+      label: team.branchLabel,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
+})
 
 const hasCategoryMeta = computed(() => categoryOptions.value.length > 0)
 const hasBranchMeta = computed(() => branchOptions.value.length > 0)
@@ -481,8 +544,15 @@ const visibleTeamPages = computed<number[]>(() => {
   let start = Math.max(1, current - 2)
   let end = Math.min(total, current + 2)
 
-  if (current <= 3) { start = 1; end = 5 }
-  if (current >= total - 2) { start = total - 4; end = total }
+  if (current <= 3) {
+    start = 1
+    end = 5
+  }
+
+  if (current >= total - 2) {
+    start = total - 4
+    end = total
+  }
 
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
@@ -521,40 +591,51 @@ function resetFilters() {
   currentPage.value = 1
 }
 
-function buildOptions(items: Array<{ label: string; value: string }>): OptionItem[] {
+function uniqueOptions(items: OptionItem[]) {
   const map = new Map<string, string>()
+
   for (const item of items) {
     const label = String(item.label || "").trim()
     const value = String(item.value || "").trim()
+
     if (!label || !value) continue
     if (!map.has(value)) map.set(value, label)
   }
-  return Array.from(map.entries())
-    .map(([value, label]) => ({ value, label }))
-    .sort((a, b) => a.label.localeCompare(b.label, "es"))
+
+  return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
+}
+
+function buildSeasonValue(seasonId: number | null, seasonLabel: string) {
+  if (seasonId !== null) return `SEASON_${seasonId}`
+  return `LABEL_${normalizeText(seasonLabel)}`
 }
 
 function flattenObject(obj: any, prefix = "", result: Record<string, any> = {}) {
   if (obj === null || obj === undefined) return result
+
   if (Array.isArray(obj)) {
     obj.forEach((item, index) => {
       flattenObject(item, prefix ? `${prefix}.${index}` : String(index), result)
     })
     return result
   }
+
   if (typeof obj !== "object") {
     if (prefix) result[prefix] = obj
     return result
   }
+
   for (const key of Object.keys(obj)) {
     const value = obj[key]
     const nextPrefix = prefix ? `${prefix}.${key}` : key
+
     if (value !== null && typeof value === "object") {
       flattenObject(value, nextPrefix, result)
     } else {
       result[nextPrefix] = value
     }
   }
+
   return result
 }
 
@@ -586,12 +667,28 @@ function normalizeText(value: string) {
     .trim()
 }
 
-function formatBranchLabel(value: string) {
-  const v = normalizeText(value)
-  if (v === "varonil" || v === "masculino" || v === "male") return "Varonil"
-  if (v === "femenil" || v === "femenino" || v === "female") return "Femenil"
-  if (v === "mixto" || v === "mixed") return "Mixto"
-  return String(value || "").trim()
+function normalizeGenderValue(value: unknown) {
+  const normalized = normalizeText(String(value || "")).toUpperCase()
+
+  if (!normalized) return ""
+  if (normalized === "MASCULINO" || normalized === "MALE") return "VARONIL"
+  if (normalized === "FEMENINO" || normalized === "FEMALE") return "FEMENIL"
+
+  return normalized
+}
+
+function formatGenderLabel(value: string) {
+  const normalized = normalizeGenderValue(value)
+
+  if (normalized === "VARONIL") return "Varonil"
+  if (normalized === "FEMENIL") return "Femenil"
+  if (normalized === "MIXTO") return "Mixto"
+
+  return value
+}
+
+function normalizeCodeValue(value: unknown) {
+  return String(value || "").trim().toUpperCase()
 }
 
 function toBoolean(value: any) {
@@ -628,6 +725,42 @@ function getTeamInitials(name: string) {
     .map((part) => part[0])
     .join("")
     .toUpperCase()
+}
+
+function toList(value: any): any[] {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.content)) return value.content
+  if (Array.isArray(value?.items)) return value.items
+  if (Array.isArray(value?.data)) return value.data
+  return []
+}
+
+function firstValue(obj: any, paths: string[]) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return String(value).trim()
+    }
+  }
+  return ""
+}
+
+function firstNumber(obj: any, paths: string[]) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value === null || value === undefined || String(value).trim() === "") continue
+
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return null
+}
+
+function readPath(obj: any, path: string) {
+  return path.split(".").reduce((acc: any, key) => {
+    if (acc === null || acc === undefined) return undefined
+    return acc[key]
+  }, obj)
 }
 
 async function openTeam(id: string) {

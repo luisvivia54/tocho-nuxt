@@ -68,7 +68,7 @@
 
               <div class="rounded-2xl border border-white/10 bg-[#0B1020]/70 p-4">
                 <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Equipos como capitán</p>
-                <p class="mt-2 text-2xl font-extrabold text-white">{{ teams.length }} / {{ maxTeams }}</p>
+                <p class="mt-2 text-2xl font-extrabold text-white">{{ visibleTeams.length }} / {{ maxTeams }}</p>
               </div>
 
               <div class="rounded-2xl border border-white/10 bg-[#0B1020]/70 p-4">
@@ -81,9 +81,9 @@
 
             <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
               <p class="text-sm text-slate-400">
-                {{ teams.length > 0
-                  ? `Ya tienes ${teams.length} equipo(s) registrado(s).`
-                  : 'Todavía no tienes equipos registrados.' }}
+                {{ visibleTeams.length > 0
+                  ? `Ya tienes ${visibleTeams.length} equipo(s) registrado(s) en la liga de jueves.`
+                  : 'Todavía no tienes equipos registrados en la liga de jueves.' }}
               </p>
 
               <button
@@ -101,7 +101,7 @@
           <section class="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl">
             <div v-if="loading" class="text-sm text-slate-400">Cargando tus equipos…</div>
 
-            <div v-else-if="teams.length === 0" class="rounded-2xl border border-white/10 bg-[#0B1020]/60 p-5">
+            <div v-else-if="visibleTeams.length === 0" class="rounded-2xl border border-white/10 bg-[#0B1020]/60 p-5">
               <p class="text-lg font-bold text-white">Aún no tienes equipos</p>
               <p class="mt-2 text-sm text-slate-400">
                 Puedes registrar uno nuevo desde la pestaña de registro.
@@ -118,7 +118,7 @@
 
             <div v-else class="grid gap-4 md:grid-cols-2">
               <article
-                v-for="team in teams"
+                v-for="team in visibleTeams"
                 :key="team.id"
                 class="rounded-3xl border p-5 transition"
                 :class="highlightId === team.id
@@ -208,6 +208,8 @@ type TeamCard = {
   categoryName: string
 }
 
+const JUEVES_LEAGUE_ID = 2
+
 function normalizeApiBase(v: string) {
   const s = String(v || "").trim().replace(/\/+$/, "")
   if (!s) return "https://tocho5-api.tochero5.mx/api"
@@ -252,6 +254,10 @@ const highlightId = computed<number | null>(() => {
   return Number.isFinite(n) && n > 0 ? n : null
 })
 
+const visibleTeams = computed<TeamCard[]>(() => {
+  return teams.value.filter((team) => team.leagueId === JUEVES_LEAGUE_ID)
+})
+
 function login() {
   const kc = (nuxtApp as any).$kc
   if (!kc?.login) return
@@ -270,7 +276,7 @@ const roleLabel = computed(() => {
   return "USUARIO"
 })
 
-const canCreate = computed(() => teams.value.length < maxTeams)
+const canCreate = computed(() => visibleTeams.value.length < maxTeams)
 
 async function getAccessToken(): Promise<string | null> {
   const app: any = nuxtApp as any
@@ -315,9 +321,26 @@ function normalizeTeams(payload: any): TeamCard[] {
       name: String(t?.name ?? t?.teamName ?? t?.team_name ?? "Equipo"),
       shortName: String(t?.shortName ?? t?.short_name ?? ""),
       logoUrl: String(t?.logoUrl ?? t?.logo_url ?? t?.photoUrl ?? t?.photo_url ?? ""),
-      leagueId: Number(t?.leagueId ?? t?.league_id ?? 0) || null,
-      seasonId: Number(t?.seasonId ?? t?.season_id ?? 0) || null,
-      categoryName: String(t?.category?.name ?? t?.categoryName ?? ""),
+      leagueId: Number(
+        t?.leagueId ??
+        t?.league_id ??
+        t?.league?.league_id ??
+        t?.league?.leagueId ??
+        t?.league?.id ??
+        0
+      ) || null,
+      seasonId: Number(
+        t?.seasonId ??
+        t?.season_id ??
+        t?.season?.id ??
+        0
+      ) || null,
+      categoryName: String(
+        t?.category?.name ??
+        t?.categoryName ??
+        t?.category_name ??
+        ""
+      ),
     }))
     .filter((t) => Number.isFinite(t.id) && t.id > 0)
 }
@@ -332,24 +355,24 @@ async function loadTeams() {
     if (!headers.Authorization) throw new Error("No hay sesión activa.")
 
     const candidates = [
-      `${API_BASE}/teams/mine`,
-      `${API_BASE}/teams/me`,
-      `${API_BASE}/users/me/teams`,
-      `${API_BASE}/captain/teams`,
+      { url: `${API_BASE}/teams/mine`, query: { leagueId: JUEVES_LEAGUE_ID } },
+      { url: `${API_BASE}/teams/me`, query: { leagueId: JUEVES_LEAGUE_ID } },
+      { url: `${API_BASE}/users/me/teams`, query: { leagueId: JUEVES_LEAGUE_ID } },
+      { url: `${API_BASE}/captain/teams`, query: { leagueId: JUEVES_LEAGUE_ID } },
     ]
 
     let loaded = false
     let lastError: any = null
 
-    for (const url of candidates) {
+    for (const candidate of candidates) {
       try {
-        const raw = await $fetch<any>(url, {
+        const raw = await $fetch<any>(candidate.url, {
           method: "GET",
           headers,
+          query: candidate.query,
         })
 
-        const normalized = normalizeTeams(raw)
-        teams.value = normalized
+        teams.value = normalizeTeams(raw)
         loaded = true
         break
       } catch (e: any) {
@@ -364,7 +387,9 @@ async function loadTeams() {
       throw lastError
     }
 
-    statusMsg.value = loaded ? "Equipos cargados correctamente." : "No se encontraron equipos."
+    statusMsg.value = loaded
+      ? "Equipos de la liga de jueves cargados correctamente."
+      : "No se encontraron equipos de la liga de jueves."
   } catch (e: any) {
     errorMsg.value = e?.data?.message || e?.message || "No se pudieron cargar tus equipos."
   } finally {
