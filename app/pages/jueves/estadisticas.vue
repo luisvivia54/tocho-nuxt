@@ -492,15 +492,25 @@ type PageNode = {
   ellipsis: boolean
 }
 
+type CategoryDefinition = {
+  id: string
+  code: string
+  genderValue: string
+  genderLabel: string
+}
+
 type TeamMeta = {
   id: string
   teamName: string
   seasonValue: string
   season: string
+  seasonPriority: number
   categoryValue: string
   category: string
+  categoryPriority: number
   branchValue: string
   branch: string
+  branchPriority: number
   active: boolean
   logo: string | null
 }
@@ -549,6 +559,24 @@ type PlayerSeasonRow = {
   active: boolean
 }
 
+type ResolvedSeasonInfo = {
+  seasonValue: string
+  season: string
+  priority: number
+}
+
+type ResolvedCategoryInfo = {
+  categoryValue: string
+  category: string
+  priority: number
+}
+
+type ResolvedBranchInfo = {
+  branchValue: string
+  branch: string
+  priority: number
+}
+
 const JUEVES_LEAGUE_ID = 2
 
 const stadiumBg = "/img/hero-stadium.jpg"
@@ -567,7 +595,10 @@ const pageSize = 10
 const seasonQueryValue = computed(() => {
   if (selectedSeason.value === "ALL") return null
   const match = String(selectedSeason.value).match(/^SEASON_(\d+)$/)
-  return match ? Number(match[1]) : null
+  if (!match) return null
+
+  const parsed = Number(match[1])
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 })
 
 const teamFilterQuery = computed(() => ({
@@ -651,6 +682,36 @@ const pendingTeamsView = computed(() => pendingPoints.value || pendingTeamsMeta.
 const pendingPlayersView = computed(() => pendingPlayers.value || pendingTeamsMeta.value)
 const pending = computed(() => pendingTeamsView.value || pendingPlayersView.value)
 
+const categoryDefinitions = computed<CategoryDefinition[]>(() => {
+  return normalizeCollection(categoriesRaw.value)
+    .map((row) => normalizeCategoryDefinition(row))
+    .filter((item) => item.id || item.code || item.genderValue)
+})
+
+const categoryById = computed(() => {
+  const map = new Map<string, CategoryDefinition>()
+
+  for (const item of categoryDefinitions.value) {
+    if (item.id && !map.has(item.id)) {
+      map.set(item.id, item)
+    }
+  }
+
+  return map
+})
+
+const categoryByCode = computed(() => {
+  const map = new Map<string, CategoryDefinition>()
+
+  for (const item of categoryDefinitions.value) {
+    if (item.code && !map.has(item.code)) {
+      map.set(item.code, item)
+    }
+  }
+
+  return map
+})
+
 const teamMetaById = computed(() => {
   const map = new Map<string, TeamMeta>()
 
@@ -668,7 +729,7 @@ const teamMetaByName = computed(() => {
   for (const row of normalizeCollection(teamsMetaRaw.value)) {
     const meta = normalizeTeamMeta(row)
     const key = normalizeKey(meta.teamName)
-    if (key) map.set(key, meta)
+    if (key && !map.has(key)) map.set(key, meta)
   }
 
   return map
@@ -678,8 +739,8 @@ const teamRows = computed<TeamStanding[]>(() => {
   const rows = normalizeCollection(pointsData.value)
 
   return rows.map((row, index) => {
-    const rawTeamId = pick(row, ["team_id", "teamId", "id"], "")
-    const rawTeamName = pick(row, ["team_name", "teamName", "name"], "")
+    const rawTeamId = pick(row, ["team_id", "teamId", "team.id", "id"], "")
+    const rawTeamName = pick(row, ["team_name", "teamName", "team.name", "name"], "")
     const meta =
       teamMetaById.value.get(normalizeKey(rawTeamId)) ||
       teamMetaByName.value.get(normalizeKey(rawTeamName))
@@ -705,19 +766,12 @@ const playerRows = computed<PlayerSeasonRow[]>(() => {
 const seasonOptions = computed<OptionItem[]>(() => {
   const fromApi = normalizeCollection(seasonsRaw.value)
     .map((row) => {
-      const seasonId = toNullableNumber(pick(row, ["id", "seasonId"]))
-      const label =
-        toText(pick(row, ["name", "label", "title", "seasonName"]), "") ||
-        (seasonId !== null ? `Temporada ${seasonId}` : "")
-
-      if (!label) return null
-
+      const seasonInfo = resolveSeasonInfo(row)
       return {
-        value: buildSeasonValue(seasonId, label),
-        label,
+        value: seasonInfo.seasonValue,
+        label: seasonInfo.season,
       }
     })
-    .filter(Boolean) as OptionItem[]
 
   const fromTeams = teamRows.value
     .filter((row) => row.seasonValue && row.season && row.seasonValue !== "ALL")
@@ -741,12 +795,12 @@ const seasonOptions = computed<OptionItem[]>(() => {
 const categoryOptions = computed<OptionItem[]>(() => {
   const fromApi = normalizeCollection(categoriesRaw.value)
     .map((row) => {
-      const gender = normalizeGenderValue(pick(row, ["gender"]))
-      if (!gender) return null
+      const def = normalizeCategoryDefinition(row)
+      if (!def.genderValue) return null
 
       return {
-        value: gender,
-        label: formatGenderLabel(gender),
+        value: def.genderValue,
+        label: def.genderLabel,
       }
     })
     .filter(Boolean) as OptionItem[]
@@ -773,12 +827,12 @@ const categoryOptions = computed<OptionItem[]>(() => {
 const branchOptions = computed<OptionItem[]>(() => {
   const fromApi = normalizeCollection(categoriesRaw.value)
     .map((row) => {
-      const code = normalizeCodeValue(pick(row, ["code"]))
-      if (!code) return null
+      const def = normalizeCategoryDefinition(row)
+      if (!def.code) return null
 
       return {
-        value: code,
-        label: code,
+        value: def.code,
+        label: def.code,
       }
     })
     .filter(Boolean) as OptionItem[]
@@ -1058,7 +1112,7 @@ function formatPct(value: number): string {
 
 function branchBadgeClass(branch: string): string {
   const normalized = normalizeCodeValue(branch)
-  if (!normalized) return "bg-slate-400/15 text-slate-200"
+  if (!normalized || isMissingBranchText(branch)) return "bg-slate-400/15 text-slate-200"
   return "bg-amber-400/15 text-amber-200"
 }
 
@@ -1113,6 +1167,11 @@ function toNumber(value: unknown, fallback = 0): number {
 function toNullableNumber(value: unknown): number | null {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function toPositiveNumber(value: unknown): number | null {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
 function toText(value: unknown, fallback = "—"): string {
@@ -1171,9 +1230,64 @@ function normalizeCodeValue(value: unknown): string {
   return String(value ?? "").trim().toUpperCase()
 }
 
+function sanitizeDisplayText(value: unknown): string {
+  const raw = String(value ?? "").trim()
+  if (!raw) return ""
+
+  const normalized = normalizeText(raw)
+  if (["0", "null", "undefined", "nan", "-", "—"].includes(normalized)) return ""
+
+  return raw
+}
+
+function sanitizeSeasonLabel(value: unknown): string {
+  const raw = sanitizeDisplayText(value)
+  if (!raw) return ""
+
+  const normalized = normalizeText(raw)
+  if (normalized === "temporada 0") return ""
+
+  return raw
+}
+
+function isMissingSeasonText(value: unknown): boolean {
+  const normalized = normalizeText(value)
+  return [
+    "sin temporada",
+    "sin temporada asignada",
+    "no contiene temporada",
+    "no tiene temporada",
+    "sin season",
+    "no season",
+  ].includes(normalized)
+}
+
+function isMissingCategoryText(value: unknown): boolean {
+  const normalized = normalizeText(value)
+  return [
+    "sin categoria",
+    "sin categoria asignada",
+    "no contiene categoria",
+    "no tiene categoria",
+  ].includes(normalized)
+}
+
+function isMissingBranchText(value: unknown): boolean {
+  const normalized = normalizeText(value)
+  return [
+    "sin rama",
+    "sin division",
+    "sin branch",
+  ].includes(normalized)
+}
+
 function buildSeasonValue(seasonId: number | null, seasonLabel: string): string {
-  if (seasonId !== null) return `SEASON_${seasonId}`
-  return `LABEL_${normalizeText(seasonLabel)}`
+  if (typeof seasonId === "number" && seasonId > 0) return `SEASON_${seasonId}`
+
+  const cleanLabel = sanitizeSeasonLabel(seasonLabel)
+  if (cleanLabel) return `LABEL_${normalizeText(cleanLabel)}`
+
+  return "LABEL_sin-temporada"
 }
 
 function uniqueOptions(items: OptionItem[]): OptionItem[] {
@@ -1190,35 +1304,222 @@ function uniqueOptions(items: OptionItem[]): OptionItem[] {
   return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
 }
 
+function normalizeCategoryDefinition(row: AnyRow): CategoryDefinition {
+  const id = normalizeKey(pick(row, ["id", "categoryId", "category.id"], ""))
+  const code = normalizeCodeValue(pick(row, ["code", "category.code"], ""))
+  const genderValue = normalizeGenderValue(pick(row, ["gender", "category.gender"], ""))
+  const genderLabel = genderValue ? formatGenderLabel(genderValue) : ""
+
+  return {
+    id,
+    code,
+    genderValue,
+    genderLabel,
+  }
+}
+
+function resolveCategoryDefinition(row: AnyRow): CategoryDefinition | undefined {
+  const categoryId = normalizeKey(
+    pick(row, [
+      "category.id",
+      "categoryId",
+      "division.id",
+      "rama.id",
+      "team.category.id",
+    ], "")
+  )
+
+  if (categoryId && categoryById.value.has(categoryId)) {
+    return categoryById.value.get(categoryId)
+  }
+
+  const code = normalizeCodeValue(
+    pick(row, [
+      "category.code",
+      "categoryCode",
+      "division.code",
+      "rama.code",
+      "team.category.code",
+      "code",
+    ], "")
+  )
+
+  if (code && categoryByCode.value.has(code)) {
+    return categoryByCode.value.get(code)
+  }
+
+  return undefined
+}
+
+function resolveSeasonInfo(row: AnyRow): ResolvedSeasonInfo {
+  const seasonId = toPositiveNumber(
+    pick(row, [
+      "season.id",
+      "seasonId",
+      "temporada.id",
+      "team.season.id",
+    ], null)
+  )
+
+  const directLabel = sanitizeSeasonLabel(
+    pick(row, [
+      "season.name",
+      "season.label",
+      "season.title",
+      "seasonName",
+      "temporada.name",
+      "temporada.nombre",
+      "temporada",
+      "season",
+      "team.season.name",
+    ], "")
+  )
+
+  if (seasonId !== null) {
+    return {
+      seasonValue: buildSeasonValue(seasonId, directLabel || `Temporada ${seasonId}`),
+      season: directLabel || `Temporada ${seasonId}`,
+      priority: 3,
+    }
+  }
+
+  if (directLabel) {
+    return {
+      seasonValue: isMissingSeasonText(directLabel) ? "LABEL_sin-temporada" : buildSeasonValue(null, directLabel),
+      season: directLabel,
+      priority: isMissingSeasonText(directLabel) ? 2 : 3,
+    }
+  }
+
+  return {
+    seasonValue: "LABEL_sin-temporada",
+    season: "Sin temporada asignada",
+    priority: 1,
+  }
+}
+
+function resolveCategoryInfo(row: AnyRow): ResolvedCategoryInfo {
+  const def = resolveCategoryDefinition(row)
+
+  const directGender = normalizeGenderValue(
+    pick(row, [
+      "category.gender",
+      "categoryGender",
+      "gender",
+      "division.gender",
+      "rama.gender",
+      "team.category.gender",
+    ], "")
+  )
+
+  const directLabel = sanitizeDisplayText(
+    pick(row, [
+      "category.label",
+      "category.name",
+      "categoryName",
+      "division.label",
+      "division.name",
+      "rama.label",
+      "rama.name",
+      "team.category.label",
+      "team.category.name",
+    ], "")
+  )
+
+  const categoryValue = directGender || def?.genderValue || ""
+
+  if (categoryValue) {
+    return {
+      categoryValue,
+      category: formatGenderLabel(categoryValue),
+      priority: 3,
+    }
+  }
+
+  if (directLabel) {
+    return {
+      categoryValue: "",
+      category: directLabel,
+      priority: isMissingCategoryText(directLabel) ? 2 : 3,
+    }
+  }
+
+  return {
+    categoryValue: "",
+    category: "Sin categoría",
+    priority: 1,
+  }
+}
+
+function resolveBranchInfo(row: AnyRow): ResolvedBranchInfo {
+  const def = resolveCategoryDefinition(row)
+
+  const directCode = normalizeCodeValue(
+    pick(row, [
+      "category.code",
+      "categoryCode",
+      "division.code",
+      "rama.code",
+      "branch.code",
+      "team.category.code",
+      "code",
+    ], "")
+  )
+
+  if (directCode) {
+    return {
+      branchValue: directCode,
+      branch: directCode,
+      priority: 3,
+    }
+  }
+
+  if (def?.code) {
+    return {
+      branchValue: def.code,
+      branch: def.code,
+      priority: 3,
+    }
+  }
+
+  return {
+    branchValue: "",
+    branch: "Sin rama",
+    priority: 1,
+  }
+}
+
 function normalizeTeamMeta(row: AnyRow): TeamMeta {
-  const seasonId = toNullableNumber(pick(row, ["season.id", "seasonId", "temporada.id"]))
-  const seasonLabel =
-    toText(pick(row, ["season.name", "seasonName", "temporada.name", "temporada", "season"]), "") ||
-    (seasonId !== null ? `Temporada ${seasonId}` : "Sin temporada")
+  const seasonInfo = resolveSeasonInfo(row)
+  const categoryInfo = resolveCategoryInfo(row)
+  const branchInfo = resolveBranchInfo(row)
 
-  const categoryValue = normalizeGenderValue(
-    pick(row, ["category.gender", "categoryGender", "gender", "division.gender"])
-  )
-
-  const branchValue = normalizeCodeValue(
-    pick(row, ["category.code", "categoryCode", "code", "division.code"])
-  )
-
-  const rawId = pick(row, ["teamId", "team_id", "id"], "")
+  const rawId = pick(row, ["teamId", "team_id", "team.id", "id"], "")
   const id = String(rawId ?? "").trim()
 
   return {
     id,
-    teamName: toText(pick(row, ["teamName", "team_name", "name"]), "Equipo"),
-    seasonValue: buildSeasonValue(seasonId, seasonLabel),
-    season: seasonLabel,
-    categoryValue,
-    category: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",
-    branchValue,
-    branch: branchValue || "Sin rama",
-    active: toBoolean(pick(row, ["isActive", "active"]), true),
+    teamName: toText(pick(row, ["teamName", "team_name", "team.name", "name"]), "Equipo"),
+    seasonValue: seasonInfo.seasonValue,
+    season: seasonInfo.season,
+    seasonPriority: seasonInfo.priority,
+    categoryValue: categoryInfo.categoryValue,
+    category: categoryInfo.category,
+    categoryPriority: categoryInfo.priority,
+    branchValue: branchInfo.branchValue,
+    branch: branchInfo.branch,
+    branchPriority: branchInfo.priority,
+    active: toBoolean(pick(row, ["isActive", "active", "status"]), true),
     logo: (() => {
-      const value = pick(row, ["logoUrl", "logo", "imageUrl", "photo", "avatar"], null)
+      const value = pick(row, [
+        "logoUrl",
+        "logo",
+        "imageUrl",
+        "photo",
+        "avatar",
+        "team.logoUrl",
+        "team.logo",
+      ], null)
       return value ? String(value) : null
     })(),
   }
@@ -1230,7 +1531,15 @@ function normalizePct(value: number): number {
 }
 
 function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: number): TeamStanding {
-  const rawTeamId = pick(pointRow, ["team_id", "teamId", "id"], null)
+  const rowSeason = resolveSeasonInfo(pointRow)
+  const rowCategory = resolveCategoryInfo(pointRow)
+  const rowBranch = resolveBranchInfo(pointRow)
+
+  const useRowSeason = rowSeason.priority >= (meta?.seasonPriority ?? 0)
+  const useRowCategory = rowCategory.priority >= (meta?.categoryPriority ?? 0)
+  const useRowBranch = rowBranch.priority >= (meta?.branchPriority ?? 0)
+
+  const rawTeamId = pick(pointRow, ["team_id", "teamId", "team.id", "id"], null)
 
   const teamId =
     rawTeamId === null || rawTeamId === undefined
@@ -1238,19 +1547,6 @@ function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: 
       : (typeof rawTeamId === "number" || typeof rawTeamId === "string"
           ? rawTeamId
           : String(rawTeamId))
-
-  const rowSeasonId = toNullableNumber(pick(pointRow, ["seasonId", "season.id"]))
-  const rowSeasonLabel =
-    toText(pick(pointRow, ["seasonName", "season.name", "season", "temporada"]), "") ||
-    (rowSeasonId !== null ? `Temporada ${rowSeasonId}` : "")
-
-  const rowCategoryValue = normalizeGenderValue(
-    pick(pointRow, ["category.gender", "categoryGender", "gender"])
-  )
-
-  const rowBranchValue = normalizeCodeValue(
-    pick(pointRow, ["category.code", "categoryCode", "code"])
-  )
 
   const played = toNumber(pick(pointRow, ["gp", "games_played", "played", "jj", "pj"]), 0)
   const won = toNumber(pick(pointRow, ["wins", "won", "jg", "pg"]), 0)
@@ -1282,28 +1578,20 @@ function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: 
       : (played > 0 ? (won / played) * 100 : 0)
 
   const teamName = toText(
-    pick(pointRow, ["team_name", "teamName", "name"]),
+    pick(pointRow, ["team_name", "teamName", "team.name", "name"]),
     meta?.teamName || "Equipo"
   )
-
-  const effectiveSeasonLabel = meta?.season || rowSeasonLabel || "Sin temporada"
-  const effectiveSeasonValue =
-    meta?.seasonValue ||
-    (rowSeasonLabel ? buildSeasonValue(rowSeasonId, effectiveSeasonLabel) : "LABEL_sin-temporada")
-
-  const effectiveCategoryValue = meta?.categoryValue || rowCategoryValue
-  const effectiveBranchValue = meta?.branchValue || rowBranchValue
 
   return {
     rowKey: `team-${teamId ?? teamName}-${index}`,
     teamId,
     teamName,
-    seasonValue: effectiveSeasonValue,
-    season: effectiveSeasonLabel,
-    categoryValue: effectiveCategoryValue,
-    category: meta?.category || (effectiveCategoryValue ? formatGenderLabel(effectiveCategoryValue) : "Sin categoría"),
-    branchValue: effectiveBranchValue,
-    branch: meta?.branch || effectiveBranchValue || "Sin rama",
+    seasonValue: useRowSeason ? rowSeason.seasonValue : (meta?.seasonValue || rowSeason.seasonValue),
+    season: useRowSeason ? rowSeason.season : (meta?.season || rowSeason.season),
+    categoryValue: useRowCategory ? rowCategory.categoryValue : (meta?.categoryValue || rowCategory.categoryValue),
+    category: useRowCategory ? rowCategory.category : (meta?.category || rowCategory.category),
+    branchValue: useRowBranch ? rowBranch.branchValue : (meta?.branchValue || rowBranch.branchValue),
+    branch: useRowBranch ? rowBranch.branch : (meta?.branch || rowBranch.branch),
     played,
     won,
     lost,
@@ -1322,7 +1610,15 @@ function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: 
 }
 
 function buildPlayerRow(row: AnyRow, meta: TeamMeta | undefined, index: number): PlayerSeasonRow {
-  const playerId = pick(row, ["playerId", "player_id", "id"], null)
+  const rowSeason = resolveSeasonInfo(row)
+  const rowCategory = resolveCategoryInfo(row)
+  const rowBranch = resolveBranchInfo(row)
+
+  const useRowSeason = rowSeason.priority >= (meta?.seasonPriority ?? 0)
+  const useRowCategory = rowCategory.priority >= (meta?.categoryPriority ?? 0)
+  const useRowBranch = rowBranch.priority >= (meta?.branchPriority ?? 0)
+
+  const playerId = pick(row, ["playerId", "player_id", "player.id", "id"], null)
   const gamesPlayed = toNumber(pick(row, ["gamesPlayed", "gp", "played", "pj", "games"]), 0)
 
   const passingTouchdowns = toNumber(pick(row, ["passingTouchdowns", "passTds", "tdPass"]), 0)
@@ -1330,22 +1626,6 @@ function buildPlayerRow(row: AnyRow, meta: TeamMeta | undefined, index: number):
   const receivingTouchdowns = toNumber(pick(row, ["receivingTouchdowns", "recTds", "tdRec"]), 0)
 
   const directTouchdowns = toNullableNumber(pick(row, ["touchdowns", "td", "tds", "totalTouchdowns"]))
-
-  const seasonId = toNullableNumber(pick(row, ["seasonId", "season.id"]))
-  const rowSeasonLabel =
-    toText(pick(row, ["seasonName", "season.name", "season", "temporada"]), "") ||
-    (seasonId !== null ? `Temporada ${seasonId}` : "")
-
-  const rowCategoryValue = normalizeGenderValue(pick(row, ["gender", "categoryGender", "category.gender"]))
-  const rowBranchValue = normalizeCodeValue(pick(row, ["categoryCode", "code", "category.code"]))
-
-  const effectiveSeasonLabel = meta?.season || rowSeasonLabel || "Sin temporada"
-  const effectiveSeasonValue =
-    meta?.seasonValue ||
-    (rowSeasonLabel ? buildSeasonValue(seasonId, effectiveSeasonLabel) : "LABEL_sin-temporada")
-
-  const effectiveCategoryValue = meta?.categoryValue || rowCategoryValue
-  const effectiveBranchValue = meta?.branchValue || rowBranchValue
 
   return {
     rowKey: `player-${playerId ?? index}-${index}`,
@@ -1358,12 +1638,12 @@ function buildPlayerRow(row: AnyRow, meta: TeamMeta | undefined, index: number):
       pick(row, ["teamName", "team.name", "team_name"]),
       meta?.teamName || "Equipo"
     ),
-    seasonValue: effectiveSeasonValue,
-    season: effectiveSeasonLabel,
-    categoryValue: effectiveCategoryValue,
-    category: meta?.category || (effectiveCategoryValue ? formatGenderLabel(effectiveCategoryValue) : "Sin categoría"),
-    branchValue: effectiveBranchValue,
-    branch: meta?.branch || effectiveBranchValue || "Sin rama",
+    seasonValue: useRowSeason ? rowSeason.seasonValue : (meta?.seasonValue || rowSeason.seasonValue),
+    season: useRowSeason ? rowSeason.season : (meta?.season || rowSeason.season),
+    categoryValue: useRowCategory ? rowCategory.categoryValue : (meta?.categoryValue || rowCategory.categoryValue),
+    category: useRowCategory ? rowCategory.category : (meta?.category || rowCategory.category),
+    branchValue: useRowBranch ? rowBranch.branchValue : (meta?.branchValue || rowBranch.branchValue),
+    branch: useRowBranch ? rowBranch.branch : (meta?.branch || rowBranch.branch),
     gamesPlayed,
     touchdowns:
       directTouchdowns !== null

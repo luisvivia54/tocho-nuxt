@@ -424,9 +424,9 @@ const seasonOptions = computed<OptionItem[]>(() => {
       label: m.seasonLabel,
     }))
 
-  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
-    a.label.localeCompare(b.label, "es")
-  )
+  return uniqueOptions([...fromApi, ...fromRows])
+    .filter((option) => !isExcludedSeasonOption(option))
+    .sort((a, b) => a.label.localeCompare(b.label, "es"))
 })
 
 const categoryOptions = computed<OptionItem[]>(() => {
@@ -814,6 +814,11 @@ function uniqueOptions(items: OptionItem[]) {
 function buildSeasonValue(seasonId: number | null, seasonLabel: string) {
   if (seasonId !== null) return `SEASON_${seasonId}`
   return `LABEL_${normalizeText(seasonLabel)}`
+}
+
+function isExcludedSeasonOption(option: OptionItem) {
+  const normalizedLabel = normalizeText(option?.label || "")
+  return normalizedLabel === "wt" || normalizedLabel === "temporada wt"
 }
 
 function sortRoundOptions(a: OptionItem, b: OptionItem) {

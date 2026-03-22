@@ -2,52 +2,44 @@
   <main class="min-h-screen text-slate-50">
     <!-- BG principal -->
     <div class="fixed inset-0 -z-10 overflow-hidden">
-      <!-- Base oscura -->
       <div class="absolute inset-0 bg-[#050816]" />
 
-      <!-- Glow verde -->
       <div
         class="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_50%_28%,rgba(16,185,129,0.20),transparent_58%)]"
       />
 
-      <!-- Glow naranja -->
       <div
         class="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_20%_85%,rgba(251,146,60,0.14),transparent_55%)]"
       />
 
-      <!-- Logo Tochero5 de fondo -->
+      <!-- Logo Tochero5 de fondo general -->
       <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
         <img
           :src="logoBg"
           alt=""
           aria-hidden="true"
-          class="h-[360px] w-[360px] object-contain opacity-[0.38] mix-blend-screen brightness-[1.6] contrast-[1.15] sm:h-[480px] sm:w-[480px] md:h-[620px] md:w-[620px] lg:h-[760px] lg:w-[760px]"
+          class="h-[420px] w-[420px] object-contain opacity-[0.14] mix-blend-screen brightness-[1.55] contrast-[1.12] sm:h-[560px] sm:w-[560px] md:h-[720px] md:w-[720px] lg:h-[900px] lg:w-[900px]"
         />
       </div>
 
-      <!-- Viñeta más suave -->
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(5,8,22,0.10)_45%,rgba(5,8,22,0.40)_100%)]" />
+
       <div
         class="absolute inset-0"
         style="background: radial-gradient(ellipse at center, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.22) 62%, rgba(0,0,0,0.72) 100%);"
       />
 
-      <!-- Gradiente vertical suave -->
       <div class="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-[#050816]" />
     </div>
 
     <!-- HEADER -->
     <header class="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/25 backdrop-blur-xl">
       <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <!-- Brand -->
         <NuxtLink to="/" class="group flex items-center gap-3">
           <div
             class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-[0_8px_24px_rgba(0,0,0,0.22)] transition group-hover:border-emerald-300/30 group-hover:bg-black/55"
           >
-            <img
-              :src="brandLogo"
-              alt="Tochero5"
-              class="h-8 w-8 object-contain"
-            />
+            <img :src="brandLogo" alt="Tochero5" class="h-8 w-8 object-contain" />
           </div>
 
           <span class="text-sm font-semibold text-slate-200">
@@ -55,7 +47,6 @@
           </span>
         </NuxtLink>
 
-        <!-- Desktop nav -->
         <nav class="hidden items-center gap-8 md:flex">
           <button
             type="button"
@@ -104,7 +95,6 @@
           </button>
         </nav>
 
-        <!-- Mobile -->
         <button
           type="button"
           class="inline-flex items-center justify-center rounded-xl border border-white/10 bg-black/40 p-2 text-slate-200 md:hidden"
@@ -135,18 +125,13 @@
         </button>
       </div>
 
-      <!-- Mobile panel -->
       <div v-if="mobileOpen" class="border-t border-white/5 bg-black/60 backdrop-blur-xl md:hidden">
         <div class="mx-auto max-w-6xl px-4 py-3 sm:px-6">
           <div class="mb-3 flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.03] px-3 py-3">
             <div
               class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40"
             >
-              <img
-                :src="brandLogo"
-                alt="Tochero5"
-                class="h-8 w-8 object-contain"
-              />
+              <img :src="brandLogo" alt="Tochero5" class="h-8 w-8 object-contain" />
             </div>
             <span class="text-sm font-semibold text-slate-200">
               Tochero<span class="text-emerald-300">5</span>Liga
@@ -241,33 +226,6 @@
       </div>
     </section>
 
-    <!-- RESUMEN -->
-    <section class="py-14 md:py-16">
-      <div class="mx-auto max-w-6xl px-4 sm:px-6">
-        <p class="text-xs uppercase tracking-[0.22em] text-slate-500">Resumen de temporada</p>
-
-        <div class="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_20px_70px_rgba(0,0,0,0.35)] text-center">
-            <div class="text-5xl font-extrabold text-white">{{ teamsTotal }}</div>
-            <div class="mt-3 text-[12px] font-bold uppercase tracking-[0.22em] text-slate-300">EQUIPOS TOTALES</div>
-            <div class="mt-2 text-sm text-slate-400">Domingo + Jueves</div>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_20px_70px_rgba(0,0,0,0.35)] text-center">
-            <div class="text-5xl font-extrabold text-white">{{ gamesSeason }}</div>
-            <div class="mt-3 text-[12px] font-bold uppercase tracking-[0.22em] text-slate-300">PARTIDOS POR TEMPORADA</div>
-            <div class="mt-2 text-sm text-slate-400">{{ rounds }} Jornadas</div>
-          </div>
-
-          <div class="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-[0_20px_70px_rgba(0,0,0,0.35)] text-center">
-            <div class="text-5xl font-extrabold text-white">{{ season }}</div>
-            <div class="mt-3 text-[12px] font-bold uppercase tracking-[0.22em] text-slate-300">TEMPORADA ACTUAL</div>
-            <div class="mt-2 text-sm text-slate-400">En curso</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- NUESTRAS LIGAS -->
     <section id="ligas" class="py-14 md:py-16">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
@@ -357,16 +315,25 @@
 
           <div class="flex items-center gap-2">
             <button
-              v-for="opt in filters"
-              :key="opt.value"
               type="button"
               class="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition"
-              :class="matchFilter === opt.value
+              :class="selectedLeague === 'domingo'
                 ? 'border-emerald-300/40 bg-emerald-300/15 text-emerald-200'
                 : 'border-white/10 bg-black/20 text-slate-300 hover:bg-black/30'"
-              @click="matchFilter = opt.value"
+              @click="toggleLeague('domingo')"
             >
-              {{ opt.label }}
+              DOMINGO
+            </button>
+
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition"
+              :class="selectedLeague === 'jueves'
+                ? 'border-amber-300/40 bg-amber-300/15 text-amber-200'
+                : 'border-white/10 bg-black/20 text-slate-300 hover:bg-black/30'"
+              @click="toggleLeague('jueves')"
+            >
+              JUEVES
             </button>
           </div>
         </div>
@@ -382,7 +349,7 @@
 
           <template v-else>
             <div
-              v-for="m in filteredMatches"
+              v-for="m in paginatedFilteredMatches"
               :key="m.id"
               class="flex flex-col gap-3 border-b border-white/5 px-6 py-5 md:flex-row md:items-center md:justify-between"
             >
@@ -393,7 +360,10 @@
                     ? 'bg-emerald-300/12 text-emerald-200'
                     : 'bg-amber-300/12 text-amber-200'"
                 >
-                  <span class="h-2 w-2 rounded-full" :class="m.league === 'domingo' ? 'bg-emerald-300' : 'bg-amber-300'" />
+                  <span
+                    class="h-2 w-2 rounded-full"
+                    :class="m.league === 'domingo' ? 'bg-emerald-300' : 'bg-amber-300'"
+                  />
                   {{ m.leagueLabel }}
                 </div>
 
@@ -413,34 +383,93 @@
             <div v-if="filteredMatches.length === 0" class="px-6 py-6 text-sm text-slate-400">
               No hay próximos encuentros para este filtro.
             </div>
+
+            <div
+              v-if="filteredMatches.length > 0"
+              class="flex flex-col gap-3 border-t border-white/5 px-6 py-4 md:flex-row md:items-center md:justify-between"
+            >
+              <div class="text-sm text-slate-400">
+                Mostrando
+                <span class="font-semibold text-white">{{ matchRangeStart }}</span>
+                -
+                <span class="font-semibold text-white">{{ matchRangeEnd }}</span>
+                de
+                <span class="font-semibold text-white">{{ filteredMatches.length }}</span>
+                partidos
+              </div>
+
+              <div v-if="matchTotalPages > 1" class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
+                  :class="matchPage === 1
+                    ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                    : 'border-white/10 bg-white/5 text-slate-200 hover:border-emerald-300/40 hover:bg-emerald-300/10 hover:text-emerald-100'"
+                  :disabled="matchPage === 1"
+                  @click="goToMatchPage(matchPage - 1)"
+                >
+                  Anterior
+                </button>
+
+                <button
+                  v-for="page in visibleMatchPages"
+                  :key="page"
+                  type="button"
+                  class="h-10 min-w-10 rounded-full border px-3 text-sm font-extrabold transition"
+                  :class="page === matchPage
+                    ? 'border-emerald-300/40 bg-emerald-300/15 text-emerald-200'
+                    : 'border-white/10 bg-white/5 text-slate-300 hover:border-emerald-300/30 hover:bg-emerald-300/10 hover:text-slate-100'"
+                  @click="goToMatchPage(page)"
+                >
+                  {{ page }}
+                </button>
+
+                <button
+                  type="button"
+                  class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
+                  :class="matchPage === matchTotalPages
+                    ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                    : 'border-white/10 bg-white/5 text-slate-200 hover:border-emerald-300/40 hover:bg-emerald-300/10 hover:text-emerald-100'"
+                  :disabled="matchPage === matchTotalPages"
+                  @click="goToMatchPage(matchPage + 1)"
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
           </template>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
+    <!-- PATROCINADORES -->
     <section class="py-14 md:py-16">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
-        <div class="rounded-[34px] border border-white/10 bg-white/5 px-8 py-14 text-center shadow-[0_26px_110px_rgba(0,0,0,0.45)]">
-          <p class="text-xs uppercase tracking-[0.22em] text-slate-400">TEMPORADA {{ season }}</p>
-          <h3 class="mt-4 text-4xl font-extrabold text-white">La competencia te espera</h3>
-          <p class="mt-4 mx-auto max-w-2xl text-sm leading-7 text-slate-400">
-            Dos ligas, un mismo espíritu competitivo. Elige tu camino y vive la emoción del flag football.
-          </p>
+        <div class="flex items-center gap-4">
+          <div class="h-[2px] w-10 rounded-full bg-emerald-300/70" />
+          <p class="text-xs uppercase tracking-[0.22em] text-slate-400">PATROCINADORES</p>
+        </div>
 
-          <div class="mt-7 flex flex-col sm:flex-row justify-center gap-3">
-            <NuxtLink
-              to="/domingo"
-              class="rounded-full bg-emerald-300 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-slate-900 hover:brightness-105 transition"
-            >
-              IR A LIGA DOMINICAL →
-            </NuxtLink>
-            <NuxtLink
-              to="/jueves"
-              class="rounded-full border border-white/12 bg-black/25 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-white hover:bg-black/35 transition"
-            >
-              IR A LIGA NOCTURNA (JUEVES) →
-            </NuxtLink>
+        <div class="mt-8 rounded-[28px] border border-white/10 bg-white/5 p-6 shadow-[0_24px_90px_rgba(0,0,0,0.35)] md:p-8">
+          <div class="flex flex-wrap items-center justify-center gap-8 md:gap-10">
+            <div v-for="s in sponsors" :key="s.id" class="flex h-24 w-40 items-center justify-center">
+              <a
+                v-if="s.url"
+                :href="s.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex h-full w-full items-center justify-center transition-transform duration-300 hover:scale-[1.03]"
+              >
+                <img :src="s.logo" :alt="s.name" class="max-h-full max-w-full object-contain" />
+              </a>
+
+              <img
+                v-else
+                :src="s.logo"
+                :alt="s.name"
+                class="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-[1.03]"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -452,11 +481,7 @@
         <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-3">
             <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40">
-              <img
-                :src="brandLogo"
-                alt="Tochero5"
-                class="h-8 w-8 object-contain"
-              />
+              <img :src="brandLogo" alt="Tochero5" class="h-8 w-8 object-contain" />
             </div>
             <div class="text-sm text-slate-300">
               <div class="font-semibold text-slate-200">Temporada {{ season }}</div>
@@ -480,23 +505,23 @@
       </div>
     </footer>
   </main>
-  <ChatWidget/>
+  <ChatWidget />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from "#imports";
+import { computed, onMounted, onBeforeUnmount, ref, watch, useAsyncData } from "#imports";
 
 definePageMeta({ layout: false });
 
 const season = 2026;
 const teamsTotal = 26;
 const gamesSeason = 52;
-const rounds = 18;
 
-// Logo de marca
+const DOMINGO_LEAGUE_ID = 1;
+const JUEVES_LEAGUE_ID = 2;
+const MATCHES_PER_PAGE = 5;
+
 const brandLogo = "/img/sponsors/Tochero5.JPG";
-
-// Logo de fondo
 const logoBg = "/img/sponsors/Tochero5.JPG";
 
 const domingoBg = "/img/liga-domingo.png";
@@ -504,7 +529,13 @@ const juevesBg = "/img/liga-jueves.png";
 
 const mobileOpen = ref(false);
 
-// Nav highlight por scroll
+const sponsors = [
+  { id: "dicass", name: "Dicass", logo: "/img/sponsors/dicass-logo.png", url: "https://dicass.com.mx/" },
+  { id: "blitzflag", name: "BlitzFlag", logo: "/img/sponsors/blitzflag-logo.png", url: "" },
+  { id: "under-armour", name: "Under Armour", logo: "/img/sponsors/underarmour-logo.png", url: "https://www.underarmour.com.mx/" },
+  { id: "medimex", name: "Fundación Medimex", logo: "/img/sponsors/medimex-logo.png", url: "" },
+];
+
 const activeNav = ref<"inicio" | "ligas" | "contacto">("inicio");
 
 function scrollTo(id: "inicio" | "ligas" | "contacto") {
@@ -532,7 +563,6 @@ onBeforeUnmount(() => {
   window.removeEventListener("scroll", onScroll);
 });
 
-/** UI Match */
 type Match = {
   id: string;
   league: "domingo" | "jueves";
@@ -541,38 +571,41 @@ type Match = {
   time: string;
   home: string;
   away: string;
+  timestamp: number;
 };
 
-const filters = [
-  { label: "TODOS", value: "all" },
-  { label: "DOMINGO", value: "domingo" },
-  { label: "JUEVES", value: "jueves" },
-] as const;
-
-const matchFilter = ref<"all" | "domingo" | "jueves">("all");
+const selectedLeague = ref<null | "domingo" | "jueves">(null);
+const matchPage = ref(1);
 
 const fallbackMatches: Match[] = [
-  { id: "m1", league: "domingo", leagueLabel: "DOMINGO", date: "20 Mar", time: "19:00", home: "Águilas Doradas", away: "Tigres del Norte" },
-  { id: "m2", league: "jueves", leagueLabel: "JUEVES", date: "20 Mar", time: "16:00", home: "Guerreros Unidos", away: "Titanes del Sur" },
-  { id: "m3", league: "domingo", leagueLabel: "DOMINGO", date: "21 Mar", time: "20:30", home: "Leones Salvajes", away: "Halcones Negros" },
-  { id: "m4", league: "jueves", leagueLabel: "JUEVES", date: "21 Mar", time: "17:30", home: "Vikingos Azules", away: "Espartanos Rojos" },
+  { id: "m1", league: "domingo", leagueLabel: "DOMINGO", date: "20 Mar", time: "19:00", home: "Águilas Doradas", away: "Tigres del Norte", timestamp: 1 },
+  { id: "m2", league: "jueves", leagueLabel: "JUEVES", date: "20 Mar", time: "16:00", home: "Guerreros Unidos", away: "Titanes del Sur", timestamp: 2 },
+  { id: "m3", league: "domingo", leagueLabel: "DOMINGO", date: "21 Mar", time: "20:30", home: "Leones Salvajes", away: "Halcones Negros", timestamp: 3 },
+  { id: "m4", league: "jueves", leagueLabel: "JUEVES", date: "21 Mar", time: "17:30", home: "Vikingos Azules", away: "Espartanos Rojos", timestamp: 4 },
+  { id: "m5", league: "domingo", leagueLabel: "DOMINGO", date: "22 Mar", time: "10:00", home: "Lobos FC", away: "Panteras Elite", timestamp: 5 },
+  { id: "m6", league: "jueves", leagueLabel: "JUEVES", date: "22 Mar", time: "20:30", home: "Búhos Negros", away: "Dragones", timestamp: 6 },
+  { id: "m7", league: "domingo", leagueLabel: "DOMINGO", date: "23 Mar", time: "11:30", home: "Raptors", away: "Titanes", timestamp: 7 },
 ];
 
 function fmtDateMX(dt: any) {
-  const d = dt ? new Date(dt) : new Date();
+  const parsed = dt ? new Date(dt) : new Date();
+  const safeDate = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+
   const date = new Intl.DateTimeFormat("es-MX", {
     timeZone: "America/Mexico_City",
     day: "2-digit",
     month: "short",
   })
-    .format(d)
+    .format(safeDate)
     .replace(".", "");
+
   const time = new Intl.DateTimeFormat("es-MX", {
     timeZone: "America/Mexico_City",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(d);
+  }).format(safeDate);
+
   return { date, time };
 }
 
@@ -584,45 +617,90 @@ function pick(obj: any, keys: string[]) {
   return undefined;
 }
 
-function normalizeLeague(v: any): "domingo" | "jueves" | null {
-  const s = String(v ?? "").toLowerCase();
-  if (!s) return null;
-  if (s.includes("jueves") || s.includes("thu") || s.includes("thursday")) return "jueves";
-  if (s.includes("domingo") || s.includes("sun") || s.includes("sunday")) return "domingo";
-  return null;
+function toList(raw: any): any[] {
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.content)) return raw.content;
+  if (Array.isArray(raw?.items)) return raw.items;
+  if (Array.isArray(raw?.data)) return raw.data;
+  return [];
 }
 
-function toUiMatch(g: any): Match {
-  const home = pick(g, ["homeTeam.name", "home_team.name", "homeName", "localTeam.name", "teamHome.name"]) || "Local";
-  const away = pick(g, ["awayTeam.name", "away_team.name", "awayName", "visitorTeam.name", "teamAway.name"]) || "Visitante";
-  const dt = pick(g, ["startTime", "dateTime", "kickoff", "gameDate", "date"]) || new Date().toISOString();
+function getTimestamp(raw: any) {
+  const dt =
+    pick(raw, [
+      "startTime",
+      "dateTime",
+      "kickoff",
+      "gameDate",
+      "date",
+      "scheduledAt",
+    ]) || new Date().toISOString();
 
-  const leagueRaw =
-    pick(g, ["league", "leagueKey", "category.name", "category.slug", "categoryName", "division.name", "season.name"]) || "";
-  const league = normalizeLeague(leagueRaw) || "domingo";
+  const parsed = new Date(String(dt)).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toUiMatch(g: any, league: "domingo" | "jueves"): Match {
+  const home =
+    pick(g, [
+      "homeTeam.name",
+      "home_team.name",
+      "homeName",
+      "localTeam.name",
+      "teamHome.name",
+      "home.name",
+    ]) || "Local";
+
+  const away =
+    pick(g, [
+      "awayTeam.name",
+      "away_team.name",
+      "awayName",
+      "visitorTeam.name",
+      "teamAway.name",
+      "away.name",
+    ]) || "Visitante";
+
+  const dt =
+    pick(g, [
+      "startTime",
+      "dateTime",
+      "kickoff",
+      "gameDate",
+      "date",
+      "scheduledAt",
+    ]) || new Date().toISOString();
 
   const { date, time } = fmtDateMX(dt);
 
   return {
-    id: String(pick(g, ["id", "gameId"]) ?? `${league}-${dt}-${home}-${away}`),
+    id: String(pick(g, ["id", "gameId", "game_id"]) ?? `${league}-${dt}-${home}-${away}`),
     league,
     leagueLabel: league.toUpperCase(),
     date,
     time,
     home,
     away,
+    timestamp: getTimestamp(g),
   };
 }
 
 const { data: apiMatches, pending: matchesPending, error: matchesError } = await useAsyncData(
-  "home-upcoming",
+  "home-upcoming-split",
   async () => {
-    const raw = await $fetch<any>("/api/t5/games", {
-      query: { status: "SCHEDULED", limit: 20, sort: "startTime,asc" },
-    });
+    const [domingoRaw, juevesRaw] = await Promise.all([
+      $fetch<any>("/api/t5/games", {
+        query: { leagueId: DOMINGO_LEAGUE_ID },
+      }).catch(() => []),
+      $fetch<any>("/api/t5/games", {
+        query: { leagueId: JUEVES_LEAGUE_ID },
+      }).catch(() => []),
+    ]);
 
-    const list = Array.isArray(raw) ? raw : raw?.content || raw?.items || [];
-    return (list || []).map(toUiMatch) as Match[];
+    const domingoMatches = toList(domingoRaw).map((item) => toUiMatch(item, "domingo"));
+    const juevesMatches = toList(juevesRaw).map((item) => toUiMatch(item, "jueves"));
+
+    return [...domingoMatches, ...juevesMatches].sort((a, b) => a.timestamp - b.timestamp);
   },
   { server: true }
 );
@@ -633,8 +711,65 @@ const matches = computed<Match[]>(() => {
 });
 
 const filteredMatches = computed(() => {
-  const arr = matches.value;
-  if (matchFilter.value === "all") return arr;
-  return arr.filter((m) => m.league === matchFilter.value);
+  if (!selectedLeague.value) return matches.value;
+  return matches.value.filter((m) => m.league === selectedLeague.value);
 });
+
+const matchTotalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredMatches.value.length / MATCHES_PER_PAGE));
+});
+
+const matchRangeStart = computed(() => {
+  if (!filteredMatches.value.length) return 0;
+  return (matchPage.value - 1) * MATCHES_PER_PAGE + 1;
+});
+
+const matchRangeEnd = computed(() => {
+  return Math.min(matchPage.value * MATCHES_PER_PAGE, filteredMatches.value.length);
+});
+
+const paginatedFilteredMatches = computed(() => {
+  const start = (matchPage.value - 1) * MATCHES_PER_PAGE;
+  return filteredMatches.value.slice(start, start + MATCHES_PER_PAGE);
+});
+
+const visibleMatchPages = computed<number[]>(() => {
+  const total = matchTotalPages.value;
+  const current = matchPage.value;
+
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  let start = Math.max(1, current - 2);
+  let end = Math.min(total, current + 2);
+
+  if (current <= 3) {
+    start = 1;
+    end = 5;
+  }
+
+  if (current >= total - 2) {
+    start = total - 4;
+    end = total;
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+});
+
+watch([selectedLeague, matches], () => {
+  matchPage.value = 1;
+});
+
+watch(matchTotalPages, (pages) => {
+  if (matchPage.value > pages) matchPage.value = pages;
+});
+
+function goToMatchPage(page: number) {
+  matchPage.value = Math.min(Math.max(page, 1), matchTotalPages.value);
+}
+
+function toggleLeague(league: "domingo" | "jueves") {
+  selectedLeague.value = selectedLeague.value === league ? null : league;
+}
 </script>

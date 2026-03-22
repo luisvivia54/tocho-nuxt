@@ -111,6 +111,10 @@
           No se pudieron cargar partidos del backend.
         </div>
 
+        <div v-else-if="matches.length === 0" class="text-sm text-muted-foreground">
+          No hay partidos de la liga de jueves para mostrar.
+        </div>
+
         <div v-else class="grid gap-4 sm:grid-cols-2">
           <ScrollReveal v-for="(match, i) in matches" :key="match.id || i" :delay="i * 100">
             <div class="match-row flex-col sm:flex-row text-center sm:text-left">
@@ -249,12 +253,28 @@ import { useAsyncData, useRuntimeConfig } from "#imports"
 import ScrollReveal from "~/components/ScrollReveal.vue"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
-type UiMatch = {
+type UiMatchCard = {
   id: string
-  home: string
-  away: string
+  timestamp: number
   date: string
   time: string
+  venue: string
+  home: string
+  away: string
+  homeLogo?: string
+  awayLogo?: string
+  homeShort?: string
+  awayShort?: string
+  seasonValue: string
+  seasonLabel: string
+  categoryValue: string
+  categoryLabel: string
+  branchValue: string
+  branchLabel: string
+  roundValue: string
+  roundLabel: string
+  status: string
+  leagueId: number | null
 }
 
 type HeroButton = {
@@ -301,6 +321,8 @@ type JuevesHomeConfig = {
     mapsLabel: string
   }
 }
+
+const JUEVES_LEAGUE_ID = 2
 
 function normalizeApiBase(v: string) {
   const s = String(v || "").trim().replace(/\/+$/, "")
@@ -496,91 +518,28 @@ const mapsEmbed = computed(() => homeConfig.value.venue.embedUrl || DEFAULT_HOME
 const mapsLink = computed(() => homeConfig.value.venue.mapsUrl || DEFAULT_HOME.venue.mapsUrl)
 const mapsLabel = computed(() => homeConfig.value.venue.mapsLabel || DEFAULT_HOME.venue.mapsLabel)
 
-function pick(obj: any, keys: string[]) {
-  for (const k of keys) {
-    const v = k.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj)
-    if (v !== undefined && v !== null && v !== "") return v
-  }
-  return undefined
-}
-
-function toList(raw: any): any[] {
-  if (Array.isArray(raw)) return raw
-  if (raw && Array.isArray(raw.content)) return raw.content
-  if (raw && Array.isArray(raw.items)) return raw.items
-  if (raw && Array.isArray(raw.data)) return raw.data
-  return []
-}
-
-function fmtDateMX(dt: any) {
-  const d = dt ? new Date(dt) : new Date()
-
-  const date = new Intl.DateTimeFormat("es-MX", {
-    timeZone: "America/Mexico_City",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(d).replace(".", "")
-
-  const time = new Intl.DateTimeFormat("es-MX", {
-    timeZone: "America/Mexico_City",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  }).format(d)
-
-  return { date, time }
-}
-
-function toUiMatch(g: any): UiMatch {
-  const home =
-    pick(g, ["homeTeam.name", "home_team.name", "homeName", "localTeam.name", "teamHome.name", "home_team"]) || "Local"
-
-  const away =
-    pick(g, ["awayTeam.name", "away_team.name", "awayName", "visitorTeam.name", "teamAway.name", "away_team"]) || "Visitante"
-
-  const dt =
-    pick(g, ["startTime", "dateTime", "kickoff", "gameDate", "date", "matchDateUtc", "match_date_utc", "match_date"]) ||
-    new Date().toISOString()
-
-  const { date, time } = fmtDateMX(dt)
-
-  return {
-    id: String(pick(g, ["id", "gameId", "game_id"]) ?? `${dt}-${home}-${away}`),
-    home: String(home),
-    away: String(away),
-    date,
-    time,
-  }
-}
-
-const { data: gamesData, pending: pendingGames, error: gamesError } = await useAsyncData(
+const {
+  data: gamesData,
+  pending: pendingGames,
+  error: gamesError,
+} = await useAsyncData(
   "jueves-home-games",
   async () => {
-    const raw = await $fetch<any>("/api/t5/games", {
+    const scheduled = await $fetch<any>("/api/t5/games", {
       query: {
-        league: "jueves",
-        leagueKey: "jueves",
-        status: "SCHEDULED",
-        sort: "startTime,asc",
-        limit: 10,
+        leagueId: JUEVES_LEAGUE_ID,
       },
     }).catch(() => [])
 
-    return toList(raw).map(toUiMatch).slice(0, 4)
+    return toList(scheduled)
+      .map(toUiMatchCard)
+      .filter((match) => match.leagueId === null || match.leagueId === JUEVES_LEAGUE_ID)
+      .sort((a, b) => a.timestamp - b.timestamp)
   }
 )
 
-const fallbackMatches: UiMatch[] = [
-  { id: "1", home: "Águilas", away: "Halcones", date: "1 mar 2026", time: "10:00 a. m." },
-  { id: "2", home: "Leones", away: "Tigres", date: "1 mar 2026", time: "12:00 p. m." },
-  { id: "3", home: "Lobos", away: "Toros", date: "8 mar 2026", time: "10:00 a. m." },
-  { id: "4", home: "Pumas", away: "Jaguares", date: "8 mar 2026", time: "12:00 p. m." },
-]
-
-const matches = computed<UiMatch[]>(() => {
-  const real = gamesData.value ?? []
-  return real.length > 0 ? real : fallbackMatches
+const matches = computed<UiMatchCard[]>(() => {
+  return (gamesData.value ?? []).slice(0, 4)
 })
 
 const heroOpacity = ref(1)
@@ -626,4 +585,284 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (onScroll) window.removeEventListener("scroll", onScroll)
 })
+
+function toList(value: any): any[] {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.content)) return value.content
+  if (Array.isArray(value?.items)) return value.items
+  if (Array.isArray(value?.data)) return value.data
+  return []
+}
+
+function toUiMatchCard(game: any): UiMatchCard {
+  const startRaw = firstValue(game, [
+    "startTime",
+    "dateTime",
+    "kickoff",
+    "gameDate",
+    "date",
+    "scheduledAt",
+  ])
+
+  const { timestamp, date, time } = formatDateParts(startRaw)
+
+  const home = firstValue(game, [
+    "homeTeam.name",
+    "home_team.name",
+    "home.name",
+    "homeName",
+    "localTeam.name",
+    "teamHome.name",
+  ]) || "Local"
+
+  const away = firstValue(game, [
+    "awayTeam.name",
+    "away_team.name",
+    "away.name",
+    "awayName",
+    "visitorTeam.name",
+    "teamAway.name",
+  ]) || "Visitante"
+
+  const seasonId = firstNumber(game, [
+    "season.id",
+    "seasonId",
+    "temporada.id",
+  ])
+
+  const seasonLabel =
+    firstValue(game, [
+      "season.name",
+      "seasonName",
+      "season.label",
+      "season.title",
+      "temporada.nombre",
+      "temporada.name",
+      "temporada",
+    ]) || (seasonId !== null ? `Temporada ${seasonId}` : "Sin temporada")
+
+  const seasonValue = buildSeasonValue(seasonId, seasonLabel)
+
+  const branchValue = normalizeCodeValue(
+    firstValue(game, [
+      "category.code",
+      "categoryCode",
+      "code",
+      "division.code",
+      "branch.code",
+      "rama.code",
+    ])
+  )
+
+  const categoryValue = normalizeGenderValue(
+    firstValue(game, [
+      "category.gender",
+      "gender",
+      "categoryGender",
+      "division.gender",
+      "rama.gender",
+    ])
+  )
+
+  const rawRound = firstValue(game, [
+    "roundLabel",
+    "round",
+    "roundNumber",
+    "week",
+    "weekNumber",
+    "jornada",
+    "jornada.numero",
+    "matchday",
+    "gameDay",
+  ])
+
+  const roundValue = normalizeRoundValue(rawRound)
+  const roundLabel = formatRoundLabel(rawRound)
+
+  const status = normalizeStatus(
+    firstValue(game, [
+      "status",
+      "gameStatus",
+      "matchStatus",
+    ]) || "SCHEDULED"
+  )
+
+  return {
+    id: String(firstValue(game, ["game_id", "gameId", "id"]) || `${home}-${away}-${timestamp}`),
+    timestamp,
+    date,
+    time,
+    venue: firstValue(game, [
+      "venue",
+      "field",
+      "location",
+      "court",
+      "stadium",
+    ]),
+    home,
+    away,
+    homeLogo: firstValue(game, [
+      "homeTeam.logoUrl",
+      "homeTeam.logo",
+      "home_team.logo_url",
+      "home_team.logoUrl",
+      "home.logoUrl",
+      "localTeam.logoUrl",
+      "local.logoUrl",
+    ]),
+    awayLogo: firstValue(game, [
+      "awayTeam.logoUrl",
+      "awayTeam.logo",
+      "away_team.logo_url",
+      "away_team.logoUrl",
+      "away.logoUrl",
+      "visitorTeam.logoUrl",
+      "visitor.logoUrl",
+    ]),
+    homeShort: firstValue(game, [
+      "homeTeam.shortName",
+      "home_team.short_name",
+      "home.shortName",
+      "localTeam.shortName",
+    ]),
+    awayShort: firstValue(game, [
+      "awayTeam.shortName",
+      "away_team.short_name",
+      "away.shortName",
+      "visitorTeam.shortName",
+    ]),
+    seasonValue,
+    seasonLabel,
+    categoryValue,
+    categoryLabel: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",
+    branchValue,
+    branchLabel: branchValue || "Sin rama",
+    roundValue,
+    roundLabel,
+    status,
+    leagueId: firstNumber(game, [
+      "leagueId",
+      "league_id",
+      "league.league_id",
+      "league.leagueId",
+      "league.id",
+    ]),
+  }
+}
+
+function buildSeasonValue(seasonId: number | null, seasonLabel: string) {
+  if (seasonId !== null) return `SEASON_${seasonId}`
+  return `LABEL_${normalizeText(seasonLabel)}`
+}
+
+function formatRoundLabel(raw: unknown) {
+  const clean = String(raw || "").trim()
+
+  if (!clean) return "Sin jornada"
+
+  const normalized = normalizeRoundValue(clean)
+
+  if (/^\d+$/.test(normalized)) {
+    return `Jornada ${normalized}`
+  }
+
+  if (clean.toLowerCase().startsWith("jornada")) {
+    return clean
+  }
+
+  return clean
+}
+
+function normalizeRoundValue(raw: unknown) {
+  const clean = String(raw || "").trim()
+  if (!clean) return ""
+  const normalized = normalizeText(clean).replace(/^jornada\s+/, "").trim()
+  return normalized.toUpperCase()
+}
+
+function formatGenderLabel(value: string) {
+  const normalized = normalizeGenderValue(value)
+
+  if (normalized === "VARONIL") return "Varonil"
+  if (normalized === "FEMENIL") return "Femenil"
+  if (normalized === "MIXTO") return "Mixto"
+
+  return value
+}
+
+function normalizeGenderValue(value: unknown) {
+  const normalized = normalizeText(String(value || "")).toUpperCase()
+
+  if (!normalized) return ""
+  if (normalized === "MASCULINO" || normalized === "MALE") return "VARONIL"
+  if (normalized === "FEMENINO" || normalized === "FEMALE") return "FEMENIL"
+
+  return normalized
+}
+
+function normalizeCodeValue(value: unknown) {
+  return String(value || "").trim().toUpperCase()
+}
+
+function normalizeStatus(value: unknown) {
+  return String(value || "").trim().toUpperCase()
+}
+
+function normalizeText(value: string) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim()
+}
+
+function firstValue(obj: any, paths: string[]) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return String(value).trim()
+    }
+  }
+  return ""
+}
+
+function firstNumber(obj: any, paths: string[]) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value === null || value === undefined || String(value).trim() === "") continue
+
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return null
+}
+
+function readPath(obj: any, path: string) {
+  return path.split(".").reduce((acc: any, key) => {
+    if (acc === null || acc === undefined) return undefined
+    return acc[key]
+  }, obj)
+}
+
+function formatDateParts(raw: unknown) {
+  const dateObj = raw ? new Date(String(raw)) : new Date()
+  const safeDate = Number.isNaN(dateObj.getTime()) ? new Date() : dateObj
+
+  return {
+    timestamp: safeDate.getTime(),
+    date: new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(safeDate).replace(".", ""),
+    time: new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(safeDate),
+  }
+}
 </script>
