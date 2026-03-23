@@ -306,185 +306,115 @@ type UiTeamCard = {
   leagueId: number | null
 }
 
+type BaseTeamRow = {
+  id: string
+  name: string
+  shortName: string
+  logoUrl: string
+  colorPrimary: string
+  colorSecondary: string
+  isActive: boolean
+  leagueId: number | null
+  raw: any
+}
+
 const search = ref("")
 const currentPage = ref(1)
 
 const selectedCategory = ref<FilterValue>("ALL")
 const selectedBranch = ref<FilterValue>("ALL")
 
-const backendTeamsQuery = computed(() => ({
-  leagueId: JUEVES_LEAGUE_ID,
-  categoryCode: selectedBranch.value === "ALL" ? undefined : selectedBranch.value,
-  gender: selectedCategory.value === "ALL" ? undefined : selectedCategory.value,
-}))
-
-const { data: categoriesRaw } = await useAsyncData(
-  "jueves-teams-categories-page",
-  async () => {
-    return await $fetch<any>("/api/t5/categories", {
-      query: { leagueId: JUEVES_LEAGUE_ID },
-    }).catch(() => [])
-  }
-)
-
 const { data: teamsData, pending: pendingTeams, error: teamsError } =
   await useAsyncData<UiTeamCard[]>(
-    "jueves-equipos-page",
+    "jueves-equipos-page-enriched",
     async () => {
       try {
         const raw = await $fetch<any>("/api/t5/teams", {
-          query: backendTeamsQuery.value,
+          query: { leagueId: JUEVES_LEAGUE_ID },
         }).catch(() => [])
 
-        const list = toList(raw)
-
-        return list
-          .map((team: any) => {
-            const flattened = flattenObject(team)
-
-            const seasonId = firstNumber(flattened, [
-              "season.id",
-              "seasonId",
-              "temporada.id",
-            ])
-
-            const categoryCode = normalizeCodeValue(firstValue(flattened, [
-              "category.code",
-              "categoryCode",
-              "code",
-              "division.code",
-            ]))
-
-            const genderValue = normalizeGenderValue(firstValue(flattened, [
-              "category.gender",
-              "categoryGender",
-              "gender",
-              "division.gender",
-              "sexo",
-            ]))
-
-            const categoryRaw = findExactMeta(flattened, [
-              "category.name",
-              "categoryName",
-              "division.name",
-              "divisionName",
-              "categoria.nombre",
-              "categoria",
-            ])
-
-            const seasonRaw = findExactMeta(flattened, [
-              "season.name",
-              "seasonName",
-              "temporada.name",
-              "temporada.nombre",
-              "temporada",
-            ])
-
-            const seasonLabel =
-              stringValue(seasonRaw) || (seasonId !== null ? `Temporada ${seasonId}` : "")
-
-            const categoryLabel =
-              stringValue(categoryRaw) || (genderValue ? formatGenderLabel(genderValue) : "")
-
-            const branchLabel = categoryCode || ""
-
-            return {
-              id: String(firstNonEmpty([team?.teamId, team?.id]) ?? "").trim(),
-              name: String(firstNonEmpty([team?.name, team?.teamName, "Equipo"]) ?? "").trim(),
-              shortName: String(firstNonEmpty([team?.shortName, team?.alias]) ?? "").trim(),
-              categoryLabel,
-              categoryValue: genderValue,
-              branchLabel,
-              branchValue: categoryCode,
-              seasonLabel,
-              seasonValue: buildSeasonValue(seasonId, seasonLabel),
-              logoUrl: String(
-                firstNonEmpty([
-                  team?.logoUrl,
-                  team?.logo,
-                  team?.imageUrl,
-                  team?.image,
-                  team?.teamLogo,
-                  team?.teamLogoUrl,
-                ]) ?? ""
-              ).trim(),
-              colorPrimary: normalizeColor(String(firstNonEmpty([team?.colorPrimary]) ?? "")),
-              colorSecondary: normalizeColor(String(firstNonEmpty([team?.colorSecondary]) ?? "")),
-              isActive: toBoolean(firstNonEmpty([team?.isActive, team?.active, true])),
-              leagueId: firstNumber(flattened, [
-                "leagueId",
-                "league_id",
-                "league.league_id",
-                "league.leagueId",
-                "league.id",
-              ]),
-            } as UiTeamCard
-          })
-          .filter((team) => {
+        const baseTeams = toList(raw)
+          .map((team: any) => normalizeBaseTeam(team))
+          .filter((team: BaseTeamRow) => {
             if (!team.id || !team.name) return false
             if (team.leagueId !== null && team.leagueId !== JUEVES_LEAGUE_ID) return false
             return true
           })
+
+        const detailResults = await Promise.allSettled(
+          baseTeams.map((team) =>
+            $fetch<any>(`/api/t5/teams/${team.id}/detail`).catch(() => null)
+          )
+        )
+
+        return baseTeams.map((baseTeam, index) => {
+          const detailPayload =
+            detailResults[index]?.status === "fulfilled"
+              ? detailResults[index].value
+              : null
+
+          const detailTeam = extractDetailTeam(detailPayload)
+          const detailFlat = flattenObject(detailTeam || {})
+          const baseFlat = flattenObject(baseTeam.raw || {})
+
+          const categoryLabel = resolveCategoryLabel(detailTeam, detailFlat, baseTeam.raw, baseFlat)
+          const branchLabel = resolveBranchLabel(detailTeam, detailFlat, baseTeam.raw, baseFlat)
+          const seasonLabel = resolveSeasonLabel(detailTeam, detailFlat, baseTeam.raw, baseFlat)
+          const seasonId =
+            pickNumberFromSources(
+              [
+                { obj: detailTeam, flat: detailFlat },
+                { obj: baseTeam.raw, flat: baseFlat },
+              ],
+              ["season.id", "seasonId", "season_id", "temporada.id"]
+            )
+
+          return {
+            id: baseTeam.id,
+            name: baseTeam.name,
+            shortName: baseTeam.shortName,
+            categoryLabel,
+            categoryValue: normalizeFilterValue(categoryLabel),
+            branchLabel,
+            branchValue: normalizeFilterValue(branchLabel),
+            seasonLabel,
+            seasonValue: buildSeasonValue(seasonId, seasonLabel),
+            logoUrl: baseTeam.logoUrl,
+            colorPrimary: baseTeam.colorPrimary,
+            colorSecondary: baseTeam.colorSecondary,
+            isActive: baseTeam.isActive,
+            leagueId: baseTeam.leagueId,
+          }
+        })
       } catch (error) {
         console.error("Error cargando equipos:", error)
         return []
       }
-    },
-    {
-      watch: [backendTeamsQuery],
     }
   )
 
 const allTeams = computed<UiTeamCard[]>(() => teamsData.value ?? [])
 
 const categoryOptions = computed<OptionItem[]>(() => {
-  const fromApi = toList(categoriesRaw.value)
-    .map((category: any) => {
-      const gender = normalizeGenderValue(firstValue(category, ["gender"]))
-      if (!gender) return null
-
-      return {
-        value: gender,
-        label: formatGenderLabel(gender),
-      }
-    })
-    .filter(Boolean) as OptionItem[]
-
-  const fromRows = allTeams.value
-    .filter((team) => team.categoryValue && team.categoryLabel)
-    .map((team) => ({
-      value: team.categoryValue,
-      label: team.categoryLabel,
-    }))
-
-  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
-    a.label.localeCompare(b.label, "es")
-  )
+  return uniqueOptions(
+    allTeams.value
+      .filter((team) => team.categoryLabel && team.categoryValue)
+      .map((team) => ({
+        value: team.categoryValue,
+        label: team.categoryLabel,
+      }))
+  ).sort((a, b) => a.label.localeCompare(b.label, "es"))
 })
 
 const branchOptions = computed<OptionItem[]>(() => {
-  const fromApi = toList(categoriesRaw.value)
-    .map((category: any) => {
-      const code = normalizeCodeValue(firstValue(category, ["code"]))
-      if (!code) return null
-
-      return {
-        value: code,
-        label: code,
-      }
-    })
-    .filter(Boolean) as OptionItem[]
-
-  const fromRows = allTeams.value
-    .filter((team) => team.branchValue && team.branchLabel)
-    .map((team) => ({
-      value: team.branchValue,
-      label: team.branchLabel,
-    }))
-
-  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
-    a.label.localeCompare(b.label, "es")
-  )
+  return uniqueOptions(
+    allTeams.value
+      .filter((team) => team.branchLabel && team.branchValue)
+      .map((team) => ({
+        value: team.branchValue,
+        label: team.branchLabel,
+      }))
+  ).sort((a, b) => a.label.localeCompare(b.label, "es"))
 })
 
 const hasCategoryMeta = computed(() => categoryOptions.value.length > 0)
@@ -562,10 +492,27 @@ watch([search, selectedCategory, selectedBranch], () => {
 })
 
 watch(
-  [hasCategoryMeta, hasBranchMeta],
-  ([categoryOk, branchOk]) => {
-    if (!categoryOk) selectedCategory.value = "ALL"
-    if (!branchOk) selectedBranch.value = "ALL"
+  categoryOptions,
+  (options) => {
+    if (
+      selectedCategory.value !== "ALL" &&
+      !options.some((option) => option.value === selectedCategory.value)
+    ) {
+      selectedCategory.value = "ALL"
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  branchOptions,
+  (options) => {
+    if (
+      selectedBranch.value !== "ALL" &&
+      !options.some((option) => option.value === selectedBranch.value)
+    ) {
+      selectedBranch.value = "ALL"
+    }
   },
   { immediate: true }
 )
@@ -605,9 +552,165 @@ function uniqueOptions(items: OptionItem[]) {
   return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
 }
 
+function normalizeBaseTeam(team: any): BaseTeamRow {
+  const flat = flattenObject(team)
+
+  return {
+    id: String(firstNonEmpty([team?.teamId, team?.id]) ?? "").trim(),
+    name: String(firstNonEmpty([team?.name, team?.teamName, "Equipo"]) ?? "").trim(),
+    shortName: String(firstNonEmpty([team?.shortName, team?.alias]) ?? "").trim(),
+    logoUrl: String(
+      firstNonEmpty([
+        team?.logoUrl,
+        team?.logo,
+        team?.imageUrl,
+        team?.image,
+        team?.teamLogo,
+        team?.teamLogoUrl,
+      ]) ?? ""
+    ).trim(),
+    colorPrimary: normalizeColor(String(firstNonEmpty([team?.colorPrimary]) ?? "")),
+    colorSecondary: normalizeColor(String(firstNonEmpty([team?.colorSecondary]) ?? "")),
+    isActive: toBoolean(firstNonEmpty([team?.isActive, team?.active, true])),
+    leagueId: pickNumberFromSources(
+      [{ obj: team, flat }],
+      ["leagueId", "league_id", "league.id", "league.leagueId", "league.league_id"]
+    ),
+    raw: team,
+  }
+}
+
+function extractDetailTeam(payload: any) {
+  if (!payload || typeof payload !== "object") return null
+  if (payload.team && typeof payload.team === "object") return payload.team
+  return payload
+}
+
+function resolveCategoryLabel(
+  detailObj: any,
+  detailFlat: Record<string, any>,
+  baseObj: any,
+  baseFlat: Record<string, any>
+) {
+  return (
+    pickTextFromSources(
+      [
+        { obj: detailObj, flat: detailFlat },
+        { obj: baseObj, flat: baseFlat },
+      ],
+      [
+        "category.name",
+        "category.label",
+        "category.title",
+        "categoryName",
+        "division.name",
+        "divisionName",
+        "categoria.nombre",
+        "categoria",
+      ]
+    ) ||
+    normalizeCodeValue(
+      pickTextFromSources(
+        [
+          { obj: detailObj, flat: detailFlat },
+          { obj: baseObj, flat: baseFlat },
+        ],
+        [
+          "category.code",
+          "categoryCode",
+          "category_code",
+          "division.code",
+          "divisionCode",
+          "code",
+        ]
+      )
+    ) ||
+    niceGender(
+      normalizeGenderValue(
+        pickTextFromSources(
+          [
+            { obj: detailObj, flat: detailFlat },
+            { obj: baseObj, flat: baseFlat },
+          ],
+          [
+            "category.gender",
+            "categoryGender",
+            "division.gender",
+            "gender",
+            "sexo",
+          ]
+        )
+      )
+    ) ||
+    ""
+  )
+}
+
+function resolveBranchLabel(
+  detailObj: any,
+  detailFlat: Record<string, any>,
+  baseObj: any,
+  baseFlat: Record<string, any>
+) {
+  return (
+    normalizeCodeValue(
+      pickTextFromSources(
+        [
+          { obj: detailObj, flat: detailFlat },
+          { obj: baseObj, flat: baseFlat },
+        ],
+        [
+          "category.code",
+          "categoryCode",
+          "category_code",
+          "division.code",
+          "divisionCode",
+          "code",
+        ]
+      )
+    ) ||
+    resolveCategoryLabel(detailObj, detailFlat, baseObj, baseFlat) ||
+    ""
+  )
+}
+
+function resolveSeasonLabel(
+  detailObj: any,
+  detailFlat: Record<string, any>,
+  baseObj: any,
+  baseFlat: Record<string, any>
+) {
+  const label =
+    pickTextFromSources(
+      [
+        { obj: detailObj, flat: detailFlat },
+        { obj: baseObj, flat: baseFlat },
+      ],
+      [
+        "season.name",
+        "seasonName",
+        "temporada.name",
+        "temporada.nombre",
+        "temporada",
+      ]
+    ) || ""
+
+  if (label) return label
+
+  const seasonId = pickNumberFromSources(
+    [
+      { obj: detailObj, flat: detailFlat },
+      { obj: baseObj, flat: baseFlat },
+    ],
+    ["season.id", "seasonId", "season_id", "temporada.id"]
+  )
+
+  return seasonId !== null ? `Temporada ${seasonId}` : ""
+}
+
 function buildSeasonValue(seasonId: number | null, seasonLabel: string) {
   if (seasonId !== null) return `SEASON_${seasonId}`
-  return `LABEL_${normalizeText(seasonLabel)}`
+  return seasonLabel ? `LABEL_${normalizeText(seasonLabel)}` : ""
 }
 
 function flattenObject(obj: any, prefix = "", result: Record<string, any> = {}) {
@@ -639,14 +742,6 @@ function flattenObject(obj: any, prefix = "", result: Record<string, any> = {}) 
   return result
 }
 
-function findExactMeta(flattened: Record<string, any>, paths: string[]) {
-  for (const path of paths) {
-    const value = flattened[path]
-    if (value !== null && value !== undefined && String(value).trim() !== "") return value
-  }
-  return ""
-}
-
 function firstNonEmpty(values: any[]) {
   for (const value of values) {
     if (value !== null && value !== undefined && String(value).trim() !== "") return value
@@ -654,8 +749,55 @@ function firstNonEmpty(values: any[]) {
   return ""
 }
 
-function stringValue(value: any) {
-  return String(value ?? "").trim()
+function readPath(obj: any, path: string) {
+  return path.split(".").reduce((acc: any, key) => {
+    if (acc === null || acc === undefined) return undefined
+    return acc[key]
+  }, obj)
+}
+
+function pickTextFromSources(
+  sources: Array<{ obj: any; flat: Record<string, any> }>,
+  paths: string[]
+) {
+  for (const source of sources) {
+    for (const path of paths) {
+      const nested = readPath(source.obj, path)
+      if (nested !== null && nested !== undefined && String(nested).trim() !== "") {
+        return String(nested).trim()
+      }
+
+      const direct = source.flat[path]
+      if (direct !== null && direct !== undefined && String(direct).trim() !== "") {
+        return String(direct).trim()
+      }
+    }
+  }
+
+  return ""
+}
+
+function pickNumberFromSources(
+  sources: Array<{ obj: any; flat: Record<string, any> }>,
+  paths: string[]
+) {
+  for (const source of sources) {
+    for (const path of paths) {
+      const nested = readPath(source.obj, path)
+      if (nested !== null && nested !== undefined && String(nested).trim() !== "") {
+        const parsed = Number(nested)
+        if (Number.isFinite(parsed)) return parsed
+      }
+
+      const direct = source.flat[path]
+      if (direct !== null && direct !== undefined && String(direct).trim() !== "") {
+        const parsed = Number(direct)
+        if (Number.isFinite(parsed)) return parsed
+      }
+    }
+  }
+
+  return null
 }
 
 function normalizeText(value: string) {
@@ -665,6 +807,10 @@ function normalizeText(value: string) {
     .replace(/\s+/g, " ")
     .toLowerCase()
     .trim()
+}
+
+function normalizeFilterValue(value: unknown) {
+  return normalizeText(String(value || ""))
 }
 
 function normalizeGenderValue(value: unknown) {
@@ -677,13 +823,11 @@ function normalizeGenderValue(value: unknown) {
   return normalized
 }
 
-function formatGenderLabel(value: string) {
+function niceGender(value: string) {
   const normalized = normalizeGenderValue(value)
-
   if (normalized === "VARONIL") return "Varonil"
   if (normalized === "FEMENIL") return "Femenil"
   if (normalized === "MIXTO") return "Mixto"
-
   return value
 }
 
@@ -733,34 +877,6 @@ function toList(value: any): any[] {
   if (Array.isArray(value?.items)) return value.items
   if (Array.isArray(value?.data)) return value.data
   return []
-}
-
-function firstValue(obj: any, paths: string[]) {
-  for (const path of paths) {
-    const value = readPath(obj, path)
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return String(value).trim()
-    }
-  }
-  return ""
-}
-
-function firstNumber(obj: any, paths: string[]) {
-  for (const path of paths) {
-    const value = readPath(obj, path)
-    if (value === null || value === undefined || String(value).trim() === "") continue
-
-    const parsed = Number(value)
-    if (Number.isFinite(parsed)) return parsed
-  }
-  return null
-}
-
-function readPath(obj: any, path: string) {
-  return path.split(".").reduce((acc: any, key) => {
-    if (acc === null || acc === undefined) return undefined
-    return acc[key]
-  }, obj)
 }
 
 async function openTeam(id: string) {

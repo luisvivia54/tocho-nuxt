@@ -3,11 +3,11 @@
     <JuevesHeader />
 
     <section class="pt-24 md:pt-28 lg:pt-32">
-      <div class="mx-auto max-w-6xl px-4 sm:px-6 pb-10">
+      <div class="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
         <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p class="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">Liga de Jueves · Mi equipo</p>
-            <h1 class="mt-2 text-3xl md:text-4xl font-extrabold text-white">Mi equipo</h1>
+            <h1 class="mt-2 text-3xl font-extrabold text-white md:text-4xl">Mi equipo</h1>
             <p class="mt-2 max-w-2xl text-sm text-slate-400">
               Aquí verás tus equipos como capitán o admin, y podrás entrar a editar sus datos.
             </p>
@@ -31,11 +31,17 @@
           </div>
         </header>
 
-        <div v-if="statusMsg" class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+        <div
+          v-if="statusMsg"
+          class="mt-4 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+        >
           {{ statusMsg }}
         </div>
 
-        <div v-if="errorMsg" class="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+        <div
+          v-if="errorMsg"
+          class="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
+        >
           {{ errorMsg }}
         </div>
 
@@ -68,7 +74,7 @@
 
               <div class="rounded-2xl border border-white/10 bg-[#0B1020]/70 p-4">
                 <p class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Equipos como capitán</p>
-                <p class="mt-2 text-2xl font-extrabold text-white">{{ visibleTeams.length }} / {{ maxTeams }}</p>
+                <p class="mt-2 text-2xl font-extrabold text-white">{{ totalTeamsCount }} / {{ effectiveMaxTeams }}</p>
               </div>
 
               <div class="rounded-2xl border border-white/10 bg-[#0B1020]/70 p-4">
@@ -81,9 +87,13 @@
 
             <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
               <p class="text-sm text-slate-400">
-                {{ visibleTeams.length > 0
-                  ? `Ya tienes ${visibleTeams.length} equipo(s) registrado(s) en la liga de jueves.`
-                  : 'Todavía no tienes equipos registrados en la liga de jueves.' }}
+                <template v-if="totalTeamsCount > 0">
+                  Tienes {{ totalTeamsCount }} equipo(s) registrado(s) a tu nombre en ambas ligas.
+                  <span class="text-slate-500">Abajo se muestran solo {{ visibleTeams.length }} de la liga de jueves.</span>
+                </template>
+                <template v-else>
+                  Todavía no tienes equipos registrados.
+                </template>
               </p>
 
               <button
@@ -102,7 +112,7 @@
             <div v-if="loading" class="text-sm text-slate-400">Cargando tus equipos…</div>
 
             <div v-else-if="visibleTeams.length === 0" class="rounded-2xl border border-white/10 bg-[#0B1020]/60 p-5">
-              <p class="text-lg font-bold text-white">Aún no tienes equipos</p>
+              <p class="text-lg font-bold text-white">Aún no tienes equipos de jueves</p>
               <p class="mt-2 text-sm text-slate-400">
                 Puedes registrar uno nuevo desde la pestaña de registro.
               </p>
@@ -235,6 +245,11 @@ function initials(text: string) {
     .join("")
 }
 
+function toNullablePositiveNumber(value: any): number | null {
+  const n = Number(value)
+  return Number.isFinite(n) && n >= 0 ? n : null
+}
+
 const nuxtApp = useNuxtApp()
 const route = useRoute()
 const runtime = useRuntimeConfig()
@@ -242,12 +257,17 @@ const kcReady = useState<boolean>("kcReady", () => false)
 const { isAuthenticated } = useAuthz() as any
 
 const API_BASE = normalizeApiBase(((runtime.public as any)?.apiBase as string) || "https://tocho5-api.tochero5.mx")
-const maxTeams = Number((runtime.public as any)?.maxTeamsPerCaptain ?? 20)
+const runtimeMaxTeams = Number((runtime.public as any)?.maxTeamsPerCaptain ?? 20)
 
 const statusMsg = ref("")
 const errorMsg = ref("")
 const loading = ref(false)
 const teams = ref<TeamCard[]>([])
+
+const backendTotalTeams = ref<number | null>(null)
+const backendMaxTeams = ref<number | null>(null)
+const backendCanCreate = ref<boolean | null>(null)
+const backendRole = ref<string>("")
 
 const highlightId = computed<number | null>(() => {
   const n = Number(route.query.highlight ?? 0)
@@ -258,6 +278,14 @@ const visibleTeams = computed<TeamCard[]>(() => {
   return teams.value.filter((team) => team.leagueId === JUEVES_LEAGUE_ID)
 })
 
+const totalTeamsCount = computed(() => {
+  return backendTotalTeams.value ?? teams.value.length
+})
+
+const effectiveMaxTeams = computed(() => {
+  return backendMaxTeams.value ?? runtimeMaxTeams
+})
+
 function login() {
   const kc = (nuxtApp as any).$kc
   if (!kc?.login) return
@@ -265,6 +293,8 @@ function login() {
 }
 
 const roleLabel = computed(() => {
+  if (backendRole.value) return backendRole.value
+
   const kc = (nuxtApp as any).$kc
   const roles: string[] =
     kc?.tokenParsed?.realm_access?.roles ||
@@ -276,7 +306,10 @@ const roleLabel = computed(() => {
   return "USUARIO"
 })
 
-const canCreate = computed(() => visibleTeams.value.length < maxTeams)
+const canCreate = computed(() => {
+  if (backendCanCreate.value !== null) return backendCanCreate.value
+  return totalTeamsCount.value < effectiveMaxTeams.value
+})
 
 async function getAccessToken(): Promise<string | null> {
   const app: any = nuxtApp as any
@@ -345,6 +378,42 @@ function normalizeTeams(payload: any): TeamCard[] {
     .filter((t) => Number.isFinite(t.id) && t.id > 0)
 }
 
+function hydrateSummary(payload: any) {
+  backendTotalTeams.value = toNullablePositiveNumber(
+    payload?.currentTeams ??
+    payload?.current_teams ??
+    payload?.totalTeams ??
+    payload?.total_teams
+  )
+
+  backendMaxTeams.value = toNullablePositiveNumber(
+    payload?.maxTeamsAllowed ??
+    payload?.max_teams_allowed ??
+    payload?.maxTeams ??
+    payload?.max_teams
+  )
+
+  backendCanCreate.value =
+    typeof payload?.canCreateTeam === "boolean"
+      ? payload.canCreateTeam
+      : typeof payload?.can_create_team === "boolean"
+        ? payload.can_create_team
+        : null
+
+  const rawRole = String(payload?.role ?? "").trim().toLowerCase()
+  if (rawRole === "admin") backendRole.value = "ADMIN"
+  else if (rawRole === "captain") backendRole.value = "CAPITÁN"
+  else if (rawRole) backendRole.value = rawRole.toUpperCase()
+  else backendRole.value = ""
+}
+
+function resetSummaryState() {
+  backendTotalTeams.value = null
+  backendMaxTeams.value = null
+  backendCanCreate.value = null
+  backendRole.value = ""
+}
+
 async function loadTeams() {
   loading.value = true
   errorMsg.value = ""
@@ -354,11 +423,13 @@ async function loadTeams() {
     const headers = await authHeaders()
     if (!headers.Authorization) throw new Error("No hay sesión activa.")
 
+    resetSummaryState()
+
     const candidates = [
-      { url: `${API_BASE}/teams/mine`, query: { leagueId: JUEVES_LEAGUE_ID } },
-      { url: `${API_BASE}/teams/me`, query: { leagueId: JUEVES_LEAGUE_ID } },
-      { url: `${API_BASE}/users/me/teams`, query: { leagueId: JUEVES_LEAGUE_ID } },
-      { url: `${API_BASE}/captain/teams`, query: { leagueId: JUEVES_LEAGUE_ID } },
+      { url: `${API_BASE}/teams/mine` },
+      { url: `${API_BASE}/teams/me` },
+      { url: `${API_BASE}/users/me/teams` },
+      { url: `${API_BASE}/captain/teams` },
     ]
 
     let loaded = false
@@ -369,9 +440,9 @@ async function loadTeams() {
         const raw = await $fetch<any>(candidate.url, {
           method: "GET",
           headers,
-          query: candidate.query,
         })
 
+        hydrateSummary(raw)
         teams.value = normalizeTeams(raw)
         loaded = true
         break
@@ -388,8 +459,8 @@ async function loadTeams() {
     }
 
     statusMsg.value = loaded
-      ? "Equipos de la liga de jueves cargados correctamente."
-      : "No se encontraron equipos de la liga de jueves."
+      ? "Equipos cargados correctamente. Abajo se muestran solo los de la liga de jueves."
+      : "No se encontraron equipos registrados."
   } catch (e: any) {
     errorMsg.value = e?.data?.message || e?.message || "No se pudieron cargar tus equipos."
   } finally {

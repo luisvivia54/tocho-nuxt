@@ -1,792 +1,290 @@
 <template>
-  <main class="min-h-screen bg-[#050816] text-slate-50" :class="{ 'no-blur': isScrolling }">
+  <main class="min-h-screen text-slate-50">
     <JuevesHeader />
 
-    <section class="pt-24 md:pt-28 lg:pt-32">
-      <div class="mx-auto max-w-6xl px-4 sm:px-6">
-        <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">Liga de Jueves · Consola Admin</p>
-            <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Partidos</h1>
-            <p class="mt-1 text-sm text-slate-400">
-              Flujo: <b>Categoría</b> → <b>Local</b> y <b>Visitante</b> → <b>Fecha/Hora</b> → <b>Jornada</b> → <b>Cancha</b> → Finalizar + Stats
-            </p>
+    <div class="fixed inset-0 -z-10 bg-[#020617]" />
+
+    <section class="border-b border-white/6 pt-24">
+      <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+        <div class="max-w-3xl">
+          <div
+            class="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300"
+          >
+            <span class="h-2 w-2 rounded-full bg-orange-400" />
+            Liga de Jueves · Partidos
+          </div>
+
+          <h1 class="mt-6 text-5xl font-extrabold tracking-tight">Calendario de Partidos</h1>
+          <p class="mt-4 text-slate-400">
+            Filtra partidos por temporada, categoría, rama y jornada.
+          </p>
+        </div>
+
+        <div class="mt-10 rounded-[28px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] md:p-5">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Temporada
+              </label>
+              <select
+                v-model="selectedSeason"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option
+                  v-for="option in seasonOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Categoría
+              </label>
+              <select
+                v-model="selectedCategory"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option
+                  v-for="option in categoryOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Rama
+              </label>
+              <select
+                v-model="selectedBranch"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option
+                  v-for="option in branchOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Jornada
+              </label>
+              <select
+                v-model="selectedRound"
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              >
+                <option value="ALL">Todas</option>
+                <option
+                  v-for="option in roundOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
+                Buscar equipo
+              </label>
+              <input
+                v-model.trim="search"
+                type="text"
+                placeholder="Buscar equipo..."
+                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
+              />
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap gap-2">
+            <span class="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-100">
+              {{ filteredMatches.length }} resultados
+            </span>
+
+            <button
+              type="button"
+              class="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-200 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
+              @click="resetFilters"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        <div class="grid grid-cols-1 gap-5">
+          <article
+            v-for="m in paginatedMatches"
+            :key="m.id"
+            class="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.03] shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
+          >
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_24%)]" />
+
+            <div class="relative p-5 md:p-6">
+              <div class="mb-5 flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                  {{ m.date }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
+                  {{ m.time }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold text-orange-100">
+                  {{ m.seasonLabel }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
+                  {{ m.categoryLabel }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
+                  {{ m.branchLabel }}
+                </span>
+
+                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
+                  {{ m.roundLabel }}
+                </span>
+
+                <span
+                  class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold"
+                  :class="statusPillClass(m.status)"
+                >
+                  {{ statusLabel(m.status) }}
+                </span>
+              </div>
+
+              <div class="flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,1fr)_320px_minmax(0,1fr)] md:items-center">
+                <div class="flex min-w-0 items-center gap-4">
+                  <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/35 shadow-inner">
+                    <img
+                      v-if="m.homeLogo"
+                      :src="m.homeLogo"
+                      :alt="m.home"
+                      loading="lazy"
+                      class="h-14 w-14 object-contain"
+                    />
+                    <span v-else class="text-sm font-extrabold uppercase text-white">
+                      {{ m.homeShort || getTeamInitials(m.home) }}
+                    </span>
+                  </div>
+
+                  <div class="min-w-0">
+                    <p class="break-words text-xl font-extrabold leading-tight text-white md:text-2xl">
+                      {{ m.home }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex flex-col items-center justify-center text-center md:px-3">
+                  <span class="text-[0.72rem] font-extrabold uppercase tracking-[0.34em] text-orange-300">
+                    VS
+                  </span>
+
+                  <div v-if="m.venue" class="mt-3 text-[11px] font-medium text-slate-400 md:text-xs">
+                    {{ m.venue }}
+                  </div>
+                </div>
+
+                <div class="flex min-w-0 items-center gap-4 md:justify-end">
+                  <div class="min-w-0 md:text-right">
+                    <p class="break-words text-xl font-extrabold leading-tight text-white md:text-2xl">
+                      {{ m.away }}
+                    </p>
+                  </div>
+
+                  <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/35 shadow-inner">
+                    <img
+                      v-if="m.awayLogo"
+                      :src="m.awayLogo"
+                      :alt="m.away"
+                      loading="lazy"
+                      class="h-14 w-14 object-contain"
+                    />
+                    <span v-else class="text-sm font-extrabold uppercase text-white">
+                      {{ m.awayShort || getTeamInitials(m.away) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <div v-if="pendingGames" class="text-sm text-slate-400">Cargando partidos...</div>
+          <div v-else-if="gamesError" class="text-sm text-rose-300">No se pudieron cargar partidos.</div>
+          <div v-else-if="filteredMatches.length === 0" class="text-sm text-slate-400">No hay resultados.</div>
+        </div>
+
+        <div
+          v-if="!pendingGames && !gamesError && filteredMatches.length > 0"
+          class="mt-8 flex flex-col gap-4 border-t border-white/8 pt-6 md:flex-row md:items-center md:justify-between"
+        >
+          <div class="text-sm text-slate-400">
+            Mostrando
+            <span class="font-semibold text-white">{{ matchRangeStart }}</span>
+            -
+            <span class="font-semibold text-white">{{ matchRangeEnd }}</span>
+            de
+            <span class="font-semibold text-white">{{ filteredMatches.length }}</span>
+            partidos
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              @click="hardRefresh()"
-              class="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500"
+              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
+              :class="currentPage === 1
+                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
+              :disabled="currentPage === 1"
+              @click="goToMatchPage(currentPage - 1)"
             >
-              ⟳ Actualizar
+              Anterior
             </button>
 
-            <NuxtLink
-              to="/jueves"
-              class="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500"
+            <button
+              v-for="page in visibleMatchPages"
+              :key="page"
+              type="button"
+              class="h-10 min-w-10 rounded-full border px-3 text-sm font-extrabold transition"
+              :class="page === currentPage
+                ? 'border-orange-400/40 bg-orange-400/15 text-orange-200'
+                : 'border-white/10 bg-white/5 text-slate-300 hover:border-orange-400/30 hover:bg-orange-400/10 hover:text-slate-100'"
+              @click="goToMatchPage(page)"
             >
-              Inicio
-            </NuxtLink>
+              {{ page }}
+            </button>
+
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
+              :class="currentPage === totalMatchPages
+                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
+                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
+              :disabled="currentPage === totalMatchPages"
+              @click="goToMatchPage(currentPage + 1)"
+            >
+              Siguiente
+            </button>
           </div>
-        </header>
-
-        <div v-if="!kcReady" class="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-5 shadow-lg backdrop-blur">
-          <p class="text-sm font-semibold text-slate-100">Inicializando sesión…</p>
-          <p class="mt-1 text-xs text-slate-400">Espera a que Keycloak esté listo.</p>
-        </div>
-
-        <div v-else-if="!isAdmin" class="mt-8 rounded-2xl border border-rose-500/40 bg-rose-500/10 p-5 shadow-lg backdrop-blur">
-          <p class="text-sm font-semibold text-rose-100">Acceso denegado</p>
-          <p class="mt-1 text-xs text-rose-200/80">Tu usuario no tiene rol <b>admin</b>.</p>
-        </div>
-
-        <div v-else class="mt-8 space-y-6">
-          <section class="rounded-2xl border border-slate-700 bg-slate-900/60 shadow-lg backdrop-blur overflow-hidden">
-            <div class="h-1.5 bg-gradient-to-r from-cyan-400 to-fuchsia-500"></div>
-
-            <div class="p-4 sm:p-5">
-              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p class="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                    {{ editingId ? `Editando juego #${editingId}` : 'Crear partido' }}
-                  </p>
-                  <h2 class="mt-1 text-base font-semibold text-white">
-                    {{ editingId ? 'Editar partido' : 'Nuevo partido' }}
-                  </h2>
-                </div>
-
-                <div class="flex items-center gap-2">
-                  <div class="hidden sm:flex items-center gap-2 text-xs text-slate-400">
-                    Equipos: <span class="text-slate-100 font-semibold">{{ teams.length }}</span>
-                    · Partidos: <span class="text-slate-100 font-semibold">{{ gamesVm.length }}</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    @click="clearForm()"
-                    class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500"
-                  >
-                    {{ editingId ? 'Cancelar' : 'Limpiar' }}
-                  </button>
-                </div>
-              </div>
-
-              <div class="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <div class="lg:col-span-4">
-                  <label class="block text-xs font-semibold text-slate-300 mb-1">Categoría (rama + gender)</label>
-                  <select
-                    v-model.number="form.categoryId"
-                    class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option :value="0">— Selecciona —</option>
-                    <option v-for="c in categories" :key="c.id" :value="c.id">
-                      {{ categoryLabel(c) }}
-                    </option>
-                  </select>
-
-                  <label class="mt-3 inline-flex items-center gap-2 text-xs text-slate-300 select-none">
-                    <input type="checkbox" v-model="filterTeamsByCategory" class="accent-blue-500" />
-                    Filtrar equipos por esta categoría
-                  </label>
-
-                  <p v-if="catHint" class="mt-2 text-[11px] text-slate-400">
-                    Seleccionada: <span class="text-slate-100 font-semibold">{{ catHint }}</span>
-                  </p>
-                </div>
-
-                <div class="lg:col-span-4">
-                  <label class="block text-xs font-semibold text-slate-300 mb-1">Local</label>
-
-                  <div class="relative">
-                    <input
-                      v-model.trim="homeInput"
-                      @focus="homeOpen = true"
-                      @blur="closeHomeLater()"
-                      placeholder="Buscar equipo local…"
-                      class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                    />
-                    <button
-                      v-if="homeTeamId"
-                      type="button"
-                      @click="clearHome()"
-                      class="absolute inset-y-0 right-2 my-auto h-8 px-2 rounded-lg border border-slate-700 bg-slate-900/70 text-slate-200 text-xs hover:border-slate-500"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  <div
-                    v-if="homeOpen && homeSuggestions.length"
-                    class="mt-2 rounded-xl border border-slate-700 bg-slate-950/70 overflow-hidden"
-                  >
-                    <button
-                      v-for="t in homeSuggestions"
-                      :key="`h-${t.teamId}`"
-                      type="button"
-                      @mousedown.prevent="pickHome(t)"
-                      class="w-full text-left px-3 py-2 hover:bg-white/5 flex items-start gap-3"
-                    >
-                      <div class="h-8 w-8 rounded-lg border border-white/10 bg-slate-900/60 overflow-hidden flex items-center justify-center shrink-0 mt-0.5">
-                        <img v-if="t.logoUrl" :src="t.logoUrl" :alt="t.name" class="h-full w-full object-cover" />
-                        <span v-else class="text-[11px] font-extrabold text-slate-200">
-                          {{ initials(t.shortName || t.name || 'L') }}
-                        </span>
-                      </div>
-
-                      <div class="min-w-0 flex-1">
-                        <p class="text-sm font-semibold text-white truncate">{{ t.name }}</p>
-
-                        <div class="mt-1 flex flex-wrap items-center gap-2 text-[10px]">
-                          <span class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
-                            Rama:
-                            <strong class="text-white/95">{{ (t.category?.code || '—').toUpperCase() }}</strong>
-                          </span>
-
-                          <span class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
-                            Categoría:
-                            <strong class="text-white/95">{{ niceGender((t.category?.gender || '—').toUpperCase()) }}</strong>
-                          </span>
-
-                          <span v-if="t.category?.name" class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
-                            <strong class="text-white/95 truncate max-w-[14rem]">{{ t.category.name }}</strong>
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-
-                  <p v-if="homeTeam" class="mt-2 text-[11px] text-slate-400">
-                    Seleccionado: <span class="text-slate-100 font-semibold">{{ homeTeam.name }}</span>
-                    <span class="text-slate-500">·</span>
-                    Rama <span class="text-slate-100 font-semibold">{{ homeTeam.category?.code || '—' }}</span>
-                    <span class="text-slate-500">·</span>
-                    {{ niceGender(homeTeam.category?.gender || '—') }}
-                    <span class="text-slate-500">·</span>
-                    ID <span class="text-slate-100 font-semibold">{{ homeTeam.teamId }}</span>
-                  </p>
-                </div>
-
-                <div class="lg:col-span-4">
-                  <label class="block text-xs font-semibold text-slate-300 mb-1">Visitante</label>
-
-                  <div class="relative">
-                    <input
-                      v-model.trim="awayInput"
-                      @focus="awayOpen = true"
-                      @blur="closeAwayLater()"
-                      placeholder="Buscar equipo visitante…"
-                      class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent"
-                    />
-                    <button
-                      v-if="awayTeamId"
-                      type="button"
-                      @click="clearAway()"
-                      class="absolute inset-y-0 right-2 my-auto h-8 px-2 rounded-lg border border-slate-700 bg-slate-900/70 text-slate-200 text-xs hover:border-slate-500"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  <div
-                    v-if="awayOpen && awaySuggestions.length"
-                    class="mt-2 rounded-xl border border-slate-700 bg-slate-950/70 overflow-hidden"
-                  >
-                    <button
-                      v-for="t in awaySuggestions"
-                      :key="`a-${t.teamId}`"
-                      type="button"
-                      @mousedown.prevent="pickAway(t)"
-                      class="w-full text-left px-3 py-2 hover:bg-white/5 flex items-start gap-3"
-                    >
-                      <div class="h-8 w-8 rounded-lg border border-white/10 bg-slate-900/60 overflow-hidden flex items-center justify-center shrink-0 mt-0.5">
-                        <img v-if="t.logoUrl" :src="t.logoUrl" :alt="t.name" class="h-full w-full object-cover" />
-                        <span v-else class="text-[11px] font-extrabold text-slate-200">
-                          {{ initials(t.shortName || t.name || 'V') }}
-                        </span>
-                      </div>
-
-                      <div class="min-w-0 flex-1">
-                        <p class="text-sm font-semibold text-white truncate">{{ t.name }}</p>
-
-                        <div class="mt-1 flex flex-wrap items-center gap-2 text-[10px]">
-                          <span class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
-                            Rama:
-                            <strong class="text-white/95">{{ (t.category?.code || '—').toUpperCase() }}</strong>
-                          </span>
-
-                          <span class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
-                            Categoría:
-                            <strong class="text-white/95">{{ niceGender((t.category?.gender || '—').toUpperCase()) }}</strong>
-                          </span>
-
-                          <span v-if="t.category?.name" class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
-                            <strong class="text-white/95 truncate max-w-[14rem]">{{ t.category.name }}</strong>
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-
-                  <p v-if="awayTeam" class="mt-2 text-[11px] text-slate-400">
-                    Seleccionado: <span class="text-slate-100 font-semibold">{{ awayTeam.name }}</span>
-                    <span class="text-slate-500">·</span>
-                    Rama <span class="text-slate-100 font-semibold">{{ awayTeam.category?.code || '—' }}</span>
-                    <span class="text-slate-500">·</span>
-                    {{ niceGender(awayTeam.category?.gender || '—') }}
-                    <span class="text-slate-500">·</span>
-                    ID <span class="text-slate-100 font-semibold">{{ awayTeam.teamId }}</span>
-                  </p>
-
-                  <button
-                    type="button"
-                    @click="swapTeams()"
-                    :disabled="!homeTeamId || !awayTeamId"
-                    class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
-                  >
-                    ⇄ Intercambiar
-                  </button>
-                </div>
-              </div>
-
-              <div class="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <div class="md:col-span-3">
-                  <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha</label>
-                  <div class="relative cursor-pointer" @click="openNativePicker(dateEl)">
-                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">📅</span>
-                    <input
-                      ref="dateEl"
-                      v-model="form.date"
-                      type="date"
-                      class="date-time w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 pl-9 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div class="md:col-span-2">
-                  <label class="block text-xs font-semibold text-slate-300 mb-1">Hora</label>
-                  <div class="relative cursor-pointer" @click="openNativePicker(timeEl)">
-                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">🕒</span>
-                    <input
-                      ref="timeEl"
-                      v-model="form.time"
-                      type="time"
-                      class="date-time w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 pl-9 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div class="md:col-span-2">
-                  <label class="block text-xs font-semibold text-slate-300 mb-1">Jornada</label>
-                  <div class="relative">
-                    <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">🏁</span>
-                    <input
-                      v-model.number="form.jornada"
-                      type="number"
-                      min="1"
-                      inputmode="numeric"
-                      placeholder="Ej. 1"
-                      class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 pl-9 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div class="md:col-span-2">
-                  <label class="block text-xs font-semibold text-slate-300 mb-1">Cancha / Sede (opcional)</label>
-                  <input
-                    v-model.trim="form.field"
-                    placeholder="Ej. Miguel Alemán"
-                    class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div class="md:col-span-3 flex flex-wrap gap-2 justify-end">
-                  <button
-                    type="button"
-                    @click="saveGame()"
-                    :disabled="saving"
-                    class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {{ saving ? 'Guardando…' : (editingId ? 'Guardar cambios' : 'Crear partido') }}
-                  </button>
-
-                  <button
-                    type="button"
-                    @click="clearForm()"
-                    class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/40 px-4 py-2.5 text-xs font-semibold text-slate-100 hover:border-slate-500"
-                  >
-                    Limpiar
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="formError" class="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
-                {{ formError }}
-              </div>
-              <div v-if="formOk" class="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
-                {{ formOk }}
-              </div>
-            </div>
-          </section>
-
-          <section class="rounded-2xl border border-slate-700 bg-slate-900/60 shadow-lg backdrop-blur overflow-hidden">
-            <div class="h-1.5 bg-gradient-to-r from-amber-300 to-cyan-400"></div>
-
-            <div class="p-4 sm:p-5">
-              <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <h2 class="text-base font-semibold text-white">Partidos</h2>
-                  <p class="mt-1 text-xs text-slate-400">Lista ligera. Finaliza y agrega stats por jugador.</p>
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                  <div class="sm:w-44">
-                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Estatus</label>
-                    <select
-                      v-model="gameStatusPick"
-                      class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="ALL">Todos</option>
-                      <option value="SCHEDULED">SCHEDULED</option>
-                      <option value="FINAL">FINAL</option>
-                      <option value="CANCELLED">CANCELLED</option>
-                    </select>
-                  </div>
-
-                  <div class="flex-1 md:w-72">
-                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Buscar equipo</label>
-                    <div class="relative">
-                      <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500 text-xs">🔍</span>
-                      <input
-                        v-model.trim="gameQuery"
-                        placeholder="Ej. Gators…"
-                        class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-8 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="deleteError" class="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
-                {{ deleteError }}
-              </div>
-              <div v-if="deleteOk" class="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
-                {{ deleteOk }}
-              </div>
-
-              <div class="mt-4">
-                <div v-if="gamesPending" class="text-sm text-slate-300">Cargando partidos…</div>
-                <div v-else-if="gamesError" class="text-sm text-rose-300">Error cargando partidos.</div>
-
-                <div v-else>
-                  <div v-if="filteredGamesVm.length === 0" class="rounded-xl border border-slate-700 bg-slate-950/40 px-4 py-4 text-sm text-slate-300">
-                    <p class="font-semibold text-slate-100">Sin resultados</p>
-                    <p class="mt-1 text-slate-400">No hay partidos con esos filtros.</p>
-                  </div>
-
-                  <div v-else class="space-y-2">
-                    <div
-                      v-for="g in pagedGames"
-                      :key="g.id"
-                      class="rounded-xl border border-slate-700 bg-slate-950/40 p-3"
-                    >
-                      <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                        <div class="min-w-0">
-                          <p class="text-sm font-semibold text-white truncate">
-                            {{ g.homeName }} <span class="text-slate-500">vs</span> {{ g.awayName }}
-                          </p>
-                          <p class="mt-0.5 text-[11px] text-slate-400 truncate">
-                            <span class="text-slate-200 font-semibold">{{ g.dateLabel }}</span>
-                            · {{ g.timeLabel }}
-                            <span class="text-slate-600">·</span>
-                            {{ g.categoryLabel || '—' }}
-                            <span class="text-slate-600">·</span>
-                            Jornada: <span class="text-slate-200 font-semibold">{{ g.jornada ?? '—' }}</span>
-                            <span class="text-slate-600">·</span>
-                            Cancha: <span class="text-slate-200">{{ g.field || '—' }}</span>
-                            <span class="text-slate-600">·</span>
-                            ID: <span class="text-slate-200 font-semibold">{{ g.id }}</span>
-                          </p>
-                          <p class="mt-0.5 text-[11px] text-slate-500 truncate">
-                            HomeID: <span class="text-slate-200 font-semibold">{{ g.homeTeamId ?? '—' }}</span>
-                            <span class="text-slate-600">·</span>
-                            AwayID: <span class="text-slate-200 font-semibold">{{ g.awayTeamId ?? '—' }}</span>
-                          </p>
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-2">
-                          <span
-                            class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
-                            :class="displayStatus(g.status) === 'FINAL'
-                              ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
-                              : displayStatus(g.status) === 'CANCELLED'
-                                ? 'border-rose-400/40 bg-rose-500/10 text-rose-200'
-                                : 'border-cyan-400/40 bg-cyan-500/10 text-cyan-200'"
-                          >
-                            <span
-                              class="h-1.5 w-1.5 rounded-full"
-                              :class="displayStatus(g.status) === 'FINAL'
-                                ? 'bg-emerald-400'
-                                : displayStatus(g.status) === 'CANCELLED'
-                                  ? 'bg-rose-400'
-                                  : 'bg-cyan-400'"
-                            />
-                            {{ displayStatus(g.status) }}
-                          </span>
-
-                          <span
-                            v-if="displayStatus(g.status) === 'FINAL' && g.homeScore != null && g.awayScore != null"
-                            class="text-[11px] font-extrabold text-emerald-200"
-                          >
-                            {{ g.homeScore }} - {{ g.awayScore }}
-                          </span>
-
-                          <button
-                            v-if="displayStatus(g.status) === 'FINAL'"
-                            type="button"
-                            class="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] font-extrabold text-amber-100 hover:bg-amber-500/15"
-                            @click="openEditScore(g)"
-                          >
-                            Corregir score
-                          </button>
-
-                          <button
-                            v-if="displayStatus(g.status) !== 'CANCELLED'"
-                            type="button"
-                            class="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] font-extrabold text-rose-100 hover:bg-rose-500/15 disabled:opacity-50 disabled:cursor-not-allowed"
-                            :disabled="deletingId === g.id"
-                            @click="deleteGame(g)"
-                          >
-                            {{ deletingId === g.id ? 'Borrando…' : (displayStatus(g.status) === 'FINAL' ? 'Eliminar (revertir)' : 'Borrar') }}
-                          </button>
-
-                          <button
-                            v-if="displayStatus(g.status) === 'SCHEDULED'"
-                            type="button"
-                            class="rounded-xl bg-white px-3 py-2 text-[11px] font-extrabold text-slate-900 hover:bg-amber-100"
-                            @click="openFinish(g)"
-                          >
-                            Finalizar
-                          </button>
-                        </div>
-                      </div>
-
-                      <div
-                        v-if="editScorePanelId === g.id"
-                        class="mt-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3"
-                      >
-                        <div class="flex items-center justify-between gap-2">
-                          <p class="text-xs font-semibold text-amber-100">Corregir marcador (recalcula standings)</p>
-                          <button
-                            type="button"
-                            class="text-[11px] font-semibold text-amber-100/80 hover:text-amber-100 underline underline-offset-4"
-                            @click="closeEditScore()"
-                          >
-                            Cerrar
-                          </button>
-                        </div>
-
-                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label class="block text-[11px] font-semibold text-amber-100/80 mb-1">Puntos Local</label>
-                            <input
-                              v-model.number="editHomeScore"
-                              type="number"
-                              min="0"
-                              class="w-full rounded-xl border border-amber-500/30 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                            />
-                          </div>
-
-                          <div>
-                            <label class="block text-[11px] font-semibold text-amber-100/80 mb-1">Puntos Visitante</label>
-                            <input
-                              v-model.number="editAwayScore"
-                              type="number"
-                              min="0"
-                              class="w-full rounded-xl border border-amber-500/30 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
-                            />
-                          </div>
-                        </div>
-
-                        <div class="mt-3 flex flex-col sm:flex-row gap-2 justify-end">
-                          <button
-                            type="button"
-                            class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-slate-900 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                            :disabled="editingScore"
-                            @click="saveEditedScore(g)"
-                          >
-                            {{ editingScore ? 'Guardando…' : 'Actualizar score' }}
-                          </button>
-
-                          <button
-                            type="button"
-                            class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/40 px-4 py-2.5 text-xs font-semibold text-slate-100 hover:border-slate-500"
-                            @click="closeEditScore()"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-
-                        <p v-if="editScoreError" class="mt-2 text-xs text-rose-200">{{ editScoreError }}</p>
-                        <p v-if="editScoreOk" class="mt-2 text-xs text-emerald-200">{{ editScoreOk }}</p>
-                      </div>
-
-                      <div v-if="finishPanelId === g.id" class="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
-                        <div class="flex items-center justify-between gap-2">
-                          <p class="text-xs font-semibold text-emerald-100">Finalizar (guardar como FINAL)</p>
-                          <button
-                            type="button"
-                            class="text-[11px] font-semibold text-emerald-100/80 hover:text-emerald-100 underline underline-offset-4"
-                            @click="closeFinish()"
-                          >
-                            Cerrar
-                          </button>
-                        </div>
-
-                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label class="block text-[11px] font-semibold text-emerald-100/80 mb-1">Puntos Local</label>
-                            <input
-                              v-model.number="finishHomeScore"
-                              type="number"
-                              min="0"
-                              class="w-full rounded-xl border border-emerald-500/30 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                          </div>
-                          <div>
-                            <label class="block text-[11px] font-semibold text-emerald-100/80 mb-1">Puntos Visitante</label>
-                            <input
-                              v-model.number="finishAwayScore"
-                              type="number"
-                              min="0"
-                              class="w-full rounded-xl border border-emerald-500/30 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                          </div>
-                        </div>
-
-                        <div class="mt-4 rounded-xl border border-slate-700 bg-slate-950/40 p-3">
-                          <div class="flex items-center justify-between gap-2">
-                            <div>
-                              <p class="text-xs font-semibold text-slate-100">Estadísticas individuales</p>
-                              <p class="text-[11px] text-slate-400">
-                                INT · TD · PASS_TD · SACK. Jugador: solo seleccionar del roster real.
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-[11px] font-semibold text-slate-100 hover:border-slate-500"
-                              @click="statsOpen = !statsOpen"
-                            >
-                              {{ statsOpen ? 'Ocultar' : 'Agregar' }}
-                            </button>
-                          </div>
-
-                          <div v-if="statsOpen" class="mt-3 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                            <div class="md:col-span-3">
-                              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Tipo</label>
-                              <select
-                                v-model="statDraft.kind"
-                                class="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              >
-                                <option value="TD">TD (Anotación)</option>
-                                <option value="PASS_TD">PASS_TD (Pase de TD)</option>
-                                <option value="INT">INT (Intercepción)</option>
-                                <option value="SACK">SACK</option>
-                              </select>
-                            </div>
-
-                            <div class="md:col-span-2">
-                              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Equipo</label>
-                              <select
-                                v-model="statDraft.side"
-                                class="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              >
-                                <option value="HOME">Local</option>
-                                <option value="AWAY">Visitante</option>
-                              </select>
-                            </div>
-
-                            <div class="md:col-span-5">
-                              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Jugador</label>
-                              <select
-                                :key="rosterSelectKey"
-                                v-model.number="statDraft.playerId"
-                                class="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              >
-                                <option :value="0">— Selecciona jugador —</option>
-                                <option v-for="p in currentRosterOptions" :key="p.id" :value="p.id">
-                                  {{ playerOptionLabel(p) }}
-                                </option>
-                              </select>
-
-                              <p v-if="rosterHint" class="mt-1 text-[11px] text-amber-200">{{ rosterHint }}</p>
-                            </div>
-
-                            <div class="md:col-span-1">
-                              <label class="block text-[11px] font-semibold text-slate-300 mb-1">Qty</label>
-                              <input
-                                v-model.number="statDraft.qty"
-                                type="number"
-                                min="1"
-                                class="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            </div>
-
-                            <div class="md:col-span-1">
-                              <button
-                                type="button"
-                                class="w-full rounded-xl bg-white px-3 py-2.5 text-[11px] font-extrabold text-slate-900 hover:bg-amber-100 disabled:opacity-40"
-                                :disabled="!canAddStat"
-                                @click="addStatForGame(g)"
-                              >
-                                + Add
-                              </button>
-                            </div>
-                          </div>
-
-                          <div v-if="finishStats.length" class="mt-3 space-y-2">
-                            <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                              <span class="text-slate-400">Resumen:</span>
-                              <span class="rounded-full border border-slate-700 bg-slate-900/60 px-2 py-1">
-                                TD: <b class="text-slate-100">{{ countKind('TD') }}</b>
-                              </span>
-                              <span class="rounded-full border border-slate-700 bg-slate-900/60 px-2 py-1">
-                                PASS_TD: <b class="text-slate-100">{{ countKind('PASS_TD') }}</b>
-                              </span>
-                              <span class="rounded-full border border-slate-700 bg-slate-900/60 px-2 py-1">
-                                INT: <b class="text-slate-100">{{ countKind('INT') }}</b>
-                              </span>
-                              <span class="rounded-full border border-slate-700 bg-slate-900/60 px-2 py-1">
-                                SACK: <b class="text-slate-100">{{ countKind('SACK') }}</b>
-                              </span>
-                            </div>
-
-                            <div
-                              v-for="s in finishStats"
-                              :key="s.id"
-                              class="rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 flex items-center justify-between gap-3"
-                            >
-                              <div class="min-w-0">
-                                <p class="text-xs font-semibold text-slate-100 truncate">
-                                  <span class="text-slate-400">[{{ s.kind }}]</span>
-                                  {{ s.playerName }}
-                                  <span v-if="s.jerseyNumber != null" class="text-slate-400">#{{ s.jerseyNumber }}</span>
-                                  <span class="text-slate-400">·</span>
-                                  <span class="text-slate-300">{{ s.side === 'HOME' ? 'Local' : 'Visitante' }}</span>
-                                  <span class="text-slate-400">·</span>
-                                  <span class="text-amber-200 font-extrabold">x{{ s.qty }}</span>
-                                </p>
-                              </div>
-
-                              <button
-                                type="button"
-                                class="rounded-lg border border-slate-700 bg-slate-950/40 px-2 py-1 text-[11px] font-semibold text-slate-100 hover:border-slate-500"
-                                @click="removeStat(g.id, s.id)"
-                              >
-                                Quitar
-                              </button>
-                            </div>
-
-                            <div class="flex items-center justify-end">
-                              <button
-                                type="button"
-                                class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-[11px] font-semibold text-slate-100 hover:border-slate-500"
-                                @click="clearStats(g.id)"
-                              >
-                                Limpiar stats
-                              </button>
-                            </div>
-
-                            <p v-if="statsWarn" class="text-xs text-amber-200">{{ statsWarn }}</p>
-                            <p v-if="statsOk" class="text-xs text-emerald-200">{{ statsOk }}</p>
-                          </div>
-                        </div>
-
-                        <div class="mt-3 flex flex-wrap gap-2 justify-end">
-                          <button
-                            type="button"
-                            class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-slate-900 hover:bg-amber-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                            :disabled="finishing"
-                            @click="finishGame(g)"
-                          >
-                            {{ finishing ? 'Guardando…' : 'Guardar FINAL' }}
-                          </button>
-                        </div>
-
-                        <p v-if="finishError" class="mt-2 text-xs text-rose-200">{{ finishError }}</p>
-                        <p v-if="finishOk" class="mt-2 text-xs text-emerald-200">{{ finishOk }}</p>
-                      </div>
-                    </div>
-
-                    <div class="pt-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                      <p class="text-[11px] text-slate-400">
-                        Página <span class="text-slate-100 font-semibold">{{ currentPage }}</span> de
-                        <span class="text-slate-100 font-semibold">{{ totalPages }}</span>
-                        · Total: <span class="text-slate-100 font-semibold">{{ filteredGamesVm.length }}</span>
-                      </p>
-
-                      <div class="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
-                          :disabled="currentPage === 1"
-                          @click="goToPage(1)"
-                        >
-                          «
-                        </button>
-
-                        <button
-                          type="button"
-                          class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
-                          :disabled="currentPage === 1"
-                          @click="goToPage(currentPage - 1)"
-                        >
-                          ‹
-                        </button>
-
-                        <button
-                          v-for="t in pageTabs"
-                          :key="String(t)"
-                          type="button"
-                          class="rounded-xl border px-3 py-2 text-xs font-extrabold"
-                          :class="t === '…'
-                            ? 'border-transparent bg-transparent text-slate-500 cursor-default'
-                            : (t === currentPage
-                              ? 'border-cyan-400/40 bg-cyan-500/10 text-cyan-200'
-                              : 'border-slate-700 bg-slate-950/40 text-slate-100 hover:border-slate-500')"
-                          :disabled="t === '…'"
-                          @click="t !== '…' && goToPage(t as number)"
-                        >
-                          {{ t }}
-                        </button>
-
-                        <button
-                          type="button"
-                          class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
-                          :disabled="currentPage === totalPages"
-                          @click="goToPage(currentPage + 1)"
-                        >
-                          ›
-                        </button>
-
-                        <button
-                          type="button"
-                          class="rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-xs font-semibold text-slate-100 hover:border-slate-500 disabled:opacity-40"
-                          :disabled="currentPage === totalPages"
-                          @click="goToPage(totalPages)"
-                        >
-                          »
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <p v-if="teamsPending" class="mt-3 text-xs text-slate-400">Cargando equipos…</p>
-              <p v-else-if="teamsError" class="mt-3 text-xs text-rose-300">Error cargando equipos.</p>
-            </div>
-          </section>
         </div>
       </div>
     </section>
@@ -794,1174 +292,755 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, shallowRef, onMounted, onBeforeUnmount } from "vue"
-import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from "#imports"
-import { useAuthz } from "~/composables/useAuthz"
+import { computed, ref, watch, useAsyncData } from "#imports"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
-const JUEVES_LEAGUE_ID = 2
-const JUEVES_SEASON_ID = 3
+type FilterValue = "ALL" | string
 
-const isScrolling = ref(false)
-let scrollTO: ReturnType<typeof setTimeout> | null = null
-let rafId = 0
-
-function kickNoBlur() {
-  if (rafId) return
-  rafId = requestAnimationFrame(() => {
-    rafId = 0
-    if (!isScrolling.value) isScrolling.value = true
-    if (scrollTO) clearTimeout(scrollTO)
-    scrollTO = setTimeout(() => (isScrolling.value = false), 140)
-  })
+type OptionItem = {
+  value: string
+  label: string
 }
 
-function onKeyKick(e: KeyboardEvent) {
-  const keys = ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "]
-  if (keys.includes(e.key)) kickNoBlur()
-}
-
-onMounted(() => {
-  window.addEventListener("wheel", kickNoBlur, { passive: true })
-  window.addEventListener("pointerdown", kickNoBlur, { passive: true })
-  window.addEventListener("touchstart", kickNoBlur, { passive: true })
-  window.addEventListener("touchmove", kickNoBlur, { passive: true })
-  window.addEventListener("keydown", onKeyKick)
-  window.addEventListener("scroll", kickNoBlur, { passive: true })
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener("wheel", kickNoBlur)
-  window.removeEventListener("pointerdown", kickNoBlur)
-  window.removeEventListener("touchstart", kickNoBlur)
-  window.removeEventListener("touchmove", kickNoBlur)
-  window.removeEventListener("keydown", onKeyKick)
-  window.removeEventListener("scroll", kickNoBlur)
-  if (scrollTO) clearTimeout(scrollTO)
-  if (rafId) cancelAnimationFrame(rafId)
-})
-
-const nuxtApp = useNuxtApp()
-const kcReady = useState<boolean>("kcReady", () => false)
-const authz: any = useAuthz()
-
-const isAdmin = computed<boolean>(() => {
-  const v = authz?.isAdmin
-  if (typeof v === "boolean") return v
-  if (v && typeof v === "object" && "value" in v) return !!v.value
-
-  const kc = (nuxtApp as any).$kc
-  const roles: string[] =
-    kc?.tokenParsed?.realm_access?.roles ||
-    kc?.tokenParsed?.resource_access?.["nuxt-app"]?.roles ||
-    []
-  return roles.map((r) => String(r).toLowerCase()).includes("admin")
-})
-
-function normalizeApiBase(v: string) {
-  const s = String(v || "").trim().replace(/\/+$/, "")
-  if (!s) return "https://tocho5-api.tochero5.mx/api"
-  return s.endsWith("/api") ? s : `${s}/api`
-}
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const kc = (nuxtApp as any).$kc
-
-  try {
-    await kc?.updateToken?.(30)
-  } catch {}
-
-  const token = kc?.token as string | undefined
-  const headers: Record<string, string> = {}
-  if (token) headers.Authorization = `Bearer ${token}`
-  return headers
-}
-
-const config = useRuntimeConfig()
-const API_BASE = normalizeApiBase((config.public as any)?.apiBase || "https://tocho5-api.tochero5.mx")
-
-const API_GAMES = `${API_BASE}/games`
-const API_GAMES_FINAL = `${API_BASE}/gamesFinal`
-const API_TEAMS = `${API_BASE}/teams`
-const API_TEAMS_LIST = `${API_BASE}/teams/list`
-const API_CATEGORIES = `${API_BASE}/categories`
-const API_PARTIDO_UPDATE = `${API_BASE}/partido/update`
-const API_TEAM_PLAYERS = (teamId: number) => `${API_BASE}/teams/${teamId}/players`
-const PLAYER_STATS_URL = (gameId: number) => `${API_BASE}/games/${gameId}/player-stats`
-const API_GAME_DELETE_SCHEDULED = (gameId: number) => `${API_BASE}/games/${gameId}`
-const API_GAME_DELETE_ADMIN = (gameId: number) => `${API_BASE}/admin/games/${gameId}`
-const API_GAME_EDIT_SCORE = (gameId: number) => `${API_BASE}/admin/games/${gameId}/score`
-
-type Category = { id: number; name: string; code: string; gender: string }
-type Team = {
-  teamId: number
-  name: string
-  shortName?: string
-  logoUrl?: string | null
-  categoryId?: number | null
-  category?: Category | null
-  leagueId?: number | null
-  seasonId?: number | null
-  _search?: string
-}
-type GameVM = {
-  id: number
-  status: string
-  match_date_utc: string
-  dateLabel: string
-  timeLabel: string
-  homeName: string
-  awayName: string
-  categoryLabel: string
-  seasonId?: number
-  leagueId?: number
-  categoryId?: number
-  homeTeamId?: number
-  awayTeamId?: number
-  jornada?: number
-  field?: string
-  homeScore?: number | null
-  awayScore?: number | null
-  _search?: string
-}
-type Player = { id: number; fullName: string; jerseyNumber: number | null; photoUrl?: string | null }
-type StatKind = "TD" | "PASS_TD" | "INT" | "SACK"
-type StatSide = "HOME" | "AWAY"
-type StatEntry = {
+type UiMatchCard = {
   id: string
-  kind: StatKind
-  side: StatSide
-  playerId: number
-  playerName: string
-  jerseyNumber: number | null
-  qty: number
+  timestamp: number
+  date: string
+  time: string
+  venue: string
+  home: string
+  away: string
+  homeLogo?: string
+  awayLogo?: string
+  homeShort?: string
+  awayShort?: string
+  seasonValue: string
+  seasonLabel: string
+  categoryValue: string
+  categoryLabel: string
+  branchValue: string
+  branchLabel: string
+  roundValue: string
+  roundLabel: string
+  status: string
+  leagueId: number | null
 }
 
-function unwrapList<T>(x: any): T[] {
-  if (Array.isArray(x)) return x
-  if (x && Array.isArray(x.content)) return x.content
-  if (x && Array.isArray(x.items)) return x.items
-  if (x && Array.isArray(x.data)) return x.data
-  return []
-}
+const JUEVES_LEAGUE_ID = 2
+const ITEMS_PER_PAGE = 10
 
-function upper(v: any) {
-  return String(v ?? "").trim().toUpperCase()
-}
+const search = ref("")
+const currentPage = ref(1)
 
-function displayStatus(v: any): "SCHEDULED" | "FINAL" | "CANCELLED" {
-  const s = upper(v)
-  if (s === "FINAL" || s === "FINISHED") return "FINAL"
-  if (s === "CANCELLED") return "CANCELLED"
-  return "SCHEDULED"
-}
+const selectedSeason = ref<FilterValue>("ALL")
+const selectedCategory = ref<FilterValue>("ALL")
+const selectedBranch = ref<FilterValue>("ALL")
+const selectedRound = ref<FilterValue>("ALL")
 
-function initials(text: string) {
-  const s = String(text || "").trim()
-  if (!s) return "T5"
-  const parts = s.split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase()).join("")
-}
+const backendMatchQuery = computed(() => ({
+  leagueId: JUEVES_LEAGUE_ID,
+  code: selectedBranch.value === "ALL" ? undefined : selectedBranch.value,
+  gender: selectedCategory.value === "ALL" ? undefined : selectedCategory.value,
+}))
 
-function localToUtcIso(date: string, time: string) {
-  const d = new Date(`${date}T${time}:00`)
-  return d.toISOString()
-}
-
-function niceGender(g: string) {
-  const x = String(g || "").toUpperCase()
-  if (x === "VARONIL") return "Varonil"
-  if (x === "FEMENIL") return "Femenil"
-  if (x === "MIXTO") return "Mixto"
-  return g
-}
-
-function categoryLabel(c: Category) {
-  return `${c.name} · ${niceGender(c.gender)} · ${String(c.code).toUpperCase()}`
-}
-
-function debounceLowerRef(src: any, ms: number) {
-  const out = ref("")
-  let t: ReturnType<typeof setTimeout> | null = null
-  watch(
-    src,
-    (v) => {
-      if (t) clearTimeout(t)
-      t = setTimeout(() => {
-        out.value = String(v || "").trim().toLowerCase()
-      }, ms)
-    },
-    { immediate: true }
-  )
-  return out
-}
-
-function toNumOrNull(value: any): number | null {
-  const n = Number(value)
-  return Number.isFinite(n) ? n : null
-}
-
-function ensureUtc(iso: string) {
-  const s = String(iso ?? "").trim()
-  if (!s) return s
-  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
-  return `${s}Z`
-}
-
-const dateEl = ref<HTMLInputElement | null>(null)
-const timeEl = ref<HTMLInputElement | null>(null)
-
-function openNativePicker(elOrRef: any) {
-  const el: HTMLInputElement | null =
-    elOrRef && typeof elOrRef === "object" && "value" in elOrRef ? elOrRef.value : elOrRef
-  if (!el) return
-  ;(el as any).showPicker?.()
-  el.focus()
-}
-
-const categories = shallowRef<Category[]>([])
-const categoryById = shallowRef<Map<number, Category>>(new Map())
-
-const teams = shallowRef<Team[]>([])
-const teamsById = shallowRef<Map<number, Team>>(new Map())
-const teamsByCategory = shallowRef<Map<number, Team[]>>(new Map())
-
-const gamesVm = shallowRef<GameVM[]>([])
+const { data: categoriesRaw } = await useAsyncData(
+  "jueves-categories-page-public",
+  async () => {
+    return await $fetch<any>("/api/t5/categories", {
+      query: { leagueId: JUEVES_LEAGUE_ID },
+    }).catch(() => [])
+  }
+)
 
 const {
-  data: catData,
-  refresh: refreshCategories,
-} = useAsyncData(
-  "jueves-admin-categories-lite-fast",
+  data: gamesData,
+  pending: pendingGames,
+  error: gamesError,
+} = await useAsyncData(
+  "jueves-partidos-page-fixed-season-filter",
   async () => {
-    try {
-      return unwrapList<any>(
-        await $fetch(API_CATEGORIES, {
-          query: { leagueId: JUEVES_LEAGUE_ID },
-        })
-      )
-    } catch {
-      return []
-    }
-  },
-  { server: false }
-)
+    const query = backendMatchQuery.value
 
-watch(
-  catData,
-  () => {
-    const list = unwrapList<any>(catData.value)
-    const arr: Category[] = list
-      .map((x) => ({
-        id: Number(x.id ?? x.categoryId ?? x.category_id),
-        name: String(x.name ?? x.categoryName ?? `Categoría ${x.id ?? x.categoryId ?? x.category_id}`),
-        code: String(x.code ?? ""),
-        gender: String(x.gender ?? ""),
-      }))
-      .filter((c) => Number.isFinite(c.id))
-
-    categories.value = arr
-
-    const m = new Map<number, Category>()
-    for (const c of arr) m.set(c.id, c)
-    categoryById.value = m
-  },
-  { immediate: true }
-)
-
-async function fetchTeamsSmart() {
-  try {
-    return unwrapList<any>(
-      await $fetch(API_TEAMS_LIST, {
-        query: { leagueId: JUEVES_LEAGUE_ID },
-      })
-    )
-  } catch {
-    return unwrapList<any>(
-      await $fetch(API_TEAMS, {
-        query: { leagueId: JUEVES_LEAGUE_ID },
-      })
-    )
-  }
-}
-
-const { data: teamsRaw, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
-  "jueves-admin-teams-lite-fast",
-  fetchTeamsSmart,
-  { server: false }
-)
-const teamsError = computed(() => !!teamsErr.value)
-
-watch(
-  [teamsRaw, categoryById],
-  () => {
-    const list = unwrapList<any>(teamsRaw.value)
-    const catMap = categoryById.value
-    const byId = new Map<number, Team>()
-
-    for (const x of list) {
-      const teamId = Number(x.teamId ?? x.team_id ?? x.id)
-      if (!Number.isFinite(teamId) || teamId <= 0) continue
-
-      const name = String(x.name ?? x.teamName ?? "Equipo")
-      const shortName = String(x.shortName ?? x.short_name ?? "")
-      const logoUrl = x.logoUrl ?? x.logo_url ?? x.photoUrl ?? x.photo_url ?? null
-
-      const categoryId = toNumOrNull(x.categoryId ?? x.category_id ?? x.category?.id)
-      const leagueId = toNumOrNull(
-        x.leagueId ??
-        x.league_id ??
-        x.league?.league_id ??
-        x.league?.leagueId ??
-        x.league?.id
-      )
-      const seasonId = toNumOrNull(
-        x.seasonId ??
-        x.season_id ??
-        x.season?.id
-      )
-
-      const codeLoose = String(x.code ?? x.categoryCode ?? x.category?.code ?? "").trim()
-      const genderLoose = String(x.gender ?? x.categoryGender ?? x.category?.gender ?? "").trim()
-      const nameLoose = String(x.categoryName ?? x.category?.name ?? "").trim()
-      const catFromMap = categoryId ? catMap.get(categoryId) : null
-
-      const mergedCat: Category | null =
-        categoryId || codeLoose || genderLoose || nameLoose || catFromMap
-          ? {
-              id: Number(categoryId ?? catFromMap?.id ?? 0) || 0,
-              name: String(nameLoose || catFromMap?.name || ""),
-              code: String(codeLoose || catFromMap?.code || ""),
-              gender: String(genderLoose || catFromMap?.gender || ""),
-            }
-          : null
-
-      const leagueOk = leagueId === null || leagueId === JUEVES_LEAGUE_ID
-      const seasonOk = seasonId === null || seasonId === JUEVES_SEASON_ID
-      if (!leagueOk || !seasonOk) continue
-
-      byId.set(teamId, {
-        teamId,
-        name,
-        shortName,
-        logoUrl,
-        categoryId,
-        category: mergedCat,
-        leagueId,
-        seasonId,
-        _search: `${name} ${shortName}`.toLowerCase(),
-      })
-    }
-
-    const arr = Array.from(byId.values())
-    teams.value = arr
-
-    const teamsMap = new Map<number, Team>()
-    const byCat = new Map<number, Team[]>()
-
-    for (const t of arr) {
-      teamsMap.set(t.teamId, t)
-      const c = Number(t.categoryId || 0)
-      if (c) {
-        if (!byCat.has(c)) byCat.set(c, [])
-        byCat.get(c)!.push(t)
-      }
-    }
-
-    teamsById.value = teamsMap
-    teamsByCategory.value = byCat
-  },
-  { immediate: true }
-)
-
-const { data: gamesRaw, pending: gamesPending, error: gamesErr, refresh: refreshGames } = useAsyncData(
-  "jueves-admin-games-lite-fast",
-  async () => {
-    const [scheduled, finals] = await Promise.all([
-      $fetch<any>(API_GAMES, {
-        query: { leagueId: JUEVES_LEAGUE_ID },
+    const [scheduled, finished] = await Promise.all([
+      $fetch<any>("/api/t5/games", {
+        query: {
+          leagueId: query.leagueId,
+          code: query.code,
+          gender: query.gender,
+        },
       }).catch(() => []),
-      $fetch<any>(API_GAMES_FINAL, {
-        query: { leagueId: JUEVES_LEAGUE_ID, all: true, size: 500 },
+      $fetch<any>("/api/t5/gamesFinal", {
+        query: {
+          leagueId: query.leagueId,
+          code: query.code,
+          gender: query.gender,
+          all: true,
+        },
       }).catch(() => []),
     ])
 
-    const all = [...unwrapList<any>(scheduled), ...unwrapList<any>(finals)]
-    const map = new Map<number, any>()
+    const merged = [...toList(scheduled), ...toList(finished)]
+    const unique = new Map<string, UiMatchCard>()
 
-    for (const g of all) {
-      const id = Number(g.game_id ?? g.gameId ?? g.id)
-      if (!id) continue
-      map.set(id, g)
+    for (const game of merged) {
+      const parsed = toUiMatchCard(game)
+
+      if (!parsed.id) continue
+      if (parsed.leagueId !== null && parsed.leagueId !== JUEVES_LEAGUE_ID) continue
+
+      const canonicalSeason = canonicalSeasonKey(parsed.seasonValue, parsed.seasonLabel)
+
+      // Excluir WT por completo de jueves
+      if (!canonicalSeason || canonicalSeason === "WT") continue
+
+      const normalizedParsed: UiMatchCard = {
+        ...parsed,
+        seasonValue: canonicalSeason,
+        seasonLabel: canonicalSeasonLabel(parsed.seasonLabel),
+      }
+
+      const existing = unique.get(normalizedParsed.id)
+
+      if (!existing) {
+        unique.set(normalizedParsed.id, normalizedParsed)
+        continue
+      }
+
+      if (normalizeStatus(existing.status) !== "FINAL" && normalizeStatus(normalizedParsed.status) === "FINAL") {
+        unique.set(normalizedParsed.id, normalizedParsed)
+      }
     }
 
-    return Array.from(map.values())
+    return Array.from(unique.values()).sort((a, b) => a.timestamp - b.timestamp)
   },
-  { server: false }
+  {
+    watch: [backendMatchQuery],
+  }
 )
-const gamesError = computed(() => !!gamesErr.value)
 
-watch(
-  [gamesRaw, categoryById, teamsById],
-  () => {
-    const list = unwrapList<any>(gamesRaw.value)
-    const catMap = categoryById.value
-    const validTeams = teamsById.value
-    const arr: GameVM[] = []
+const matches = computed<UiMatchCard[]>(() => gamesData.value ?? [])
 
-    for (const g of list) {
-      const id = Number(g.game_id ?? g.gameId ?? g.id)
-      if (!id) continue
+const seasonOptions = computed<OptionItem[]>(() => {
+  const map = new Map<string, OptionItem>()
 
-      const iso = ensureUtc(String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? g.startTime ?? ""))
-      const status = String(g.status ?? "SCHEDULED")
+  for (const match of matches.value) {
+    const key = canonicalSeasonKey(match.seasonValue, match.seasonLabel)
+    const label = canonicalSeasonLabel(match.seasonLabel)
 
-      const d = iso ? new Date(iso) : new Date()
-      const dateLabel = d.toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "2-digit" })
-      const timeLabel = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
+    if (!key || !label) continue
+    if (isExcludedSeasonLabel(label)) continue
 
-      const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? g.homeTeam?.id ?? 0) || undefined
-      const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? g.awayTeam?.id ?? 0) || undefined
-
-      const homeName = String(g.home_team ?? g.homeTeam?.name ?? validTeams.get(homeTeamId || 0)?.name ?? "Local")
-      const awayName = String(g.away_team ?? g.awayTeam?.name ?? validTeams.get(awayTeamId || 0)?.name ?? "Visitante")
-
-      const categoryId = Number(g.category_id ?? g.categoryId ?? g.category?.id ?? 0) || undefined
-      const cat = categoryId ? catMap.get(categoryId) : null
-      const catName = g.category?.name ?? cat?.name
-      const catGender = g.category?.gender ?? cat?.gender
-      const catCode = g.category?.code ?? cat?.code
-
-      const categoryLabelStr = [catName, catGender ? niceGender(catGender) : null, catCode ? String(catCode).toUpperCase() : null]
-        .filter(Boolean)
-        .join(" · ")
-
-      const venue = String(g.venue ?? g.field ?? g.location ?? "")
-      const jornada = Number(
-        g.jornada ??
-        g.matchday ??
-        g.round ??
-        g.week ??
-        g.roundNumber ??
-        0
-      ) || undefined
-
-      const seasonId = toNumOrNull(g.season_id ?? g.seasonId ?? g.season?.id) ?? undefined
-      const leagueId = toNumOrNull(
-        g.league_id ??
-        g.leagueId ??
-        g.league?.league_id ??
-        g.league?.leagueId ??
-        g.league?.id
-      ) ?? undefined
-
-      const leagueOk =
-        leagueId === undefined ||
-        leagueId === JUEVES_LEAGUE_ID ||
-        (!!homeTeamId && !!awayTeamId && validTeams.has(homeTeamId) && validTeams.has(awayTeamId))
-
-      const seasonOk =
-        seasonId === undefined ||
-        seasonId === JUEVES_SEASON_ID ||
-        (!!homeTeamId && !!awayTeamId && validTeams.has(homeTeamId) && validTeams.has(awayTeamId))
-
-      if (!leagueOk || !seasonOk) continue
-
-      arr.push({
-        id,
-        status,
-        match_date_utc: iso,
-        dateLabel,
-        timeLabel,
-        homeName,
-        awayName,
-        categoryLabel: categoryLabelStr,
-        seasonId,
-        leagueId,
-        categoryId,
-        homeTeamId,
-        awayTeamId,
-        jornada,
-        field: venue,
-        homeScore: g.homeScore ?? g.home_score ?? null,
-        awayScore: g.awayScore ?? g.away_score ?? null,
-        _search: `${homeName} ${awayName}`.toLowerCase(),
+    if (!map.has(key)) {
+      map.set(key, {
+        value: key,
+        label,
       })
     }
+  }
 
-    arr.sort((a, b) => {
-      const da = a.match_date_utc ? new Date(a.match_date_utc).getTime() : 0
-      const db = b.match_date_utc ? new Date(b.match_date_utc).getTime() : 0
-      return da - db
+  return Array.from(map.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
+})
+
+const categoryOptions = computed<OptionItem[]>(() => {
+  const fromApi = toList(categoriesRaw.value)
+    .map((category: any) => {
+      const gender = normalizeGenderValue(firstValue(category, ["gender"]))
+      if (!gender) return null
+
+      return {
+        value: gender,
+        label: formatGenderLabel(gender),
+      }
     })
+    .filter(Boolean) as OptionItem[]
 
-    gamesVm.value = arr
+  const fromRows = matches.value
+    .filter((m) => m.categoryValue && m.categoryLabel)
+    .map((m) => ({
+      value: m.categoryValue,
+      label: m.categoryLabel,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
+})
+
+const branchOptions = computed<OptionItem[]>(() => {
+  const fromApi = toList(categoriesRaw.value)
+    .map((category: any) => {
+      const code = normalizeCodeValue(firstValue(category, ["code"]))
+      if (!code) return null
+
+      return {
+        value: code,
+        label: code,
+      }
+    })
+    .filter(Boolean) as OptionItem[]
+
+  const fromRows = matches.value
+    .filter((m) => m.branchValue && m.branchLabel)
+    .map((m) => ({
+      value: m.branchValue,
+      label: m.branchLabel,
+    }))
+
+  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
+    a.label.localeCompare(b.label, "es")
+  )
+})
+
+const roundOptions = computed<OptionItem[]>(() => {
+  return uniqueOptions(
+    matches.value
+      .filter((m) => m.roundValue)
+      .map((m) => ({
+        value: m.roundValue,
+        label: m.roundLabel,
+      }))
+  ).sort(sortRoundOptions)
+})
+
+const filteredMatches = computed<UiMatchCard[]>(() => {
+  const q = normalizeText(search.value)
+
+  return matches.value.filter((m) => {
+    const normalizedSeason = canonicalSeasonKey(m.seasonValue, m.seasonLabel)
+
+    const matchesSeason =
+      selectedSeason.value === "ALL" || normalizedSeason === selectedSeason.value
+
+    const matchesCategory =
+      selectedCategory.value === "ALL" || m.categoryValue === selectedCategory.value
+
+    const matchesBranch =
+      selectedBranch.value === "ALL" || m.branchValue === selectedBranch.value
+
+    const matchesRound =
+      selectedRound.value === "ALL" || m.roundValue === selectedRound.value
+
+    const matchesSearch =
+      !q || normalizeText(`${m.home} ${m.away} ${m.venue || ""}`).includes(q)
+
+    return matchesSeason && matchesCategory && matchesBranch && matchesRound && matchesSearch
+  })
+})
+
+const totalMatchPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredMatches.value.length / ITEMS_PER_PAGE))
+})
+
+const paginatedMatches = computed<UiMatchCard[]>(() => {
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
+  return filteredMatches.value.slice(start, start + ITEMS_PER_PAGE)
+})
+
+const matchRangeStart = computed(() => {
+  if (!filteredMatches.value.length) return 0
+  return (currentPage.value - 1) * ITEMS_PER_PAGE + 1
+})
+
+const matchRangeEnd = computed(() => {
+  return Math.min(currentPage.value * ITEMS_PER_PAGE, filteredMatches.value.length)
+})
+
+const visibleMatchPages = computed<number[]>(() => {
+  const total = totalMatchPages.value
+  const current = currentPage.value
+
+  if (total <= 5) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+
+  let start = Math.max(1, current - 2)
+  let end = Math.min(total, current + 2)
+
+  if (current <= 3) {
+    start = 1
+    end = 5
+  }
+
+  if (current >= total - 2) {
+    start = total - 4
+    end = total
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
+watch(
+  [search, selectedSeason, selectedCategory, selectedBranch, selectedRound],
+  () => {
+    currentPage.value = 1
+  }
+)
+
+watch(
+  seasonOptions,
+  (options) => {
+    if (
+      selectedSeason.value !== "ALL" &&
+      !options.some((option) => option.value === selectedSeason.value)
+    ) {
+      selectedSeason.value = "ALL"
+    }
   },
   { immediate: true }
 )
 
-const editingId = ref<number | null>(null)
-const homeTeamId = ref<number | null>(null)
-const awayTeamId = ref<number | null>(null)
-
-const homeTeam = computed(() => (homeTeamId.value ? teamsById.value.get(homeTeamId.value) || null : null))
-const awayTeam = computed(() => (awayTeamId.value ? teamsById.value.get(awayTeamId.value) || null : null))
-
-const form = ref({
-  seasonId: JUEVES_SEASON_ID,
-  categoryId: 0,
-  date: "",
-  time: "",
-  jornada: 0,
-  field: "",
+watch(roundOptions, (options) => {
+  if (
+    selectedRound.value !== "ALL" &&
+    !options.some((option) => option.value === selectedRound.value)
+  ) {
+    selectedRound.value = "ALL"
+  }
 })
 
-const catHint = computed(() => {
-  const c = categoryById.value.get(Number(form.value.categoryId))
-  return c ? categoryLabel(c) : ""
+watch(totalMatchPages, (pages) => {
+  if (currentPage.value > pages) currentPage.value = pages
 })
 
-const saving = ref(false)
-const formError = ref("")
-const formOk = ref("")
-
-function clearForm() {
-  editingId.value = null
-  homeTeamId.value = null
-  awayTeamId.value = null
-  homeInput.value = ""
-  awayInput.value = ""
-  homeOpen.value = false
-  awayOpen.value = false
-  form.value = { seasonId: JUEVES_SEASON_ID, categoryId: 0, date: "", time: "", jornada: 0, field: "" }
-  formError.value = ""
-  formOk.value = ""
+function goToMatchPage(page: number) {
+  currentPage.value = Math.min(Math.max(page, 1), totalMatchPages.value)
 }
 
-function validateForm() {
-  if (!form.value.categoryId || form.value.categoryId < 1) return "Selecciona categoría del partido."
-  if (!homeTeamId.value) return "Selecciona equipo Local."
-  if (!awayTeamId.value) return "Selecciona equipo Visitante."
-  if (homeTeamId.value === awayTeamId.value) return "Local y Visitante no pueden ser el mismo equipo."
-  if (!form.value.date) return "Falta la fecha."
-  if (!form.value.time) return "Falta la hora."
-  if (!form.value.jornada || Number(form.value.jornada) < 1) return "Falta la jornada."
+function resetFilters() {
+  selectedSeason.value = "ALL"
+  selectedCategory.value = "ALL"
+  selectedBranch.value = "ALL"
+  selectedRound.value = "ALL"
+  search.value = ""
+  currentPage.value = 1
+}
+
+function getTeamInitials(name: string) {
+  return String(name || "")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+}
+
+function statusLabel(status: string) {
+  const normalized = normalizeStatus(status)
+  if (normalized === "FINAL") return "Finalizado"
+  if (normalized === "CANCELLED") return "Cancelado"
+  return "Programado"
+}
+
+function statusPillClass(status: string) {
+  const normalized = normalizeStatus(status)
+
+  if (normalized === "FINAL") {
+    return "border border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+  }
+
+  if (normalized === "CANCELLED") {
+    return "border border-rose-400/20 bg-rose-400/10 text-rose-200"
+  }
+
+  return "border border-sky-400/20 bg-sky-400/10 text-sky-200"
+}
+
+function toUiMatchCard(game: any): UiMatchCard {
+  const startRaw = firstValue(game, [
+    "startTime",
+    "dateTime",
+    "kickoff",
+    "gameDate",
+    "date",
+    "scheduledAt",
+    "match_date_utc",
+    "matchDateUtc",
+  ])
+
+  const { timestamp, date, time } = formatDateParts(startRaw)
+
+  const home = firstValue(game, [
+    "homeTeam.name",
+    "home_team.name",
+    "home.name",
+    "homeName",
+    "localTeam.name",
+    "teamHome.name",
+    "home_team",
+  ]) || "Local"
+
+  const away = firstValue(game, [
+    "awayTeam.name",
+    "away_team.name",
+    "away.name",
+    "awayName",
+    "visitorTeam.name",
+    "teamAway.name",
+    "away_team",
+  ]) || "Visitante"
+
+  const seasonInfo = resolveSeasonInfo(game)
+
+  const branchValue = normalizeCodeValue(
+    firstValue(game, [
+      "category.code",
+      "categoryCode",
+      "code",
+      "division.code",
+      "branch.code",
+      "rama.code",
+    ])
+  )
+
+  const categoryValue = normalizeGenderValue(
+    firstValue(game, [
+      "category.gender",
+      "gender",
+      "categoryGender",
+      "division.gender",
+      "rama.gender",
+    ])
+  )
+
+  const rawRound = firstValue(game, [
+    "roundLabel",
+    "round",
+    "roundNumber",
+    "week",
+    "weekNumber",
+    "jornada",
+    "jornada.numero",
+    "matchday",
+    "gameDay",
+  ])
+
+  const roundValue = normalizeRoundValue(rawRound)
+  const roundLabel = formatRoundLabel(rawRound)
+
+  const status = normalizeStatus(
+    firstValue(game, ["status", "gameStatus", "matchStatus"]) || "SCHEDULED"
+  )
+
+  return {
+    id: String(firstValue(game, ["game_id", "gameId", "id"]) || `${home}-${away}-${timestamp}`),
+    timestamp,
+    date,
+    time,
+    venue: firstValue(game, ["venue", "field", "location", "court", "stadium"]),
+    home,
+    away,
+    homeLogo: firstValue(game, [
+      "homeTeam.logoUrl",
+      "homeTeam.logo",
+      "home_team.logo_url",
+      "home_team.logoUrl",
+      "home.logoUrl",
+      "localTeam.logoUrl",
+      "local.logoUrl",
+    ]),
+    awayLogo: firstValue(game, [
+      "awayTeam.logoUrl",
+      "awayTeam.logo",
+      "away_team.logo_url",
+      "away_team.logoUrl",
+      "away.logoUrl",
+      "visitorTeam.logoUrl",
+      "visitor.logoUrl",
+    ]),
+    homeShort: firstValue(game, [
+      "homeTeam.shortName",
+      "home_team.short_name",
+      "home.shortName",
+      "localTeam.shortName",
+    ]),
+    awayShort: firstValue(game, [
+      "awayTeam.shortName",
+      "away_team.short_name",
+      "away.shortName",
+      "visitorTeam.shortName",
+    ]),
+    seasonValue: seasonInfo.value,
+    seasonLabel: seasonInfo.label,
+    categoryValue,
+    categoryLabel: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",
+    branchValue,
+    branchLabel: branchValue || "Sin rama",
+    roundValue,
+    roundLabel,
+    status,
+    leagueId: firstNumber(game, [
+      "leagueId",
+      "league_id",
+      "league.league_id",
+      "league.leagueId",
+      "league.id",
+    ]),
+  }
+}
+
+function resolveSeasonInfo(game: any) {
+  const seasonId = firstNumber(game, [
+    "season.id",
+    "seasonId",
+    "temporada.id",
+    "season_id",
+  ])
+
+  const rawLabel = firstValue(game, [
+    "season.name",
+    "seasonName",
+    "season.label",
+    "season.title",
+    "temporada.nombre",
+    "temporada.name",
+    "temporada",
+    "season",
+  ])
+
+  const normalized = normalizeText(rawLabel)
+
+  if (normalized === "wt" || normalized === "temporada wt") {
+    return {
+      value: "WT",
+      label: "WT",
+    }
+  }
+
+  if (
+    seasonId === 3 ||
+    normalized === "nocturna" ||
+    normalized === "liga nocturna" ||
+    normalized === "temporada nocturna" ||
+    normalized === "temporada 3" ||
+    normalized === ""
+  ) {
+    return {
+      value: "NOCTURNA",
+      label: "nocturna",
+    }
+  }
+
+  if (seasonId !== null && seasonId > 0) {
+    return {
+      value: `SEASON_${seasonId}`,
+      label: rawLabel || `Temporada ${seasonId}`,
+    }
+  }
+
+  if (rawLabel) {
+    return {
+      value: `LABEL_${normalizeText(rawLabel)}`,
+      label: rawLabel,
+    }
+  }
+
+  return {
+    value: "NOCTURNA",
+    label: "nocturna",
+  }
+}
+
+function canonicalSeasonKey(value: string, label: string) {
+  const normalizedLabel = normalizeText(label)
+  const normalizedValue = normalizeText(value)
+
+  if (
+    normalizedValue === "nocturna" ||
+    normalizedLabel === "nocturna" ||
+    normalizedLabel === "liga nocturna" ||
+    normalizedLabel === "temporada nocturna" ||
+    normalizedLabel === "temporada 3"
+  ) {
+    return "NOCTURNA"
+  }
+
+  if (
+    normalizedValue === "wt" ||
+    normalizedLabel === "wt" ||
+    normalizedLabel === "temporada wt"
+  ) {
+    return "WT"
+  }
+
+  return String(value || "").trim()
+}
+
+function canonicalSeasonLabel(label: string) {
+  const normalizedLabel = normalizeText(label)
+
+  if (
+    normalizedLabel === "nocturna" ||
+    normalizedLabel === "liga nocturna" ||
+    normalizedLabel === "temporada nocturna" ||
+    normalizedLabel === "temporada 3" ||
+    normalizedLabel === ""
+  ) {
+    return "nocturna"
+  }
+
+  if (normalizedLabel === "wt" || normalizedLabel === "temporada wt") {
+    return "WT"
+  }
+
+  return String(label || "").trim()
+}
+
+function isExcludedSeasonLabel(label: string) {
+  const normalizedLabel = normalizeText(label)
+  return normalizedLabel === "wt" || normalizedLabel === "temporada wt"
+}
+
+function toList(value: any): any[] {
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.content)) return value.content
+  if (Array.isArray(value?.items)) return value.items
+  if (Array.isArray(value?.data)) return value.data
+  return []
+}
+
+function uniqueOptions(items: OptionItem[]) {
+  const map = new Map<string, string>()
+
+  for (const item of items) {
+    const value = String(item?.value || "").trim()
+    const label = String(item?.label || "").trim()
+
+    if (!value || !label) continue
+    if (!map.has(value)) map.set(value, label)
+  }
+
+  return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
+}
+
+function sortRoundOptions(a: OptionItem, b: OptionItem) {
+  const numA = extractRoundNumber(a.label)
+  const numB = extractRoundNumber(b.label)
+
+  if (numA !== null && numB !== null) return numA - numB
+  if (numA !== null) return -1
+  if (numB !== null) return 1
+
+  return a.label.localeCompare(b.label, "es")
+}
+
+function extractRoundNumber(value: string) {
+  const match = String(value || "").match(/(\d+)/)
+  return match ? Number(match[1]) : null
+}
+
+function formatRoundLabel(raw: unknown) {
+  const clean = String(raw || "").trim()
+
+  if (!clean) return "Sin jornada"
+
+  const normalized = normalizeRoundValue(clean)
+
+  if (/^\d+$/.test(normalized)) {
+    return `J${normalized}`
+  }
+
+  if (clean.toLowerCase().startsWith("jornada")) {
+    return clean
+  }
+
+  return clean
+}
+
+function normalizeRoundValue(raw: unknown) {
+  const clean = String(raw || "").trim()
+  if (!clean) return ""
+  const normalized = normalizeText(clean).replace(/^jornada\s+/, "").trim()
+  return normalized.toUpperCase()
+}
+
+function formatGenderLabel(value: string) {
+  const normalized = normalizeGenderValue(value)
+
+  if (normalized === "VARONIL") return "Varonil"
+  if (normalized === "FEMENIL") return "Femenil"
+  if (normalized === "MIXTO") return "Mixto"
+
+  return value
+}
+
+function normalizeGenderValue(value: unknown) {
+  const normalized = normalizeText(String(value || "")).toUpperCase()
+
+  if (!normalized) return ""
+  if (normalized === "MASCULINO" || normalized === "MALE") return "VARONIL"
+  if (normalized === "FEMENINO" || normalized === "FEMALE") return "FEMENIL"
+
+  return normalized
+}
+
+function normalizeCodeValue(value: unknown) {
+  return String(value || "").trim().toUpperCase()
+}
+
+function normalizeStatus(value: unknown) {
+  const normalized = String(value || "").trim().toUpperCase()
+  if (normalized === "FINISHED") return "FINAL"
+  return normalized || "SCHEDULED"
+}
+
+function normalizeText(value: string) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim()
+}
+
+function firstValue(obj: any, paths: string[]) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return String(value).trim()
+    }
+  }
   return ""
 }
 
-async function saveGame() {
-  formError.value = ""
-  formOk.value = ""
-  const msg = validateForm()
-  if (msg) return (formError.value = msg)
+function firstNumber(obj: any, paths: string[]) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value === null || value === undefined || String(value).trim() === "") continue
 
-  saving.value = true
-  try {
-    const isoUtc = localToUtcIso(form.value.date, form.value.time)
-    const seasonId = JUEVES_SEASON_ID
-    const isEdit = !!editingId.value
-
-    const payloadCreate: any = {
-      season_id: seasonId,
-      seasonId,
-      category_id: form.value.categoryId,
-      categoryId: form.value.categoryId,
-      home_team_id: homeTeamId.value,
-      homeTeamId: homeTeamId.value,
-      away_team_id: awayTeamId.value,
-      awayTeamId: awayTeamId.value,
-      match_date_utc: isoUtc,
-      matchDateUtc: isoUtc,
-      round_label: `J${Number(form.value.jornada)}`,
-      roundLabel: `J${Number(form.value.jornada)}`,
-      venue: form.value.field,
-      field: form.value.field,
-      location: form.value.field,
-    }
-
-    const payloadEdit: any = {
-      game_id: editingId.value,
-      gameId: editingId.value,
-      id: editingId.value,
-      season_id: seasonId,
-      seasonId,
-      category_id: form.value.categoryId,
-      categoryId: form.value.categoryId,
-      match_date_utc: isoUtc,
-      matchDateUtc: isoUtc,
-      status: "SCHEDULED",
-      venue: form.value.field,
-      field: form.value.field,
-      location: form.value.field,
-      jornada: Number(form.value.jornada),
-      home_team_id: homeTeamId.value,
-      homeTeamId: homeTeamId.value,
-      away_team_id: awayTeamId.value,
-      awayTeamId: awayTeamId.value,
-    }
-
-    if (!isEdit) {
-      const resp: any = await $fetch(API_GAMES, { method: "POST", body: payloadCreate })
-      const newId = Number(resp?.gameId ?? resp?.game_id ?? resp?.id ?? 0) || null
-      formOk.value = newId ? `Partido creado (ID ${newId}).` : "Partido creado."
-    } else {
-      await $fetch(API_PARTIDO_UPDATE, { method: "POST", body: payloadEdit })
-      formOk.value = `Partido actualizado (ID ${editingId.value}).`
-    }
-
-    await refreshGames()
-
-    const ok = formOk.value
-    clearForm()
-    formOk.value = ok
-    setTimeout(() => (formOk.value = ""), 1500)
-  } catch (e: any) {
-    formError.value = e?.data?.message || e?.message || "No se pudo guardar. Revisa el backend."
-  } finally {
-    saving.value = false
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
   }
+  return null
 }
 
-function swapTeams() {
-  const a = homeTeamId.value
-  homeTeamId.value = awayTeamId.value
-  awayTeamId.value = a
-  const tmp = homeInput.value
-  homeInput.value = awayInput.value
-  awayInput.value = tmp
+function readPath(obj: any, path: string) {
+  return path.split(".").reduce((acc: any, key) => {
+    if (acc === null || acc === undefined) return undefined
+    return acc[key]
+  }, obj)
 }
 
-const filterTeamsByCategory = ref(true)
-const homeInput = ref("")
-const awayInput = ref("")
-const homeOpen = ref(false)
-const awayOpen = ref(false)
+function formatDateParts(raw: unknown) {
+  const dateObj = raw ? new Date(String(raw)) : new Date()
+  const safeDate = Number.isNaN(dateObj.getTime()) ? new Date() : dateObj
 
-const homeQ = debounceLowerRef(homeInput, 80)
-const awayQ = debounceLowerRef(awayInput, 80)
-
-const poolTeams = computed(() => {
-  if (!filterTeamsByCategory.value) return teams.value
-  const catId = Number(form.value.categoryId || 0)
-  if (!catId) return teams.value
-  return teamsByCategory.value.get(catId) || []
-})
-
-function suggest(q: string, excludeId: number | null) {
-  const query = q.trim()
-  const arr = poolTeams.value
-  const out: Team[] = []
-  const LIMIT = 5
-
-  if (!query) {
-    for (const t of arr) {
-      if (t.teamId === excludeId) continue
-      out.push(t)
-      if (out.length >= LIMIT) break
-    }
-    return out
+  return {
+    timestamp: safeDate.getTime(),
+    date: new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(safeDate).replace(".", ""),
+    time: new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(safeDate),
   }
-
-  for (const t of arr) {
-    if (t.teamId === excludeId) continue
-    if ((t._search || "").includes(query)) out.push(t)
-    if (out.length >= LIMIT) break
-  }
-  return out
-}
-
-const homeSuggestions = computed(() => suggest(homeQ.value, awayTeamId.value))
-const awaySuggestions = computed(() => suggest(awayQ.value, homeTeamId.value))
-
-function pickHome(t: Team) {
-  homeTeamId.value = t.teamId
-  homeInput.value = t.name
-  homeOpen.value = false
-}
-function pickAway(t: Team) {
-  awayTeamId.value = t.teamId
-  awayInput.value = t.name
-  awayOpen.value = false
-}
-function clearHome() {
-  homeTeamId.value = null
-  homeInput.value = ""
-}
-function clearAway() {
-  awayTeamId.value = null
-  awayInput.value = ""
-}
-function closeHomeLater() {
-  setTimeout(() => (homeOpen.value = false), 80)
-}
-function closeAwayLater() {
-  setTimeout(() => (awayOpen.value = false), 80)
-}
-
-const gameStatusPick = ref<"ALL" | "SCHEDULED" | "FINAL" | "CANCELLED">("ALL")
-const gameQuery = ref("")
-const gameQ = debounceLowerRef(gameQuery, 100)
-
-const filteredGamesVm = computed(() => {
-  const q = gameQ.value
-  const s = gameStatusPick.value
-  const src = gamesVm.value
-
-  return src.filter((g) => {
-    const st = displayStatus(g.status)
-    if (s !== "ALL" && st !== s) return false
-    if (!q) return true
-    return (g._search || "").includes(q)
-  })
-})
-
-const pageSize = 5
-const currentPage = ref(1)
-
-watch([gameStatusPick, gameQ], () => {
-  currentPage.value = 1
-})
-
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredGamesVm.value.length / pageSize)))
-
-function goToPage(p: number) {
-  currentPage.value = Math.min(Math.max(1, p), totalPages.value)
-}
-
-const pagedGames = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredGamesVm.value.slice(start, start + pageSize)
-})
-
-const pageTabs = computed(() => {
-  const total = totalPages.value
-  const cur = currentPage.value
-  const maxTabs = 7
-
-  if (total <= maxTabs) return Array.from({ length: total }, (_, i) => i + 1)
-
-  const out: (number | "…")[] = []
-  out.push(1)
-
-  const left = Math.max(2, cur - 2)
-  const right = Math.min(total - 1, cur + 2)
-
-  if (left > 2) out.push("…")
-  for (let i = left; i <= right; i++) out.push(i)
-  if (right < total - 1) out.push("…")
-
-  out.push(total)
-  return out
-})
-
-const deletingId = ref<number | null>(null)
-const deleteError = ref("")
-const deleteOk = ref("")
-
-async function deleteGame(g: GameVM) {
-  deleteError.value = ""
-  deleteOk.value = ""
-
-  const gid = Number(g?.id || 0)
-  if (!gid) return (deleteError.value = "No hay gameId válido.")
-
-  const st = displayStatus(g.status)
-
-  const msg =
-    st === "FINAL"
-      ? `¿Eliminar partido #${gid}?\n\nEsto revierte standings y lo marca como CANCELLED.\n\n¿Seguro?`
-      : `¿Borrar partido #${gid}?\n\nEsto es HARD DELETE.\n\n¿Seguro?`
-
-  if (!window.confirm(msg)) return
-
-  deletingId.value = gid
-  try {
-    const headers = await authHeaders()
-
-    if (st === "FINAL") {
-      await $fetch(API_GAME_DELETE_ADMIN(gid), { method: "DELETE", headers })
-      deleteOk.value = `Partido #${gid} eliminado y revertido (CANCELLED).`
-    } else {
-      await $fetch(API_GAME_DELETE_SCHEDULED(gid), { method: "DELETE", headers })
-      deleteOk.value = `Partido #${gid} borrado.`
-    }
-
-    gamesVm.value = gamesVm.value.filter((x) => x.id !== gid)
-    if (finishPanelId.value === gid) closeFinish()
-    if (editScorePanelId.value === gid) closeEditScore()
-
-    await refreshGames()
-    setTimeout(() => (deleteOk.value = ""), 2200)
-  } catch (e: any) {
-    deleteError.value =
-      e?.data?.message ||
-      e?.message ||
-      "No se pudo borrar. Revisa endpoints/rol admin."
-  } finally {
-    deletingId.value = null
-  }
-}
-
-const editScorePanelId = ref<number | null>(null)
-const editHomeScore = ref<number>(0)
-const editAwayScore = ref<number>(0)
-const editingScore = ref(false)
-const editScoreError = ref("")
-const editScoreOk = ref("")
-
-function openEditScore(g: GameVM) {
-  finishPanelId.value = null
-  finishError.value = ""
-  finishOk.value = ""
-
-  editScorePanelId.value = g.id
-  editHomeScore.value = Number(g.homeScore ?? 0)
-  editAwayScore.value = Number(g.awayScore ?? 0)
-  editScoreError.value = ""
-  editScoreOk.value = ""
-}
-
-function closeEditScore() {
-  editScorePanelId.value = null
-  editScoreError.value = ""
-  editScoreOk.value = ""
-}
-
-async function saveEditedScore(g: GameVM) {
-  editScoreError.value = ""
-  editScoreOk.value = ""
-
-  const gid = Number(g?.id || 0)
-  if (!gid) return (editScoreError.value = "No hay gameId válido.")
-
-  if (displayStatus(g.status) !== "FINAL") {
-    return (editScoreError.value = "Solo puedes corregir score si está FINAL.")
-  }
-
-  const hs = Number(editHomeScore.value ?? 0)
-  const as = Number(editAwayScore.value ?? 0)
-  if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
-    return (editScoreError.value = "Scores inválidos.")
-  }
-
-  editingScore.value = true
-  try {
-    const headers = await authHeaders()
-    await $fetch(API_GAME_EDIT_SCORE(gid), {
-      method: "PATCH",
-      headers,
-      body: { homeScore: hs, awayScore: as },
-    })
-
-    editScoreOk.value = `Score actualizado (${hs} - ${as}).`
-    await refreshGames()
-    setTimeout(() => (editScoreOk.value = ""), 1800)
-  } catch (e: any) {
-    editScoreError.value =
-      e?.data?.message ||
-      e?.message ||
-      "No se pudo actualizar el score."
-  } finally {
-    editingScore.value = false
-  }
-}
-
-const finishPanelId = ref<number | null>(null)
-const finishHomeScore = ref<number>(0)
-const finishAwayScore = ref<number>(0)
-const finishing = ref(false)
-const finishError = ref("")
-const finishOk = ref("")
-
-const statsOpen = ref(true)
-const statsWarn = ref("")
-const statsOk = ref("")
-const rosterHint = ref("")
-
-const statsMap = shallowRef<Map<number, StatEntry[]>>(new Map())
-const statsTick = ref(0)
-
-function getStats(gameId: number) {
-  statsTick.value
-  return statsMap.value.get(gameId) || []
-}
-function setStats(gameId: number, entries: StatEntry[]) {
-  statsMap.value.set(gameId, entries)
-  statsTick.value++
-}
-
-const rosterMap = shallowRef<Map<number, Player[]>>(new Map())
-const rosterTick = ref(0)
-const rosterLoading = ref<Set<number>>(new Set())
-
-function getRoster(teamId: number) {
-  rosterTick.value
-  return rosterMap.value.get(teamId) || []
-}
-
-async function ensureRoster(teamId: number) {
-  if (!teamId) return
-  if (rosterMap.value.has(teamId)) return
-  if (rosterLoading.value.has(teamId)) return
-
-  rosterLoading.value.add(teamId)
-  try {
-    const players = await $fetch<any>(API_TEAM_PLAYERS(teamId))
-    const arr = Array.isArray(players) ? players : unwrapList<any>(players)
-    rosterMap.value.set(
-      teamId,
-      arr.map((p: any) => ({
-        id: Number(p.id ?? p.playerId ?? p.player_id),
-        fullName: String(p.fullName ?? p.full_name ?? p.name ?? ""),
-        jerseyNumber: p.jerseyNumber ?? p.jersey_number ?? null,
-        photoUrl: p.photoUrl ?? p.photo_url ?? null,
-      }))
-    )
-  } catch {
-    rosterMap.value.set(teamId, [])
-  } finally {
-    rosterTick.value++
-    rosterLoading.value.delete(teamId)
-  }
-}
-
-const statDraft = ref<{ kind: StatKind; side: StatSide; playerId: number; qty: number }>({
-  kind: "TD",
-  side: "HOME",
-  playerId: 0,
-  qty: 1,
-})
-
-const currentGame = computed(() => {
-  const gid = finishPanelId.value
-  if (!gid) return null
-  return gamesVm.value.find((x) => x.id === gid) || null
-})
-
-const currentSideTeamId = computed(() => {
-  const g = currentGame.value
-  if (!g) return 0
-  return statDraft.value.side === "HOME" ? (g.homeTeamId || 0) : (g.awayTeamId || 0)
-})
-
-const currentRosterOptions = computed(() => {
-  const teamId = currentSideTeamId.value
-  return teamId ? getRoster(teamId) : []
-})
-
-const rosterSelectKey = computed(() => {
-  const gid = finishPanelId.value || 0
-  const side = statDraft.value.side
-  const teamId = currentSideTeamId.value
-  const tick = rosterTick.value
-  return `${gid}-${side}-${teamId}-${tick}`
-})
-
-watch([finishPanelId, () => statDraft.value.side], async () => {
-  statDraft.value.playerId = 0
-  rosterHint.value = ""
-
-  const g = currentGame.value
-  if (!g) return
-  const teamId = currentSideTeamId.value
-  if (teamId) await ensureRoster(teamId)
-
-  const roster = teamId ? getRoster(teamId) : []
-  if (teamId && roster.length === 0) {
-    rosterHint.value = `Roster ${statDraft.value.side === "HOME" ? "local" : "visitante"} vacío o no cargó (team #${teamId}).`
-  }
-})
-
-const finishStats = computed<StatEntry[]>(() => {
-  const gid = finishPanelId.value
-  if (!gid) return []
-  return getStats(gid)
-})
-
-function countKind(kind: StatKind) {
-  let total = 0
-  for (const s of finishStats.value) if (s.kind === kind) total += Number(s.qty || 0)
-  return total
-}
-
-function playerOptionLabel(p: Player) {
-  const jersey = p.jerseyNumber != null ? `#${p.jerseyNumber} · ` : ""
-  return `${jersey}${p.fullName}`
-}
-
-const canAddStat = computed(() => {
-  const pid = Number(statDraft.value.playerId || 0)
-  const qty = Number(statDraft.value.qty || 0)
-  return pid > 0 && qty >= 1
-})
-
-function addStatForGame(g: GameVM) {
-  statsWarn.value = ""
-  statsOk.value = ""
-
-  const gid = g.id
-  const pid = Number(statDraft.value.playerId || 0)
-  const qty = Math.max(1, Number(statDraft.value.qty || 1))
-
-  const roster = currentRosterOptions.value
-  const p = roster.find((x) => Number(x.id) === pid)
-
-  if (!p) return (statsWarn.value = "Selecciona un jugador válido del roster.")
-
-  const entry: StatEntry = {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    kind: statDraft.value.kind,
-    side: statDraft.value.side,
-    playerId: pid,
-    playerName: p.fullName,
-    jerseyNumber: p.jerseyNumber ?? null,
-    qty,
-  }
-
-  const prev = getStats(gid)
-  setStats(gid, [...prev, entry])
-
-  statDraft.value.playerId = 0
-  statDraft.value.qty = 1
-}
-
-function removeStat(gameId: number, statId: string) {
-  const prev = getStats(gameId)
-  setStats(gameId, prev.filter((x) => x.id !== statId))
-}
-
-function clearStats(gameId: number) {
-  setStats(gameId, [])
-  statsWarn.value = ""
-  statsOk.value = ""
-}
-
-async function openFinish(g: GameVM) {
-  editScorePanelId.value = null
-  editScoreError.value = ""
-  editScoreOk.value = ""
-
-  finishPanelId.value = g.id
-  finishHomeScore.value = Number(g.homeScore ?? 0)
-  finishAwayScore.value = Number(g.awayScore ?? 0)
-  finishError.value = ""
-  finishOk.value = ""
-  statsWarn.value = ""
-  statsOk.value = ""
-  rosterHint.value = ""
-  statsOpen.value = true
-
-  const h = g.homeTeamId || 0
-  const a = g.awayTeamId || 0
-  await Promise.all([h ? ensureRoster(h) : Promise.resolve(), a ? ensureRoster(a) : Promise.resolve()])
-
-  statDraft.value.side = "HOME"
-  statDraft.value.playerId = 0
-  statDraft.value.qty = 1
-}
-
-function closeFinish() {
-  finishPanelId.value = null
-  finishError.value = ""
-  finishOk.value = ""
-  statsWarn.value = ""
-  statsOk.value = ""
-  rosterHint.value = ""
-}
-
-async function tryPostPlayerStats(gameId: number) {
-  const entries = getStats(gameId)
-  if (!entries.length) return
-
-  try {
-    const payload = entries.map((e) => ({ kind: e.kind, side: e.side, playerId: e.playerId, qty: e.qty }))
-    const headers = await authHeaders()
-    await $fetch(PLAYER_STATS_URL(gameId), { method: "PUT", body: payload, headers })
-    statsOk.value = "Stats individuales guardadas."
-    statsWarn.value = ""
-  } catch {
-    statsWarn.value = "No se pudieron guardar stats. El FINAL sí se guardó."
-  }
-}
-
-async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: number) {
-  const body = {
-    game_id: String(gameId),
-    home_score: Number(homeScore),
-    away_score: Number(awayScore),
-  }
-  const headers = await authHeaders()
-  return await $fetch<any>(API_PARTIDO_UPDATE, { method: "POST", body, headers })
-}
-
-async function finishGame(g: GameVM) {
-  finishError.value = ""
-  finishOk.value = ""
-  statsWarn.value = ""
-  statsOk.value = ""
-
-  if (!g?.id) return (finishError.value = "No hay game_id válido.")
-
-  const hs = Number(finishHomeScore.value ?? 0)
-  const as = Number(finishAwayScore.value ?? 0)
-  if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
-    return (finishError.value = "Scores inválidos.")
-  }
-
-  finishing.value = true
-  try {
-    await postFinalizeOnly(g.id, hs, as)
-    finishOk.value = `Partido ${g.id} finalizado (${hs} - ${as}).`
-    await refreshGames()
-    await tryPostPlayerStats(g.id)
-    setTimeout(() => (finishOk.value = ""), 2000)
-  } catch (e: any) {
-    finishError.value = e?.data?.message || e?.message || "No se pudo finalizar. Revisa el backend."
-  } finally {
-    finishing.value = false
-  }
-}
-
-async function hardRefresh() {
-  formOk.value = ""
-  formError.value = ""
-  finishOk.value = ""
-  finishError.value = ""
-  deleteOk.value = ""
-  deleteError.value = ""
-  editScoreOk.value = ""
-  editScoreError.value = ""
-  statsWarn.value = ""
-  statsOk.value = ""
-  rosterHint.value = ""
-
-  await Promise.all([
-    refreshCategories(),
-    refreshTeams(),
-    refreshGames(),
-  ])
 }
 </script>
-
-<style scoped>
-.date-time {
-  color-scheme: dark;
-}
-.date-time::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  opacity: 0.95;
-}
-.date-time::-webkit-datetime-edit {
-  color: rgba(226, 232, 240, 0.95);
-}
-
-.no-blur .backdrop-blur,
-.no-blur .backdrop-blur-sm,
-.no-blur .backdrop-blur-md,
-.no-blur .backdrop-blur-lg,
-.no-blur .backdrop-blur-xl,
-.no-blur .backdrop-blur-2xl,
-.no-blur .backdrop-blur-3xl {
-  backdrop-filter: none !important;
-}
-</style>

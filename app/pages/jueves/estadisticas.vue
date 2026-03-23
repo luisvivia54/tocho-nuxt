@@ -578,6 +578,8 @@ type ResolvedBranchInfo = {
 }
 
 const JUEVES_LEAGUE_ID = 2
+const JUEVES_DEFAULT_SEASON_ID = 3
+const JUEVES_DEFAULT_SEASON_LABEL = "Liga nocturna"
 
 const stadiumBg = "/img/hero-stadium.jpg"
 
@@ -681,6 +683,39 @@ const {
 const pendingTeamsView = computed(() => pendingPoints.value || pendingTeamsMeta.value)
 const pendingPlayersView = computed(() => pendingPlayers.value || pendingTeamsMeta.value)
 const pending = computed(() => pendingTeamsView.value || pendingPlayersView.value)
+
+const seasonCatalog = computed(() => {
+  const map = new Map<number, string>()
+
+  for (const row of normalizeCollection(seasonsRaw.value)) {
+    const seasonId = toPositiveNumber(pick(row, ["id", "seasonId"], null))
+    if (!seasonId) continue
+
+    const rawLabel = sanitizeSeasonLabel(
+      pick(row, ["name", "label", "title", "seasonName"], "")
+    )
+
+    map.set(seasonId, getSeasonDisplayLabel(seasonId, rawLabel))
+  }
+
+  if (!map.has(JUEVES_DEFAULT_SEASON_ID)) {
+    map.set(JUEVES_DEFAULT_SEASON_ID, JUEVES_DEFAULT_SEASON_LABEL)
+  }
+
+  return map
+})
+
+const defaultSeasonInfo = computed(() => {
+  const firstEntry =
+    Array.from(seasonCatalog.value.entries()).sort((a, b) => a[0] - b[0])[0] ||
+    [JUEVES_DEFAULT_SEASON_ID, JUEVES_DEFAULT_SEASON_LABEL]
+
+  return {
+    seasonId: firstEntry[0],
+    seasonValue: `SEASON_${firstEntry[0]}`,
+    season: firstEntry[1],
+  }
+})
 
 const categoryDefinitions = computed<CategoryDefinition[]>(() => {
   return normalizeCollection(categoriesRaw.value)
@@ -1281,13 +1316,30 @@ function isMissingBranchText(value: unknown): boolean {
   ].includes(normalized)
 }
 
+function inferSeasonIdFromLabel(label: string): number | null {
+  const match = String(label || "").match(/(\d+)/)
+  if (!match) return null
+
+  const parsed = Number(match[1])
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function getSeasonDisplayLabel(seasonId: number | null, rawLabel: unknown): string {
+  if (seasonId === JUEVES_DEFAULT_SEASON_ID) return JUEVES_DEFAULT_SEASON_LABEL
+
+  const clean = sanitizeSeasonLabel(rawLabel)
+  if (!clean) return seasonId ? `Temporada ${seasonId}` : JUEVES_DEFAULT_SEASON_LABEL
+
+  return clean
+}
+
 function buildSeasonValue(seasonId: number | null, seasonLabel: string): string {
   if (typeof seasonId === "number" && seasonId > 0) return `SEASON_${seasonId}`
 
   const cleanLabel = sanitizeSeasonLabel(seasonLabel)
   if (cleanLabel) return `LABEL_${normalizeText(cleanLabel)}`
 
-  return "LABEL_sin-temporada"
+  return defaultSeasonInfo.value.seasonValue
 }
 
 function uniqueOptions(items: OptionItem[]): OptionItem[] {
@@ -1352,7 +1404,7 @@ function resolveCategoryDefinition(row: AnyRow): CategoryDefinition | undefined 
 }
 
 function resolveSeasonInfo(row: AnyRow): ResolvedSeasonInfo {
-  const seasonId = toPositiveNumber(
+  const explicitSeasonId = toPositiveNumber(
     pick(row, [
       "season.id",
       "seasonId",
@@ -1375,25 +1427,41 @@ function resolveSeasonInfo(row: AnyRow): ResolvedSeasonInfo {
     ], "")
   )
 
-  if (seasonId !== null) {
+  if (explicitSeasonId !== null) {
+    const catalogLabel = seasonCatalog.value.get(explicitSeasonId)
+    const finalLabel = getSeasonDisplayLabel(
+      explicitSeasonId,
+      catalogLabel || directLabel || `Temporada ${explicitSeasonId}`
+    )
+
     return {
-      seasonValue: buildSeasonValue(seasonId, directLabel || `Temporada ${seasonId}`),
-      season: directLabel || `Temporada ${seasonId}`,
-      priority: 3,
+      seasonValue: `SEASON_${explicitSeasonId}`,
+      season: finalLabel,
+      priority: 4,
     }
   }
 
-  if (directLabel) {
+  if (directLabel && !isMissingSeasonText(directLabel)) {
+    const inferredSeasonId = inferSeasonIdFromLabel(directLabel)
+
+    if (inferredSeasonId !== null) {
+      return {
+        seasonValue: `SEASON_${inferredSeasonId}`,
+        season: getSeasonDisplayLabel(inferredSeasonId, directLabel),
+        priority: 3,
+      }
+    }
+
     return {
-      seasonValue: isMissingSeasonText(directLabel) ? "LABEL_sin-temporada" : buildSeasonValue(null, directLabel),
-      season: directLabel,
-      priority: isMissingSeasonText(directLabel) ? 2 : 3,
+      seasonValue: defaultSeasonInfo.value.seasonValue,
+      season: getSeasonDisplayLabel(defaultSeasonInfo.value.seasonId, directLabel),
+      priority: 2,
     }
   }
 
   return {
-    seasonValue: "LABEL_sin-temporada",
-    season: "Sin temporada asignada",
+    seasonValue: defaultSeasonInfo.value.seasonValue,
+    season: defaultSeasonInfo.value.season,
     priority: 1,
   }
 }

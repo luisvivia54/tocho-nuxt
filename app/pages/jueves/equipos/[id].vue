@@ -9,7 +9,7 @@
             <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
           </NuxtLink>
 
-          <nav class="hidden md:flex items-center gap-12">
+          <nav class="hidden items-center gap-12 md:flex">
             <NuxtLink
               to="/jueves"
               class="text-[0.95rem] font-extrabold uppercase tracking-[0.24em] text-slate-400 hover:text-slate-200"
@@ -42,7 +42,7 @@
 
           <NuxtLink
             to="/jueves/equipos"
-            class="hidden md:inline-flex text-[0.95rem] font-extrabold uppercase tracking-[0.22em] text-slate-400 hover:text-slate-200"
+            class="hidden text-[0.95rem] font-extrabold uppercase tracking-[0.22em] text-slate-400 hover:text-slate-200 md:inline-flex"
           >
             ← Volver
           </NuxtLink>
@@ -51,7 +51,7 @@
     </header>
 
     <section class="pt-28 md:pt-32">
-      <div class="mx-auto max-w-6xl px-4 sm:px-6 pb-12">
+      <div class="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
         <div class="mb-6 flex items-center justify-between gap-3">
           <NuxtLink
             to="/jueves/equipos"
@@ -129,20 +129,27 @@
 
                 <div class="mt-4 flex flex-wrap items-center gap-2">
                   <span
-                    v-if="team.category?.name || team.category?.gender || team.category?.code"
+                    v-if="team.categoryLabel"
                     class="inline-flex items-center rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90"
                   >
-                    {{ team.category?.name || niceGender(team.category?.gender || '') || team.category?.code }}
+                    Categoría: {{ team.categoryLabel }}
+                  </span>
+
+                  <span
+                    v-if="team.branchLabel"
+                    class="inline-flex items-center rounded-full border border-white/15 bg-black/20 px-3 py-1 text-[11px] font-semibold text-white/90"
+                  >
+                    Rama: {{ team.branchLabel }}
                   </span>
 
                   <span
                     class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold"
-                    :class="teamActive
+                    :class="team.isActive
                       ? 'border-emerald-400/30 bg-emerald-500/12 text-emerald-200'
                       : 'border-slate-400/30 bg-slate-500/12 text-slate-200'"
                   >
-                    <span class="h-2 w-2 rounded-full" :class="teamActive ? 'bg-emerald-400' : 'bg-slate-400'" />
-                    {{ teamActive ? 'Activo' : 'Inactivo' }}
+                    <span class="h-2 w-2 rounded-full" :class="team.isActive ? 'bg-emerald-400' : 'bg-slate-400'" />
+                    {{ team.isActive ? 'Activo' : 'Inactivo' }}
                   </span>
                 </div>
               </div>
@@ -157,8 +164,8 @@
                   Capitán
                 </p>
 
-                <h2 class="mt-4 text-3xl font-extrabold text-white leading-tight">
-                  {{ captainName }}
+                <h2 class="mt-4 text-3xl font-extrabold leading-tight text-white">
+                  {{ team.captainName }}
                 </h2>
 
                 <p class="mt-4 text-sm leading-7 text-slate-400">
@@ -231,34 +238,45 @@
 </template>
 
 <script setup lang="ts">
-import { useJuevesData } from "~/composables/useJuevesData"
+import { computed, useAsyncData, useRoute } from "#imports"
 
 type CaptainDto = {
   id?: number
   fullName?: string
+  name?: string
 }
 
 type TeamCategory = {
   id?: number
   name?: string
+  label?: string
+  title?: string
   code?: string
   gender?: string
 }
 
 type ApiTeam = {
-  teamId: number
-  name: string
+  id?: number
+  teamId?: number
+  name?: string
+  teamName?: string
   shortName?: string | null
   logoUrl?: string | null
+  logo?: string | null
   colorPrimary?: string | null
   colorSecondary?: string | null
   isActive?: boolean | null
+  active?: boolean | null
   description?: string | null
   teamDescription?: string | null
   about?: string | null
   bio?: string | null
   captain?: CaptainDto | string | null
+  captainName?: string | null
   category?: TeamCategory | null
+  categoryName?: string | null
+  categoryCode?: string | null
+  categoryGender?: string | null
 }
 
 type Player = {
@@ -274,45 +292,101 @@ type TeamDetailResponse = {
   players?: Player[]
 }
 
+type UiTeamDetail = {
+  id: number | null
+  name: string
+  shortName: string
+  logoUrl: string | null
+  colorPrimary: string
+  colorSecondary: string
+  isActive: boolean
+  captainName: string
+  categoryLabel: string
+  branchLabel: string
+}
+
 const route = useRoute()
 const teamId = computed(() => String(route.params.id ?? ""))
-
-const { leagueKey } = useJuevesData()
 
 const { data: detailData, pending: pendingDetail, error: detailError } =
   await useAsyncData(
     () => `jueves-team-detail-${teamId.value}`,
     async () => {
-      return await $fetch<TeamDetailResponse>(`/api/t5/teams/${teamId.value}/detail`, {
-        query: { league: leagueKey, leagueKey },
-      }).catch(() => null)
+      return await $fetch<TeamDetailResponse | ApiTeam>(`/api/t5/teams/${teamId.value}/detail`).catch(() => null)
     },
     { watch: [teamId] }
   )
 
-const team = computed<ApiTeam | null>(() => detailData.value?.team ?? null)
+const rawPayload = computed<any>(() => detailData.value ?? null)
+
+const rawTeam = computed<ApiTeam | null>(() => {
+  const payload = rawPayload.value
+  if (!payload || typeof payload !== "object") return null
+  return (payload.team ?? payload) as ApiTeam
+})
+
+const team = computed<UiTeamDetail | null>(() => {
+  const source = rawTeam.value
+  if (!source) return null
+
+  const categoryName =
+    firstValue(source, [
+      "category.name",
+      "category.label",
+      "category.title",
+      "categoryName",
+    ]) || ""
+
+  const categoryCode =
+    normalizeCodeValue(
+      firstValue(source, [
+        "category.code",
+        "categoryCode",
+      ])
+    ) || ""
+
+  const categoryGender =
+    normalizeGenderValue(
+      firstValue(source, [
+        "category.gender",
+        "categoryGender",
+      ])
+    ) || ""
+
+  const categoryLabel = categoryName || niceGender(categoryGender) || categoryCode
+  const branchLabel = categoryCode || niceGender(categoryGender)
+
+  return {
+    id: toNullableNumber(firstValue(source, ["teamId", "id"])),
+    name: firstValue(source, ["name", "teamName"]) || "Equipo",
+    shortName: firstValue(source, ["shortName"]) || "",
+    logoUrl: normalizeUrl(firstValue(source, ["logoUrl", "logo"]) || null),
+    colorPrimary: normalizeColor(firstValue(source, ["colorPrimary"]) || "#f97316"),
+    colorSecondary: normalizeColor(firstValue(source, ["colorSecondary"]) || "#1e293b"),
+    isActive: toBoolean(firstValue(source, ["isActive", "active"]), true),
+    captainName: getCaptainName(source),
+    categoryLabel,
+    branchLabel,
+  }
+})
 
 const players = computed<Player[]>(() => {
-  return (detailData.value?.players ?? []).map((player: any) => ({
+  const payload = rawPayload.value
+  const source = Array.isArray(payload?.players) ? payload.players : []
+
+  return source.map((player: any) => ({
     id: Number(player?.id ?? 0),
     fullName: String(player?.fullName ?? player?.name ?? "Jugador"),
     jerseyNumber: toNullableNumber(player?.jerseyNumber),
     birthdate: player?.birthdate ? String(player.birthdate) : null,
-    photoUrl: normalizeUrl(player?.photoUrl ? String(player.photoUrl) : null),
+    photoUrl: normalizeUrl(
+      firstValue(player, ["photoUrl", "photo_url", "imageUrl", "image", "avatar"]) || null
+    ),
   }))
 })
 
-const captainName = computed(() => {
-  const captain = team.value?.captain
-  if (!captain) return "Por definir"
-  if (typeof captain === "string") return captain
-  return captain.fullName || "Por definir"
-})
-
-const teamActive = computed(() => Boolean(team.value?.isActive ?? true))
-
-const primaryColor = computed(() => normalizeColor(team.value?.colorPrimary || "#f97316"))
-const secondaryColor = computed(() => normalizeColor(team.value?.colorSecondary || "#1e293b"))
+const primaryColor = computed(() => team.value?.colorPrimary || "#f97316")
+const secondaryColor = computed(() => team.value?.colorSecondary || "#1e293b")
 
 const heroStyle = computed(() => {
   return {
@@ -345,6 +419,16 @@ function toNullableNumber(value: any): number | null {
   if (value === null || value === undefined || value === "") return null
   const n = Number(value)
   return Number.isFinite(n) ? n : null
+}
+
+function toBoolean(value: any, fallback = true) {
+  if (typeof value === "boolean") return value
+  if (value === null || value === undefined || value === "") return fallback
+
+  const v = normalizeText(String(value))
+  if (["false", "0", "inactive", "inactivo"].includes(v)) return false
+  if (["true", "1", "active", "activo"].includes(v)) return true
+  return fallback
 }
 
 function getInitials(name: string) {
@@ -380,5 +464,56 @@ function niceGender(gender: string) {
   if (x === "FEMENIL") return "Femenil"
   if (x === "MIXTO") return "Mixto"
   return gender
+}
+
+function normalizeGenderValue(value: unknown) {
+  const normalized = normalizeText(String(value || "")).toUpperCase()
+
+  if (!normalized) return ""
+  if (normalized === "MASCULINO" || normalized === "MALE") return "VARONIL"
+  if (normalized === "FEMENINO" || normalized === "FEMALE") return "FEMENIL"
+
+  return normalized
+}
+
+function normalizeCodeValue(value: unknown) {
+  return String(value || "").trim().toUpperCase()
+}
+
+function normalizeText(value: string) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim()
+}
+
+function firstValue(obj: any, paths: string[]) {
+  for (const path of paths) {
+    const value = readPath(obj, path)
+    if (value !== null && value !== undefined && String(value).trim() !== "") {
+      return String(value).trim()
+    }
+  }
+  return ""
+}
+
+function readPath(obj: any, path: string) {
+  return path.split(".").reduce((acc: any, key) => {
+    if (acc === null || acc === undefined) return undefined
+    return acc[key]
+  }, obj)
+}
+
+function getCaptainName(source: ApiTeam) {
+  const captain = source?.captain
+  if (typeof captain === "string" && captain.trim()) return captain.trim()
+  if (captain && typeof captain === "object") {
+    return String(captain.fullName || captain.name || "").trim() || "Por definir"
+  }
+
+  const direct = firstValue(source, ["captainName"])
+  return direct || "Por definir"
 }
 </script>
