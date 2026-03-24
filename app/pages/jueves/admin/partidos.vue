@@ -1,711 +1,819 @@
 <template>
-  <main class="min-h-screen text-slate-50">
+  <main class="min-h-screen bg-[#030817] text-slate-50">
     <JuevesHeader />
 
-    <div class="fixed inset-0 -z-10 bg-[#020617]" />
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+      <div class="absolute inset-0 bg-[#030817]" />
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.14),transparent_25%)]" />
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(217,70,239,0.12),transparent_24%)]" />
+    </div>
 
-    <section class="border-b border-white/6 pt-24">
-      <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <div class="max-w-3xl">
-          <div
-            class="inline-flex items-center gap-2 rounded-full border border-orange-400/20 bg-orange-400/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300"
-          >
-            <span class="h-2 w-2 rounded-full bg-orange-400" />
-            Liga de Jueves · Partidos
+    <section class="pt-24 md:pt-28">
+      <div class="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
+        <header class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div class="min-w-0">
+            <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">
+              Tochero5 · Consola Admin
+            </p>
+
+            <h1 class="mt-2 text-4xl font-extrabold tracking-tight text-white md:text-5xl">
+              Partidos
+            </h1>
+
+            <p class="mt-3 max-w-3xl text-sm text-slate-400 md:text-base">
+              Flujo: Categoría → Local y Visitante → Fecha/Hora → Jornada → Cancha → Finalizar + Stats
+            </p>
           </div>
 
-          <h1 class="mt-6 text-5xl font-extrabold tracking-tight">Calendario de Partidos</h1>
-          <p class="mt-4 text-slate-400">
-            Filtra partidos por temporada, categoría, rama y jornada.
-          </p>
-        </div>
-
-        <div class="mt-10 rounded-[28px] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)] md:p-5">
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <div class="space-y-2">
-              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
-                Temporada
-              </label>
-              <select
-                v-model="selectedSeason"
-                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
-              >
-                <option value="ALL">Todas</option>
-                <option
-                  v-for="option in seasonOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="space-y-2">
-              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
-                Categoría
-              </label>
-              <select
-                v-model="selectedCategory"
-                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
-              >
-                <option value="ALL">Todas</option>
-                <option
-                  v-for="option in categoryOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="space-y-2">
-              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
-                Rama
-              </label>
-              <select
-                v-model="selectedBranch"
-                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
-              >
-                <option value="ALL">Todas</option>
-                <option
-                  v-for="option in branchOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="space-y-2">
-              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
-                Jornada
-              </label>
-              <select
-                v-model="selectedRound"
-                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
-              >
-                <option value="ALL">Todas</option>
-                <option
-                  v-for="option in roundOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="space-y-2">
-              <label class="block text-[11px] font-extrabold uppercase tracking-[0.22em] text-slate-400">
-                Buscar equipo
-              </label>
-              <input
-                v-model.trim="search"
-                type="text"
-                placeholder="Buscar equipo..."
-                class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
-              />
-            </div>
-          </div>
-
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span class="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-100">
-              {{ filteredMatches.length }} resultados
-            </span>
-
+          <div class="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              class="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-200 transition hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100"
-              @click="resetFilters"
+              class="inline-flex items-center rounded-full border border-white/12 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+              :disabled="pendingMatches"
+              @click="refreshMatchesNow"
             >
-              Limpiar filtros
+              {{ pendingMatches ? "Actualizando..." : "Actualizar" }}
             </button>
+
+            <NuxtLink
+              to="/"
+              class="inline-flex items-center rounded-full border border-white/12 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-fuchsia-400/40 hover:bg-fuchsia-400/10 hover:text-fuchsia-100"
+            >
+              Inicio
+            </NuxtLink>
+          </div>
+        </header>
+
+        <div v-if="feedback.text" class="mt-6">
+          <div class="rounded-2xl border px-4 py-3 text-sm" :class="feedbackClass">
+            {{ feedback.text }}
           </div>
         </div>
-      </div>
-    </section>
 
-    <section>
-      <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        <div class="grid grid-cols-1 gap-5">
-          <article
-            v-for="m in paginatedMatches"
-            :key="m.id"
-            class="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.03] shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
-          >
-            <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_24%)]" />
+        <!-- Crear partido -->
+        <section class="mt-10 overflow-hidden rounded-[30px] border border-white/10 bg-[#071125]/90 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+          <div class="h-[5px] w-full bg-[linear-gradient(90deg,#38bdf8_0%,#818cf8_45%,#d946ef_100%)]" />
 
-            <div class="relative p-5 md:p-6">
-              <div class="mb-5 flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
-                  {{ m.date }}
-                </span>
-
-                <span class="inline-flex items-center rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold text-slate-200">
-                  {{ m.time }}
-                </span>
-
-                <span class="inline-flex items-center rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-[11px] font-semibold text-orange-100">
-                  {{ m.seasonLabel }}
-                </span>
-
-                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
-                  {{ m.categoryLabel }}
-                </span>
-
-                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
-                  {{ m.branchLabel }}
-                </span>
-
-                <span class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-300">
-                  {{ m.roundLabel }}
-                </span>
-
-                <span
-                  class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold"
-                  :class="statusPillClass(m.status)"
-                >
-                  {{ statusLabel(m.status) }}
-                </span>
+          <div class="p-5 md:p-6">
+            <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                  Crear partido
+                </p>
+                <h2 class="mt-2 text-3xl font-extrabold tracking-tight text-white">
+                  Nuevo partido
+                </h2>
               </div>
 
-              <div class="flex flex-col gap-6 md:grid md:grid-cols-[minmax(0,1fr)_320px_minmax(0,1fr)] md:items-center">
-                <div class="flex min-w-0 items-center gap-4">
-                  <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/35 shadow-inner">
-                    <img
-                      v-if="m.homeLogo"
-                      :src="m.homeLogo"
-                      :alt="m.home"
-                      loading="lazy"
-                      class="h-14 w-14 object-contain"
-                    />
-                    <span v-else class="text-sm font-extrabold uppercase text-white">
-                      {{ m.homeShort || getTeamInitials(m.home) }}
-                    </span>
-                  </div>
+              <div class="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                <span class="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2">
+                  Equipos:
+                  <span class="ml-1 font-bold text-white">{{ teamsCount }}</span>
+                </span>
 
-                  <div class="min-w-0">
-                    <p class="break-words text-xl font-extrabold leading-tight text-white md:text-2xl">
-                      {{ m.home }}
-                    </p>
-                  </div>
+                <span class="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2">
+                  Partidos:
+                  <span class="ml-1 font-bold text-white">{{ matchesCount }}</span>
+                </span>
+
+                <button
+                  type="button"
+                  class="rounded-full border border-white/12 bg-white/[0.03] px-4 py-2 font-semibold text-slate-200 transition hover:border-rose-400/40 hover:bg-rose-400/10 hover:text-rose-100"
+                  @click="resetCreateForm"
+                >
+                  Limpiar
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-12">
+              <div class="md:col-span-4">
+                <label class="mb-2 block text-sm font-semibold text-slate-300">
+                  Categoría (rama + gender)
+                </label>
+
+                <select
+                  v-model="form.categoryId"
+                  class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                >
+                  <option value="">— Selecciona —</option>
+                  <option
+                    v-for="category in categoryOptions"
+                    :key="category.id"
+                    :value="category.id"
+                  >
+                    {{ category.label }}
+                  </option>
+                </select>
+
+                <label class="mt-3 inline-flex items-center gap-3 text-sm text-slate-300">
+                  <input
+                    v-model="form.filterTeamsByCategory"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-white/20 bg-[#020817] text-sky-400 focus:ring-sky-400/30"
+                  />
+                  Filtrar equipos por esta categoría
+                </label>
+              </div>
+
+              <div class="md:col-span-4">
+                <label class="mb-2 block text-sm font-semibold text-slate-300">
+                  Local
+                </label>
+
+                <input
+                  v-model.trim="form.homeQuery"
+                  list="admin-home-teams"
+                  type="text"
+                  placeholder="Buscar equipo local..."
+                  class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                />
+
+                <datalist id="admin-home-teams">
+                  <option
+                    v-for="team in homeSuggestions"
+                    :key="`home-${team.id}`"
+                    :value="team.name"
+                  />
+                </datalist>
+              </div>
+
+              <div class="md:col-span-4">
+                <label class="mb-2 block text-sm font-semibold text-slate-300">
+                  Visitante
+                </label>
+
+                <input
+                  v-model.trim="form.awayQuery"
+                  list="admin-away-teams"
+                  type="text"
+                  placeholder="Buscar equipo visitante..."
+                  class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                />
+
+                <datalist id="admin-away-teams">
+                  <option
+                    v-for="team in awaySuggestions"
+                    :key="`away-${team.id}`"
+                    :value="team.name"
+                  />
+                </datalist>
+
+                <button
+                  type="button"
+                  class="mt-3 h-10 w-full rounded-2xl border border-white/10 bg-white/[0.02] text-sm font-semibold text-slate-400 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-slate-200"
+                  @click="swapTeams"
+                >
+                  ⇄ Intercambiar
+                </button>
+              </div>
+
+              <div class="md:col-span-3">
+                <label class="mb-2 block text-sm font-semibold text-slate-300">
+                  Fecha
+                </label>
+
+                <input
+                  v-model="form.date"
+                  type="date"
+                  class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="mb-2 block text-sm font-semibold text-slate-300">
+                  Hora
+                </label>
+
+                <input
+                  v-model="form.time"
+                  type="time"
+                  class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="mb-2 block text-sm font-semibold text-slate-300">
+                  Jornada
+                </label>
+
+                <input
+                  v-model.trim="form.round"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="0"
+                  class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                />
+              </div>
+
+              <div class="md:col-span-3">
+                <label class="mb-2 block text-sm font-semibold text-slate-300">
+                  Cancha / Sede (opcional)
+                </label>
+
+                <input
+                  v-model.trim="form.venue"
+                  type="text"
+                  placeholder="Ej. Miguel Alemán"
+                  class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                />
+              </div>
+
+              <div class="flex items-end gap-3 md:col-span-2">
+                <button
+                  type="button"
+                  class="h-12 flex-1 rounded-2xl bg-[linear-gradient(90deg,#38bdf8_0%,#d946ef_100%)] px-5 text-sm font-extrabold text-slate-950 shadow-[0_12px_30px_rgba(56,189,248,0.28)] transition hover:brightness-110"
+                  @click="handleCreateMatch"
+                >
+                  Crear partido
+                </button>
+
+                <button
+                  type="button"
+                  class="h-12 rounded-2xl border border-white/12 bg-white/[0.03] px-5 text-sm font-semibold text-slate-200 transition hover:border-white/20 hover:bg-white/[0.05]"
+                  @click="resetCreateForm"
+                >
+                  Limpiar
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Lista -->
+        <section class="mt-8 overflow-hidden rounded-[30px] border border-white/10 bg-[#071125]/90 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+          <div class="h-[5px] w-full bg-[linear-gradient(90deg,#facc15_0%,#a3e635_28%,#22d3ee_100%)]" />
+
+          <div class="p-5 md:p-6">
+            <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 class="text-3xl font-extrabold tracking-tight text-white">
+                  Partidos
+                </h2>
+                <p class="mt-2 text-sm text-slate-400">
+                  Lista ligera. Finaliza y agrega stats por jugador.
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <label class="mb-2 block text-sm font-semibold text-slate-300">
+                    Estatus
+                  </label>
+
+                  <select
+                    v-model="statusFilter"
+                    class="h-12 min-w-[220px] rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                  >
+                    <option value="ALL">Todos</option>
+                    <option value="SCHEDULED">SCHEDULED</option>
+                    <option value="FINAL">FINAL</option>
+                    <option value="CANCELLED">CANCELLED</option>
+                  </select>
                 </div>
 
-                <div class="flex flex-col items-center justify-center text-center md:px-3">
-                  <span class="text-[0.72rem] font-extrabold uppercase tracking-[0.34em] text-orange-300">
-                    VS
-                  </span>
+                <div>
+                  <label class="mb-2 block text-sm font-semibold text-slate-300">
+                    Buscar equipo
+                  </label>
 
-                  <div v-if="m.venue" class="mt-3 text-[11px] font-medium text-slate-400 md:text-xs">
-                    {{ m.venue }}
-                  </div>
-                </div>
-
-                <div class="flex min-w-0 items-center gap-4 md:justify-end">
-                  <div class="min-w-0 md:text-right">
-                    <p class="break-words text-xl font-extrabold leading-tight text-white md:text-2xl">
-                      {{ m.away }}
-                    </p>
-                  </div>
-
-                  <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-slate-950/35 shadow-inner">
-                    <img
-                      v-if="m.awayLogo"
-                      :src="m.awayLogo"
-                      :alt="m.away"
-                      loading="lazy"
-                      class="h-14 w-14 object-contain"
-                    />
-                    <span v-else class="text-sm font-extrabold uppercase text-white">
-                      {{ m.awayShort || getTeamInitials(m.away) }}
-                    </span>
-                  </div>
+                  <input
+                    v-model.trim="listSearch"
+                    type="text"
+                    placeholder="Ej. Gators..."
+                    class="h-12 min-w-[260px] rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                  />
                 </div>
               </div>
             </div>
-          </article>
 
-          <div v-if="pendingGames" class="text-sm text-slate-400">Cargando partidos...</div>
-          <div v-else-if="gamesError" class="text-sm text-rose-300">No se pudieron cargar partidos.</div>
-          <div v-else-if="filteredMatches.length === 0" class="text-sm text-slate-400">No hay resultados.</div>
-        </div>
+            <div
+              v-if="pendingMatches"
+              class="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-5 text-sm text-slate-400"
+            >
+              Cargando partidos...
+            </div>
 
-        <div
-          v-if="!pendingGames && !gamesError && filteredMatches.length > 0"
-          class="mt-8 flex flex-col gap-4 border-t border-white/8 pt-6 md:flex-row md:items-center md:justify-between"
-        >
-          <div class="text-sm text-slate-400">
-            Mostrando
-            <span class="font-semibold text-white">{{ matchRangeStart }}</span>
-            -
-            <span class="font-semibold text-white">{{ matchRangeEnd }}</span>
-            de
-            <span class="font-semibold text-white">{{ filteredMatches.length }}</span>
-            partidos
+            <div
+              v-else-if="matchesError"
+              class="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-5 text-sm text-rose-200"
+            >
+              No se pudieron cargar los partidos.
+            </div>
+
+            <div
+              v-else-if="filteredMatches.length === 0"
+              class="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-5 text-sm text-slate-400"
+            >
+              No hay resultados.
+            </div>
+
+            <div v-else class="space-y-4">
+              <article
+                v-for="match in filteredMatches"
+                :key="match.mergeKey"
+                class="rounded-[24px] border border-white/10 bg-[#091328] px-5 py-5 transition hover:border-sky-400/20 hover:bg-[#0b1730]"
+              >
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div class="min-w-0 flex-1">
+                    <h3 class="truncate text-2xl font-extrabold tracking-tight text-white">
+                      {{ match.home }} vs {{ match.away }}
+                    </h3>
+
+                    <p class="mt-2 text-sm text-slate-400">
+                      {{ match.date }}
+                      ·
+                      {{ match.time }}
+                      <template v-if="match.categoryLabel"> · {{ match.categoryLabel }}</template>
+                      <template v-if="match.branchLabel"> · {{ match.branchLabel }}</template>
+                      <template v-if="match.roundLabel"> · Jornada: {{ match.roundLabel }}</template>
+                      <template v-if="match.venue"> · Cancha: {{ match.venue }}</template>
+                      <template v-if="match.rawId"> · ID: {{ match.rawId }}</template>
+                    </p>
+
+                    <p
+                      v-if="match.homeTeamId || match.awayTeamId"
+                      class="mt-1 text-xs text-slate-500"
+                    >
+                      <template v-if="match.homeTeamId">HomeID: {{ match.homeTeamId }}</template>
+                      <template v-if="match.awayTeamId"> · AwayID: {{ match.awayTeamId }}</template>
+                    </p>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-3">
+                    <div
+                      v-if="match.status === 'FINAL' && match.homeScore !== null && match.awayScore !== null"
+                      class="inline-flex items-center gap-3 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-sm font-extrabold text-emerald-100"
+                    >
+                      <span>{{ match.homeScore }}</span>
+                      <span class="text-emerald-300/80">-</span>
+                      <span>{{ match.awayScore }}</span>
+                    </div>
+
+                    <span
+                      class="inline-flex items-center rounded-full px-4 py-2 text-sm font-extrabold"
+                      :class="statusPillClass(match.status)"
+                    >
+                      {{ match.status }}
+                    </span>
+
+                    <button
+                      type="button"
+                      class="rounded-full border border-rose-400/25 bg-rose-400/10 px-5 py-2.5 text-sm font-bold text-rose-100 transition hover:bg-rose-400/15"
+                      @click="handleDeleteMatch(match)"
+                    >
+                      Borrar
+                    </button>
+
+                    <button
+                      type="button"
+                      class="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-900 transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                      :disabled="match.status === 'FINAL'"
+                      @click="handleFinalizeMatch(match)"
+                    >
+                      Finalizar
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </div>
           </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
-              :class="currentPage === 1
-                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
-                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
-              :disabled="currentPage === 1"
-              @click="goToMatchPage(currentPage - 1)"
-            >
-              Anterior
-            </button>
-
-            <button
-              v-for="page in visibleMatchPages"
-              :key="page"
-              type="button"
-              class="h-10 min-w-10 rounded-full border px-3 text-sm font-extrabold transition"
-              :class="page === currentPage
-                ? 'border-orange-400/40 bg-orange-400/15 text-orange-200'
-                : 'border-white/10 bg-white/5 text-slate-300 hover:border-orange-400/30 hover:bg-orange-400/10 hover:text-slate-100'"
-              @click="goToMatchPage(page)"
-            >
-              {{ page }}
-            </button>
-
-            <button
-              type="button"
-              class="rounded-full border px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] transition"
-              :class="currentPage === totalMatchPages
-                ? 'cursor-not-allowed border-white/10 bg-white/[0.03] text-slate-600'
-                : 'border-white/10 bg-white/5 text-slate-200 hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-100'"
-              :disabled="currentPage === totalMatchPages"
-              @click="goToMatchPage(currentPage + 1)"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
+        </section>
       </div>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, useAsyncData } from "#imports"
+import { computed, reactive, ref, watch } from "vue"
+import { useAsyncData } from "#imports"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
-type FilterValue = "ALL" | string
+type FeedbackType = "info" | "success" | "error"
 
-type OptionItem = {
-  value: string
-  label: string
+type FeedbackState = {
+  type: FeedbackType
+  text: string
 }
 
-type UiMatchCard = {
+type CategoryOption = {
   id: string
+  label: string
+  code: string
+  gender: string
+}
+
+type TeamOption = {
+  id: string
+  name: string
+  shortName: string
+  logoUrl: string
+  leagueId: number | null
+  categoryId: string
+  code: string
+  gender: string
+}
+
+type AdminMatchRow = {
+  rawId: string
+  mergeKey: string
+  leagueId: number | null
   timestamp: number
   date: string
   time: string
-  venue: string
   home: string
   away: string
-  homeLogo?: string
-  awayLogo?: string
-  homeShort?: string
-  awayShort?: string
-  seasonValue: string
-  seasonLabel: string
-  categoryValue: string
-  categoryLabel: string
-  branchValue: string
-  branchLabel: string
+  homeTeamId: string
+  awayTeamId: string
+  homeScore: number | null
+  awayScore: number | null
+  venue: string
   roundValue: string
   roundLabel: string
+  categoryLabel: string
+  branchLabel: string
   status: string
-  leagueId: number | null
 }
 
 const JUEVES_LEAGUE_ID = 2
-const ITEMS_PER_PAGE = 10
+const UNKNOWN_TIMESTAMP = Number.MAX_SAFE_INTEGER
 
-const search = ref("")
-const currentPage = ref(1)
+const feedback = ref<FeedbackState>({
+  type: "info",
+  text: "",
+})
 
-const selectedSeason = ref<FilterValue>("ALL")
-const selectedCategory = ref<FilterValue>("ALL")
-const selectedBranch = ref<FilterValue>("ALL")
-const selectedRound = ref<FilterValue>("ALL")
+const statusFilter = ref<"ALL" | "SCHEDULED" | "FINAL" | "CANCELLED">("ALL")
+const listSearch = ref("")
 
-const backendMatchQuery = computed(() => ({
-  leagueId: JUEVES_LEAGUE_ID,
-  code: selectedBranch.value === "ALL" ? undefined : selectedBranch.value,
-  gender: selectedCategory.value === "ALL" ? undefined : selectedCategory.value,
-}))
+const form = reactive({
+  categoryId: "",
+  homeQuery: "",
+  awayQuery: "",
+  date: "",
+  time: "",
+  round: "",
+  venue: "",
+  filterTeamsByCategory: true,
+})
 
-const { data: categoriesRaw } = await useAsyncData(
-  "jueves-categories-page-public",
+const { data: categoriesData } = await useAsyncData<CategoryOption[]>(
+  "admin-jueves-partidos-categories-ui-fixed-v2",
   async () => {
-    return await $fetch<any>("/api/t5/categories", {
+    const raw = await $fetch<any>("/api/t5/categories", {
       query: { leagueId: JUEVES_LEAGUE_ID },
     }).catch(() => [])
+
+    return uniqueCategories(
+      toList(raw)
+        .map(normalizeCategory)
+        .filter((item) => item.id && item.label)
+    )
+  }
+)
+
+const { data: teamsData } = await useAsyncData<TeamOption[]>(
+  "admin-jueves-partidos-teams-ui-fixed-v2",
+  async () => {
+    const byList = await $fetch<any>("/api/teams/list", {
+      query: { leagueId: JUEVES_LEAGUE_ID },
+    }).catch(() => null)
+
+    const byDefault = byList
+      ? null
+      : await $fetch<any>("/api/teams", {
+          query: { leagueId: JUEVES_LEAGUE_ID },
+        }).catch(() => [])
+
+    const source = byList ?? byDefault ?? []
+
+    return uniqueTeams(
+      toList(source)
+        .map(normalizeTeam)
+        .filter((team) => team.id)
+        .filter((team) => team.leagueId === null || team.leagueId === JUEVES_LEAGUE_ID)
+    )
   }
 )
 
 const {
-  data: gamesData,
-  pending: pendingGames,
-  error: gamesError,
-} = await useAsyncData(
-  "jueves-partidos-page-fixed-season-filter",
+  data: matchesData,
+  pending: pendingMatches,
+  error: matchesError,
+  refresh: refreshMatches,
+} = await useAsyncData<AdminMatchRow[]>(
+  "admin-jueves-partidos-list-ui-fixed-v2",
   async () => {
-    const query = backendMatchQuery.value
-
-    const [scheduled, finished] = await Promise.all([
+    const [scheduledRaw, finalRaw] = await Promise.all([
       $fetch<any>("/api/t5/games", {
-        query: {
-          leagueId: query.leagueId,
-          code: query.code,
-          gender: query.gender,
-        },
+        query: { leagueId: JUEVES_LEAGUE_ID },
       }).catch(() => []),
       $fetch<any>("/api/t5/gamesFinal", {
-        query: {
-          leagueId: query.leagueId,
-          code: query.code,
-          gender: query.gender,
-          all: true,
-        },
+        query: { leagueId: JUEVES_LEAGUE_ID, all: true },
       }).catch(() => []),
     ])
 
-    const merged = [...toList(scheduled), ...toList(finished)]
-    const unique = new Map<string, UiMatchCard>()
+    const scheduled = toList(scheduledRaw).map((row) => normalizeMatch(row, "SCHEDULED"))
+    const finals = toList(finalRaw).map((row) => normalizeMatch(row, "FINAL"))
 
-    for (const game of merged) {
-      const parsed = toUiMatchCard(game)
+    const merged = new Map<string, AdminMatchRow>()
 
-      if (!parsed.id) continue
-      if (parsed.leagueId !== null && parsed.leagueId !== JUEVES_LEAGUE_ID) continue
+    for (const row of [...scheduled, ...finals]) {
+      if (row.leagueId !== null && row.leagueId !== JUEVES_LEAGUE_ID) continue
 
-      const canonicalSeason = canonicalSeasonKey(parsed.seasonValue, parsed.seasonLabel)
-
-      // Excluir WT por completo de jueves
-      if (!canonicalSeason || canonicalSeason === "WT") continue
-
-      const normalizedParsed: UiMatchCard = {
-        ...parsed,
-        seasonValue: canonicalSeason,
-        seasonLabel: canonicalSeasonLabel(parsed.seasonLabel),
-      }
-
-      const existing = unique.get(normalizedParsed.id)
+      const existing = merged.get(row.mergeKey)
 
       if (!existing) {
-        unique.set(normalizedParsed.id, normalizedParsed)
+        merged.set(row.mergeKey, row)
         continue
       }
 
-      if (normalizeStatus(existing.status) !== "FINAL" && normalizeStatus(normalizedParsed.status) === "FINAL") {
-        unique.set(normalizedParsed.id, normalizedParsed)
-      }
+      merged.set(row.mergeKey, mergeMatchRows(existing, row))
     }
 
-    return Array.from(unique.values()).sort((a, b) => a.timestamp - b.timestamp)
-  },
-  {
-    watch: [backendMatchQuery],
+    return Array.from(merged.values()).sort((a, b) => a.timestamp - b.timestamp)
   }
 )
 
-const matches = computed<UiMatchCard[]>(() => gamesData.value ?? [])
+const categoryOptions = computed<CategoryOption[]>(() => categoriesData.value ?? [])
+const teamOptions = computed<TeamOption[]>(() => teamsData.value ?? [])
+const matches = computed<AdminMatchRow[]>(() => matchesData.value ?? [])
 
-const seasonOptions = computed<OptionItem[]>(() => {
-  const map = new Map<string, OptionItem>()
+const teamsCount = computed(() => teamOptions.value.length)
+const matchesCount = computed(() => matches.value.length)
 
-  for (const match of matches.value) {
-    const key = canonicalSeasonKey(match.seasonValue, match.seasonLabel)
-    const label = canonicalSeasonLabel(match.seasonLabel)
+const selectedCategory = computed<CategoryOption | null>(() => {
+  return categoryOptions.value.find((item) => item.id === form.categoryId) ?? null
+})
 
-    if (!key || !label) continue
-    if (isExcludedSeasonLabel(label)) continue
+const eligibleTeams = computed<TeamOption[]>(() => {
+  let rows = [...teamOptions.value]
 
-    if (!map.has(key)) {
-      map.set(key, {
-        value: key,
-        label,
-      })
-    }
+  if (form.filterTeamsByCategory && selectedCategory.value) {
+    const current = selectedCategory.value
+
+    rows = rows.filter((team) => {
+      const byCategoryId =
+        !!team.categoryId && String(team.categoryId) === String(current.id)
+
+      const byCode =
+        !!team.code && !!current.code && team.code === current.code
+
+      const byGender =
+        !!team.gender && !!current.gender && team.gender === current.gender
+
+      return byCategoryId || byCode || byGender
+    })
   }
 
-  return Array.from(map.values()).sort((a, b) =>
-    a.label.localeCompare(b.label, "es")
-  )
+  return rows.sort((a, b) => a.name.localeCompare(b.name, "es"))
 })
 
-const categoryOptions = computed<OptionItem[]>(() => {
-  const fromApi = toList(categoriesRaw.value)
-    .map((category: any) => {
-      const gender = normalizeGenderValue(firstValue(category, ["gender"]))
-      if (!gender) return null
-
-      return {
-        value: gender,
-        label: formatGenderLabel(gender),
-      }
-    })
-    .filter(Boolean) as OptionItem[]
-
-  const fromRows = matches.value
-    .filter((m) => m.categoryValue && m.categoryLabel)
-    .map((m) => ({
-      value: m.categoryValue,
-      label: m.categoryLabel,
-    }))
-
-  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
-    a.label.localeCompare(b.label, "es")
-  )
+const homeSuggestions = computed(() => {
+  return filterTeamSuggestions(eligibleTeams.value, form.homeQuery, form.awayQuery)
 })
 
-const branchOptions = computed<OptionItem[]>(() => {
-  const fromApi = toList(categoriesRaw.value)
-    .map((category: any) => {
-      const code = normalizeCodeValue(firstValue(category, ["code"]))
-      if (!code) return null
-
-      return {
-        value: code,
-        label: code,
-      }
-    })
-    .filter(Boolean) as OptionItem[]
-
-  const fromRows = matches.value
-    .filter((m) => m.branchValue && m.branchLabel)
-    .map((m) => ({
-      value: m.branchValue,
-      label: m.branchLabel,
-    }))
-
-  return uniqueOptions([...fromApi, ...fromRows]).sort((a, b) =>
-    a.label.localeCompare(b.label, "es")
-  )
+const awaySuggestions = computed(() => {
+  return filterTeamSuggestions(eligibleTeams.value, form.awayQuery, form.homeQuery)
 })
 
-const roundOptions = computed<OptionItem[]>(() => {
-  return uniqueOptions(
-    matches.value
-      .filter((m) => m.roundValue)
-      .map((m) => ({
-        value: m.roundValue,
-        label: m.roundLabel,
-      }))
-  ).sort(sortRoundOptions)
-})
+const filteredMatches = computed<AdminMatchRow[]>(() => {
+  const q = normalizeText(listSearch.value)
 
-const filteredMatches = computed<UiMatchCard[]>(() => {
-  const q = normalizeText(search.value)
+  return matches.value.filter((match) => {
+    const byStatus = statusFilter.value === "ALL" || match.status === statusFilter.value
+    const bySearch =
+      !q ||
+      normalizeText(
+        `${match.home} ${match.away} ${match.categoryLabel} ${match.branchLabel} ${match.venue}`
+      ).includes(q)
 
-  return matches.value.filter((m) => {
-    const normalizedSeason = canonicalSeasonKey(m.seasonValue, m.seasonLabel)
-
-    const matchesSeason =
-      selectedSeason.value === "ALL" || normalizedSeason === selectedSeason.value
-
-    const matchesCategory =
-      selectedCategory.value === "ALL" || m.categoryValue === selectedCategory.value
-
-    const matchesBranch =
-      selectedBranch.value === "ALL" || m.branchValue === selectedBranch.value
-
-    const matchesRound =
-      selectedRound.value === "ALL" || m.roundValue === selectedRound.value
-
-    const matchesSearch =
-      !q || normalizeText(`${m.home} ${m.away} ${m.venue || ""}`).includes(q)
-
-    return matchesSeason && matchesCategory && matchesBranch && matchesRound && matchesSearch
+    return byStatus && bySearch
   })
 })
 
-const totalMatchPages = computed(() => {
-  return Math.max(1, Math.ceil(filteredMatches.value.length / ITEMS_PER_PAGE))
-})
-
-const paginatedMatches = computed<UiMatchCard[]>(() => {
-  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
-  return filteredMatches.value.slice(start, start + ITEMS_PER_PAGE)
-})
-
-const matchRangeStart = computed(() => {
-  if (!filteredMatches.value.length) return 0
-  return (currentPage.value - 1) * ITEMS_PER_PAGE + 1
-})
-
-const matchRangeEnd = computed(() => {
-  return Math.min(currentPage.value * ITEMS_PER_PAGE, filteredMatches.value.length)
-})
-
-const visibleMatchPages = computed<number[]>(() => {
-  const total = totalMatchPages.value
-  const current = currentPage.value
-
-  if (total <= 5) {
-    return Array.from({ length: total }, (_, i) => i + 1)
+const feedbackClass = computed(() => {
+  if (feedback.value.type === "success") {
+    return "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
   }
 
-  let start = Math.max(1, current - 2)
-  let end = Math.min(total, current + 2)
-
-  if (current <= 3) {
-    start = 1
-    end = 5
+  if (feedback.value.type === "error") {
+    return "border-rose-400/20 bg-rose-400/10 text-rose-100"
   }
 
-  if (current >= total - 2) {
-    start = total - 4
-    end = total
-  }
-
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+  return "border-sky-400/20 bg-sky-400/10 text-sky-100"
 })
 
 watch(
-  [search, selectedSeason, selectedCategory, selectedBranch, selectedRound],
+  () => form.categoryId,
   () => {
-    currentPage.value = 1
+    if (!form.filterTeamsByCategory) return
+
+    const homeStillExists = eligibleTeams.value.some(
+      (team) => normalizeText(team.name) === normalizeText(form.homeQuery)
+    )
+    const awayStillExists = eligibleTeams.value.some(
+      (team) => normalizeText(team.name) === normalizeText(form.awayQuery)
+    )
+
+    if (!homeStillExists) form.homeQuery = ""
+    if (!awayStillExists) form.awayQuery = ""
   }
 )
 
-watch(
-  seasonOptions,
-  (options) => {
-    if (
-      selectedSeason.value !== "ALL" &&
-      !options.some((option) => option.value === selectedSeason.value)
-    ) {
-      selectedSeason.value = "ALL"
-    }
-  },
-  { immediate: true }
-)
-
-watch(roundOptions, (options) => {
-  if (
-    selectedRound.value !== "ALL" &&
-    !options.some((option) => option.value === selectedRound.value)
-  ) {
-    selectedRound.value = "ALL"
-  }
-})
-
-watch(totalMatchPages, (pages) => {
-  if (currentPage.value > pages) currentPage.value = pages
-})
-
-function goToMatchPage(page: number) {
-  currentPage.value = Math.min(Math.max(page, 1), totalMatchPages.value)
+async function refreshMatchesNow() {
+  await refreshMatches()
 }
 
-function resetFilters() {
-  selectedSeason.value = "ALL"
-  selectedCategory.value = "ALL"
-  selectedBranch.value = "ALL"
-  selectedRound.value = "ALL"
-  search.value = ""
-  currentPage.value = 1
+function resetCreateForm() {
+  form.categoryId = ""
+  form.homeQuery = ""
+  form.awayQuery = ""
+  form.date = ""
+  form.time = ""
+  form.round = ""
+  form.venue = ""
+  form.filterTeamsByCategory = true
 }
 
-function getTeamInitials(name: string) {
-  return String(name || "")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase()
-}
-
-function statusLabel(status: string) {
-  const normalized = normalizeStatus(status)
-  if (normalized === "FINAL") return "Finalizado"
-  if (normalized === "CANCELLED") return "Cancelado"
-  return "Programado"
+function swapTeams() {
+  const currentHome = form.homeQuery
+  form.homeQuery = form.awayQuery
+  form.awayQuery = currentHome
 }
 
 function statusPillClass(status: string) {
-  const normalized = normalizeStatus(status)
-
-  if (normalized === "FINAL") {
+  if (status === "FINAL") {
     return "border border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
   }
 
-  if (normalized === "CANCELLED") {
+  if (status === "CANCELLED") {
     return "border border-rose-400/20 bg-rose-400/10 text-rose-200"
   }
 
   return "border border-sky-400/20 bg-sky-400/10 text-sky-200"
 }
 
-function toUiMatchCard(game: any): UiMatchCard {
-  const startRaw = firstValue(game, [
+async function handleCreateMatch() {
+  feedback.value = { type: "info", text: "" }
+
+  const homeTeam = resolveTeamByName(form.homeQuery)
+  const awayTeam = resolveTeamByName(form.awayQuery)
+
+  if (!form.categoryId) {
+    feedback.value = { type: "error", text: "Selecciona una categoría." }
+    return
+  }
+
+  if (!homeTeam) {
+    feedback.value = { type: "error", text: "Selecciona un equipo local válido." }
+    return
+  }
+
+  if (!awayTeam) {
+    feedback.value = { type: "error", text: "Selecciona un equipo visitante válido." }
+    return
+  }
+
+  if (homeTeam.id === awayTeam.id) {
+    feedback.value = { type: "error", text: "Local y visitante no pueden ser el mismo equipo." }
+    return
+  }
+
+  if (!form.date || !form.time) {
+    feedback.value = { type: "error", text: "Completa fecha y hora." }
+    return
+  }
+
+  const payload = {
+    leagueId: JUEVES_LEAGUE_ID,
+    categoryId: Number(form.categoryId),
+    homeTeamId: Number(homeTeam.id),
+    awayTeamId: Number(awayTeam.id),
+    matchDateUtc: `${form.date}T${form.time}:00`,
+    roundLabel: form.round ? String(form.round).trim() : undefined,
+    venue: form.venue ? form.venue.trim() : undefined,
+  }
+
+  console.log("CREATE_MATCH_PAYLOAD", payload)
+
+  feedback.value = {
+    type: "info",
+    text: "La UI quedó lista. Aquí conecta tu endpoint real para crear el partido con este payload.",
+  }
+}
+
+async function handleFinalizeMatch(match: AdminMatchRow) {
+  console.log("FINALIZE_MATCH", match)
+
+  feedback.value = {
+    type: "info",
+    text: `Aquí conecta tu lógica real para finalizar el partido ${match.home} vs ${match.away}.`,
+  }
+}
+
+async function handleDeleteMatch(match: AdminMatchRow) {
+  console.log("DELETE_MATCH", match)
+
+  feedback.value = {
+    type: "info",
+    text: `Aquí conecta tu lógica real para borrar o cancelar el partido ${match.home} vs ${match.away}.`,
+  }
+}
+
+function resolveTeamByName(name: string) {
+  const normalized = normalizeText(name)
+
+  return eligibleTeams.value.find((team) => normalizeText(team.name) === normalized) ?? null
+}
+
+function filterTeamSuggestions(source: TeamOption[], query: string, excludedName: string) {
+  const normalizedQuery = normalizeText(query)
+  const normalizedExcluded = normalizeText(excludedName)
+
+  return source
+    .filter((team) => normalizeText(team.name) !== normalizedExcluded)
+    .filter((team) => {
+      if (!normalizedQuery) return true
+      return normalizeText(team.name).includes(normalizedQuery)
+    })
+    .slice(0, 50)
+}
+
+function normalizeCategory(row: any): CategoryOption {
+  const id = String(firstValue(row, ["category_id", "id", "categoryId"]) || "")
+  const code = normalizeCodeValue(firstValue(row, ["code", "categoryCode"]))
+  const gender = normalizeGenderValue(firstValue(row, ["gender", "categoryGender"]))
+
+  return {
+    id,
+    label: [code || "Sin rama", gender ? formatGenderLabel(gender) : "Sin gender"].join(" · "),
+    code,
+    gender,
+  }
+}
+
+function normalizeTeam(row: any): TeamOption {
+  const fallbackName =
+    firstValue(row, ["name", "team_name", "teamName", "nombre"]) || "Equipo"
+
+  return {
+    id: String(firstValue(row, ["team_id", "id", "teamId"]) || ""),
+    name: fallbackName,
+    shortName: firstValue(row, ["shortName", "short_name", "abreviacion", "abbr"]),
+    logoUrl: firstValue(row, ["logoUrl", "logo_url", "logo", "image"]),
+    leagueId: firstNumber(row, ["leagueId", "league_id", "league.id"]),
+    categoryId: String(firstValue(row, ["categoryId", "category_id", "category.id"]) || ""),
+    code: normalizeCodeValue(firstValue(row, ["code", "category.code", "categoryCode"])),
+    gender: normalizeGenderValue(firstValue(row, ["gender", "category.gender", "categoryGender"])),
+  }
+}
+
+function normalizeMatch(row: any, sourceStatus: "SCHEDULED" | "FINAL"): AdminMatchRow {
+  const startRaw = firstValue(row, [
+    "matchDateUtc",
+    "match_date_utc",
+    "gameStatus.matchDateUtc",
+    "gameStatus.match_date_utc",
+    "status.matchDateUtc",
+    "status.match_date_utc",
     "startTime",
+    "start_time",
     "dateTime",
+    "date_time",
     "kickoff",
     "gameDate",
+    "game_date",
     "date",
     "scheduledAt",
-    "match_date_utc",
-    "matchDateUtc",
+    "scheduled_at",
   ])
 
   const { timestamp, date, time } = formatDateParts(startRaw)
 
-  const home = firstValue(game, [
-    "homeTeam.name",
-    "home_team.name",
-    "home.name",
-    "homeName",
-    "localTeam.name",
-    "teamHome.name",
-    "home_team",
-  ]) || "Local"
+  const home =
+    firstValue(row, [
+      "homeTeam.name",
+      "home_team.name",
+      "home.name",
+      "homeName",
+      "localTeam.name",
+      "teamHome.name",
+      "home_team",
+    ]) || "Local"
 
-  const away = firstValue(game, [
-    "awayTeam.name",
-    "away_team.name",
-    "away.name",
-    "awayName",
-    "visitorTeam.name",
-    "teamAway.name",
-    "away_team",
-  ]) || "Visitante"
+  const away =
+    firstValue(row, [
+      "awayTeam.name",
+      "away_team.name",
+      "away.name",
+      "awayName",
+      "visitorTeam.name",
+      "teamAway.name",
+      "away_team",
+    ]) || "Visitante"
 
-  const seasonInfo = resolveSeasonInfo(game)
-
-  const branchValue = normalizeCodeValue(
-    firstValue(game, [
-      "category.code",
-      "categoryCode",
-      "code",
-      "division.code",
-      "branch.code",
-      "rama.code",
-    ])
-  )
-
-  const categoryValue = normalizeGenderValue(
-    firstValue(game, [
-      "category.gender",
-      "gender",
-      "categoryGender",
-      "division.gender",
-      "rama.gender",
-    ])
-  )
-
-  const rawRound = firstValue(game, [
+  const rawRound = firstValue(row, [
     "roundLabel",
     "round",
     "roundNumber",
@@ -718,179 +826,234 @@ function toUiMatchCard(game: any): UiMatchCard {
   ])
 
   const roundValue = normalizeRoundValue(rawRound)
-  const roundLabel = formatRoundLabel(rawRound)
 
-  const status = normalizeStatus(
-    firstValue(game, ["status", "gameStatus", "matchStatus"]) || "SCHEDULED"
+  const categoryValue = normalizeGenderValue(
+    firstValue(row, [
+      "category.gender",
+      "gender",
+      "categoryGender",
+      "division.gender",
+      "rama.gender",
+    ])
   )
 
+  const branchValue = normalizeCodeValue(
+    firstValue(row, [
+      "category.code",
+      "categoryCode",
+      "code",
+      "division.code",
+      "branch.code",
+      "rama.code",
+    ])
+  )
+
+  const homeScore = firstNumber(row, [
+    "homeScore",
+    "scoreHome",
+    "home_score",
+    "score_home",
+    "localScore",
+    "scoreLocal",
+    "local_score",
+    "score_local",
+    "result.home",
+    "result.local",
+    "score.home",
+    "score.local",
+    "marcadorLocal",
+    "team1Score",
+    "score1",
+    "pointsHome",
+    "homePoints",
+  ])
+
+  const awayScore = firstNumber(row, [
+    "awayScore",
+    "scoreAway",
+    "away_score",
+    "score_away",
+    "visitorScore",
+    "scoreVisitor",
+    "visitor_score",
+    "score_visitor",
+    "result.away",
+    "result.visitor",
+    "score.away",
+    "score.visitor",
+    "marcadorVisitante",
+    "team2Score",
+    "score2",
+    "pointsAway",
+    "awayPoints",
+  ])
+
+  const homeTeamId = String(
+    firstValue(row, [
+      "homeTeam.id",
+      "home_team.id",
+      "homeTeamId",
+      "teamHome.id",
+      "home_id",
+      "homeId",
+    ]) || ""
+  )
+
+  const awayTeamId = String(
+    firstValue(row, [
+      "awayTeam.id",
+      "away_team.id",
+      "awayTeamId",
+      "teamAway.id",
+      "away_id",
+      "awayId",
+    ]) || ""
+  )
+
+  const rawId = String(firstValue(row, ["game_id", "gameId", "id", "matchId", "match_id"]) || "")
+
+  const extractedStatus = normalizeStatus(
+    firstValue(row, [
+      "status",
+      "gameStatus.status",
+      "gameStatus",
+      "matchStatus",
+      "game_status",
+      "match_status",
+    ])
+  )
+
+  const leagueId = firstNumber(row, [
+    "leagueId",
+    "league_id",
+    "league.id",
+    "league.league_id",
+    "league.leagueId",
+  ])
+
+  const status = sourceStatus === "FINAL" ? "FINAL" : extractedStatus || "SCHEDULED"
+
+  const mergeKey = buildAdminMatchMergeKey({
+    rawId,
+    leagueId,
+    timestamp,
+    home,
+    away,
+    homeTeamId,
+    awayTeamId,
+    roundValue,
+  })
+
   return {
-    id: String(firstValue(game, ["game_id", "gameId", "id"]) || `${home}-${away}-${timestamp}`),
+    rawId,
+    mergeKey,
+    leagueId,
     timestamp,
     date,
     time,
-    venue: firstValue(game, ["venue", "field", "location", "court", "stadium"]),
     home,
     away,
-    homeLogo: firstValue(game, [
-      "homeTeam.logoUrl",
-      "homeTeam.logo",
-      "home_team.logo_url",
-      "home_team.logoUrl",
-      "home.logoUrl",
-      "localTeam.logoUrl",
-      "local.logoUrl",
-    ]),
-    awayLogo: firstValue(game, [
-      "awayTeam.logoUrl",
-      "awayTeam.logo",
-      "away_team.logo_url",
-      "away_team.logoUrl",
-      "away.logoUrl",
-      "visitorTeam.logoUrl",
-      "visitor.logoUrl",
-    ]),
-    homeShort: firstValue(game, [
-      "homeTeam.shortName",
-      "home_team.short_name",
-      "home.shortName",
-      "localTeam.shortName",
-    ]),
-    awayShort: firstValue(game, [
-      "awayTeam.shortName",
-      "away_team.short_name",
-      "away.shortName",
-      "visitorTeam.shortName",
-    ]),
-    seasonValue: seasonInfo.value,
-    seasonLabel: seasonInfo.label,
-    categoryValue,
-    categoryLabel: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",
-    branchValue,
-    branchLabel: branchValue || "Sin rama",
+    homeTeamId,
+    awayTeamId,
+    homeScore,
+    awayScore,
+    venue: firstValue(row, ["venue", "field", "location", "court", "stadium"]),
     roundValue,
-    roundLabel,
+    roundLabel: formatRoundLabel(rawRound),
+    categoryLabel: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",
+    branchLabel: branchValue || "Sin rama",
     status,
-    leagueId: firstNumber(game, [
-      "leagueId",
-      "league_id",
-      "league.league_id",
-      "league.leagueId",
-      "league.id",
-    ]),
   }
 }
 
-function resolveSeasonInfo(game: any) {
-  const seasonId = firstNumber(game, [
-    "season.id",
-    "seasonId",
-    "temporada.id",
-    "season_id",
-  ])
-
-  const rawLabel = firstValue(game, [
-    "season.name",
-    "seasonName",
-    "season.label",
-    "season.title",
-    "temporada.nombre",
-    "temporada.name",
-    "temporada",
-    "season",
-  ])
-
-  const normalized = normalizeText(rawLabel)
-
-  if (normalized === "wt" || normalized === "temporada wt") {
-    return {
-      value: "WT",
-      label: "WT",
-    }
+function buildAdminMatchMergeKey(input: {
+  rawId: string
+  leagueId: number | null
+  timestamp: number
+  home: string
+  away: string
+  homeTeamId: string
+  awayTeamId: string
+  roundValue: string
+}) {
+  if (input.rawId) {
+    return `ID|${input.rawId}`
   }
 
-  if (
-    seasonId === 3 ||
-    normalized === "nocturna" ||
-    normalized === "liga nocturna" ||
-    normalized === "temporada nocturna" ||
-    normalized === "temporada 3" ||
-    normalized === ""
-  ) {
-    return {
-      value: "NOCTURNA",
-      label: "nocturna",
-    }
-  }
+  const teamPart =
+    input.homeTeamId && input.awayTeamId
+      ? `${input.homeTeamId}|${input.awayTeamId}`
+      : `${normalizeText(input.home)}|${normalizeText(input.away)}`
 
-  if (seasonId !== null && seasonId > 0) {
-    return {
-      value: `SEASON_${seasonId}`,
-      label: rawLabel || `Temporada ${seasonId}`,
-    }
-  }
+  return [
+    String(input.leagueId ?? JUEVES_LEAGUE_ID),
+    teamPart,
+    String(input.timestamp),
+    input.roundValue || "NO_ROUND",
+  ].join("|")
+}
 
-  if (rawLabel) {
-    return {
-      value: `LABEL_${normalizeText(rawLabel)}`,
-      label: rawLabel,
-    }
-  }
+function mergeMatchRows(a: AdminMatchRow, b: AdminMatchRow): AdminMatchRow {
+  const aIsFinal = a.status === "FINAL"
+  const bIsFinal = b.status === "FINAL"
+  const primary = bIsFinal && !aIsFinal ? b : a
+  const secondary = primary === a ? b : a
 
   return {
-    value: "NOCTURNA",
-    label: "nocturna",
+    rawId: primary.rawId || secondary.rawId,
+    mergeKey: primary.mergeKey || secondary.mergeKey,
+    leagueId: primary.leagueId ?? secondary.leagueId,
+    timestamp: primary.timestamp !== UNKNOWN_TIMESTAMP ? primary.timestamp : secondary.timestamp,
+    date: primary.date !== "Por definir" ? primary.date : secondary.date,
+    time: primary.time !== "Por definir" ? primary.time : secondary.time,
+    home: primary.home || secondary.home,
+    away: primary.away || secondary.away,
+    homeTeamId: primary.homeTeamId || secondary.homeTeamId,
+    awayTeamId: primary.awayTeamId || secondary.awayTeamId,
+    homeScore: primary.homeScore ?? secondary.homeScore,
+    awayScore: primary.awayScore ?? secondary.awayScore,
+    venue: primary.venue || secondary.venue,
+    roundValue: primary.roundValue || secondary.roundValue,
+    roundLabel: primary.roundLabel !== "—" ? primary.roundLabel : secondary.roundLabel,
+    categoryLabel: primary.categoryLabel !== "Sin categoría" ? primary.categoryLabel : secondary.categoryLabel,
+    branchLabel: primary.branchLabel !== "Sin rama" ? primary.branchLabel : secondary.branchLabel,
+    status: aIsFinal || bIsFinal ? "FINAL" : primary.status,
   }
 }
 
-function canonicalSeasonKey(value: string, label: string) {
-  const normalizedLabel = normalizeText(label)
-  const normalizedValue = normalizeText(value)
+function uniqueCategories(items: CategoryOption[]) {
+  const map = new Map<string, CategoryOption>()
 
-  if (
-    normalizedValue === "nocturna" ||
-    normalizedLabel === "nocturna" ||
-    normalizedLabel === "liga nocturna" ||
-    normalizedLabel === "temporada nocturna" ||
-    normalizedLabel === "temporada 3"
-  ) {
-    return "NOCTURNA"
+  for (const item of items) {
+    if (!item.id) continue
+    if (!map.has(item.id)) map.set(item.id, item)
   }
 
-  if (
-    normalizedValue === "wt" ||
-    normalizedLabel === "wt" ||
-    normalizedLabel === "temporada wt"
-  ) {
-    return "WT"
-  }
-
-  return String(value || "").trim()
+  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "es"))
 }
 
-function canonicalSeasonLabel(label: string) {
-  const normalizedLabel = normalizeText(label)
+function uniqueTeams(items: TeamOption[]) {
+  const map = new Map<string, TeamOption>()
 
-  if (
-    normalizedLabel === "nocturna" ||
-    normalizedLabel === "liga nocturna" ||
-    normalizedLabel === "temporada nocturna" ||
-    normalizedLabel === "temporada 3" ||
-    normalizedLabel === ""
-  ) {
-    return "nocturna"
+  for (const item of items) {
+    if (!item.id) continue
+    if (!map.has(item.id)) {
+      map.set(item.id, item)
+      continue
+    }
+
+    const existing = map.get(item.id)!
+    map.set(item.id, {
+      ...existing,
+      shortName: existing.shortName || item.shortName,
+      logoUrl: existing.logoUrl || item.logoUrl,
+      categoryId: existing.categoryId || item.categoryId,
+      code: existing.code || item.code,
+      gender: existing.gender || item.gender,
+    })
   }
 
-  if (normalizedLabel === "wt" || normalizedLabel === "temporada wt") {
-    return "WT"
-  }
-
-  return String(label || "").trim()
-}
-
-function isExcludedSeasonLabel(label: string) {
-  const normalizedLabel = normalizeText(label)
-  return normalizedLabel === "wt" || normalizedLabel === "temporada wt"
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "es"))
 }
 
 function toList(value: any): any[] {
@@ -901,59 +1064,13 @@ function toList(value: any): any[] {
   return []
 }
 
-function uniqueOptions(items: OptionItem[]) {
-  const map = new Map<string, string>()
+function normalizeStatus(value: unknown) {
+  const normalized = String(value || "").trim().toUpperCase()
 
-  for (const item of items) {
-    const value = String(item?.value || "").trim()
-    const label = String(item?.label || "").trim()
+  if (normalized === "FINISHED") return "FINAL"
+  if (normalized === "COMPLETED") return "FINAL"
 
-    if (!value || !label) continue
-    if (!map.has(value)) map.set(value, label)
-  }
-
-  return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
-}
-
-function sortRoundOptions(a: OptionItem, b: OptionItem) {
-  const numA = extractRoundNumber(a.label)
-  const numB = extractRoundNumber(b.label)
-
-  if (numA !== null && numB !== null) return numA - numB
-  if (numA !== null) return -1
-  if (numB !== null) return 1
-
-  return a.label.localeCompare(b.label, "es")
-}
-
-function extractRoundNumber(value: string) {
-  const match = String(value || "").match(/(\d+)/)
-  return match ? Number(match[1]) : null
-}
-
-function formatRoundLabel(raw: unknown) {
-  const clean = String(raw || "").trim()
-
-  if (!clean) return "Sin jornada"
-
-  const normalized = normalizeRoundValue(clean)
-
-  if (/^\d+$/.test(normalized)) {
-    return `J${normalized}`
-  }
-
-  if (clean.toLowerCase().startsWith("jornada")) {
-    return clean
-  }
-
-  return clean
-}
-
-function normalizeRoundValue(raw: unknown) {
-  const clean = String(raw || "").trim()
-  if (!clean) return ""
-  const normalized = normalizeText(clean).replace(/^jornada\s+/, "").trim()
-  return normalized.toUpperCase()
+  return normalized
 }
 
 function formatGenderLabel(value: string) {
@@ -980,10 +1097,21 @@ function normalizeCodeValue(value: unknown) {
   return String(value || "").trim().toUpperCase()
 }
 
-function normalizeStatus(value: unknown) {
-  const normalized = String(value || "").trim().toUpperCase()
-  if (normalized === "FINISHED") return "FINAL"
-  return normalized || "SCHEDULED"
+function formatRoundLabel(raw: unknown) {
+  const clean = String(raw || "").trim()
+
+  if (!clean) return "—"
+
+  const match = clean.match(/\d+/)
+  if (match) return match[0]
+
+  return clean
+}
+
+function normalizeRoundValue(raw: unknown) {
+  const clean = String(raw || "").trim()
+  if (!clean) return ""
+  return normalizeText(clean).replace(/^jornada\s+/, "").trim().toUpperCase()
 }
 
 function normalizeText(value: string) {
@@ -998,9 +1126,11 @@ function normalizeText(value: string) {
 function firstValue(obj: any, paths: string[]) {
   for (const path of paths) {
     const value = readPath(obj, path)
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return String(value).trim()
-    }
+    if (value === null || value === undefined) continue
+    if (typeof value === "object") continue
+
+    const text = String(value).trim()
+    if (text !== "") return text
   }
   return ""
 }
@@ -1008,9 +1138,13 @@ function firstValue(obj: any, paths: string[]) {
 function firstNumber(obj: any, paths: string[]) {
   for (const path of paths) {
     const value = readPath(obj, path)
-    if (value === null || value === undefined || String(value).trim() === "") continue
+    if (value === null || value === undefined) continue
+    if (typeof value === "object") continue
 
-    const parsed = Number(value)
+    const text = String(value).trim()
+    if (text === "") continue
+
+    const parsed = Number(text)
     if (Number.isFinite(parsed)) return parsed
   }
   return null
@@ -1023,9 +1157,53 @@ function readPath(obj: any, path: string) {
   }, obj)
 }
 
+function normalizeDateInput(raw: unknown): string {
+  if (raw === null || raw === undefined) return ""
+
+  const value = String(raw).trim()
+  if (!value) return ""
+
+  if (/^\d{13}$/.test(value)) {
+    const ms = Number(value)
+    return Number.isFinite(ms) ? new Date(ms).toISOString() : ""
+  }
+
+  if (/^\d{10}$/.test(value)) {
+    const sec = Number(value)
+    return Number.isFinite(sec) ? new Date(sec * 1000).toISOString() : ""
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${value}T00:00:00`
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/.test(value)) {
+    return value.replace(" ", "T")
+  }
+
+  return value
+}
+
 function formatDateParts(raw: unknown) {
-  const dateObj = raw ? new Date(String(raw)) : new Date()
-  const safeDate = Number.isNaN(dateObj.getTime()) ? new Date() : dateObj
+  const normalized = normalizeDateInput(raw)
+
+  if (!normalized) {
+    return {
+      timestamp: UNKNOWN_TIMESTAMP,
+      date: "Por definir",
+      time: "Por definir",
+    }
+  }
+
+  const safeDate = new Date(normalized)
+
+  if (Number.isNaN(safeDate.getTime())) {
+    return {
+      timestamp: UNKNOWN_TIMESTAMP,
+      date: "Por definir",
+      time: "Por definir",
+    }
+  }
 
   return {
     timestamp: safeDate.getTime(),
@@ -1039,8 +1217,8 @@ function formatDateParts(raw: unknown) {
       timeZone: "America/Mexico_City",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false,
-    }).format(safeDate),
+      hour12: true,
+    }).format(safeDate).toLowerCase(),
   }
 }
 </script>

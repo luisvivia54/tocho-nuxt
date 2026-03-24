@@ -596,12 +596,25 @@ function toList(value: any): any[] {
 
 function toUiMatchCard(game: any): UiMatchCard {
   const startRaw = firstValue(game, [
+    "matchDateUtc",
+    "match_date_utc",
+    "gameStatus.matchDateUtc",
+    "gameStatus.match_date_utc",
+    "status.matchDateUtc",
+    "status.match_date_utc",
     "startTime",
+    "start_time",
     "dateTime",
+    "date_time",
     "kickoff",
     "gameDate",
+    "game_date",
     "date",
     "scheduledAt",
+    "scheduled_at",
+    "fecha",
+    "fechaHora",
+    "fecha_hora",
   ])
 
   const { timestamp, date, time } = formatDateParts(startRaw)
@@ -845,9 +858,57 @@ function readPath(obj: any, path: string) {
   }, obj)
 }
 
+function normalizeDateInput(raw: unknown): string {
+  if (raw === null || raw === undefined) return ""
+
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime()) ? "" : raw.toISOString()
+  }
+
+  const value = String(raw).trim()
+  if (!value) return ""
+
+  if (/^\d{13}$/.test(value)) {
+    const ms = Number(value)
+    return Number.isFinite(ms) ? new Date(ms).toISOString() : ""
+  }
+
+  if (/^\d{10}$/.test(value)) {
+    const sec = Number(value)
+    return Number.isFinite(sec) ? new Date(sec * 1000).toISOString() : ""
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${value}T00:00:00`
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/.test(value)) {
+    return value.replace(" ", "T")
+  }
+
+  return value
+}
+
 function formatDateParts(raw: unknown) {
-  const dateObj = raw ? new Date(String(raw)) : new Date()
-  const safeDate = Number.isNaN(dateObj.getTime()) ? new Date() : dateObj
+  const normalized = normalizeDateInput(raw)
+
+  if (!normalized) {
+    return {
+      timestamp: Number.MAX_SAFE_INTEGER,
+      date: "Por definir",
+      time: "Por definir",
+    }
+  }
+
+  const safeDate = new Date(normalized)
+
+  if (Number.isNaN(safeDate.getTime())) {
+    return {
+      timestamp: Number.MAX_SAFE_INTEGER,
+      date: "Por definir",
+      time: "Por definir",
+    }
+  }
 
   return {
     timestamp: safeDate.getTime(),

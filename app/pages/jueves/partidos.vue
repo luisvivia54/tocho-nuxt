@@ -31,7 +31,11 @@
                 class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
               >
                 <option value="ALL">Todas</option>
-                <option v-for="option in seasonOptions" :key="option.value" :value="option.value">
+                <option
+                  v-for="option in seasonOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
                   {{ option.label }}
                 </option>
               </select>
@@ -46,7 +50,11 @@
                 class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
               >
                 <option value="ALL">Todas</option>
-                <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
+                <option
+                  v-for="option in categoryOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
                   {{ option.label }}
                 </option>
               </select>
@@ -61,7 +69,11 @@
                 class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
               >
                 <option value="ALL">Todas</option>
-                <option v-for="option in branchOptions" :key="option.value" :value="option.value">
+                <option
+                  v-for="option in branchOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
                   {{ option.label }}
                 </option>
               </select>
@@ -76,7 +88,11 @@
                 class="w-full rounded-2xl border border-white/10 bg-[#0b1223] px-4 py-3 text-sm text-white outline-none transition focus:border-orange-400/40 focus:bg-[#0d1428]"
               >
                 <option value="ALL">Todas</option>
-                <option v-for="option in roundOptions" :key="option.value" :value="option.value">
+                <option
+                  v-for="option in roundOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
                   {{ option.label }}
                 </option>
               </select>
@@ -117,7 +133,7 @@
         <div class="grid grid-cols-1 gap-5">
           <article
             v-for="m in paginatedMatches"
-            :key="m.id"
+            :key="m.mergeKey"
             class="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.03] shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
           >
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_24%)]" />
@@ -179,9 +195,25 @@
                 </div>
 
                 <div class="flex flex-col items-center justify-center text-center md:px-3">
-                  <span class="text-[0.72rem] font-extrabold uppercase tracking-[0.34em] text-orange-300">
-                    VS
-                  </span>
+                  <template v-if="hasFinalScore(m)">
+                    <div class="flex items-end gap-3">
+                      <span class="text-4xl font-black leading-none text-white md:text-5xl">
+                        {{ m.homeScore }}
+                      </span>
+                      <span class="pb-1 text-[0.72rem] font-extrabold uppercase tracking-[0.34em] text-emerald-300">
+                        Final
+                      </span>
+                      <span class="text-4xl font-black leading-none text-white md:text-5xl">
+                        {{ m.awayScore }}
+                      </span>
+                    </div>
+                  </template>
+
+                  <template v-else>
+                    <span class="text-[0.72rem] font-extrabold uppercase tracking-[0.34em] text-orange-300">
+                      VS
+                    </span>
+                  </template>
 
                   <div v-if="m.venue" class="mt-3 text-[11px] font-medium text-slate-400 md:text-xs">
                     {{ m.venue }}
@@ -276,7 +308,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, useAsyncData } from "#imports"
+import { computed, ref, watch } from "vue"
+import { useAsyncData } from "#imports"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
 type FilterValue = "ALL" | string
@@ -288,6 +321,8 @@ type OptionItem = {
 
 type UiMatchCard = {
   id: string
+  rawId: string
+  mergeKey: string
   timestamp: number
   date: string
   time: string
@@ -298,6 +333,10 @@ type UiMatchCard = {
   awayLogo?: string
   homeShort?: string
   awayShort?: string
+  homeTeamId: string
+  awayTeamId: string
+  homeScore: number | null
+  awayScore: number | null
   seasonValue: string
   seasonLabel: string
   categoryValue: string
@@ -312,6 +351,7 @@ type UiMatchCard = {
 
 const JUEVES_LEAGUE_ID = 2
 const ITEMS_PER_PAGE = 10
+const UNKNOWN_TIMESTAMP = Number.MAX_SAFE_INTEGER
 
 const search = ref("")
 const currentPage = ref(1)
@@ -327,17 +367,8 @@ const backendMatchQuery = computed(() => ({
   gender: selectedCategory.value === "ALL" ? undefined : selectedCategory.value,
 }))
 
-const { data: seasonsRaw } = await useAsyncData(
-  "jueves-seasons-page",
-  async () => {
-    return await $fetch<any>("/api/t5/seasons/list", {
-      query: { leagueId: JUEVES_LEAGUE_ID },
-    }).catch(() => [])
-  }
-)
-
 const { data: categoriesRaw } = await useAsyncData(
-  "jueves-categories-page",
+  "jueves-categories-page-public-wt-to-season1",
   async () => {
     return await $fetch<any>("/api/t5/categories", {
       query: { leagueId: JUEVES_LEAGUE_ID },
@@ -350,7 +381,7 @@ const {
   pending: pendingGames,
   error: gamesError,
 } = await useAsyncData(
-  "jueves-partidos-page",
+  "jueves-partidos-page-wt-normalized-season1",
   async () => {
     const query = backendMatchQuery.value
 
@@ -372,26 +403,37 @@ const {
       }).catch(() => []),
     ])
 
-    const merged = [...toList(scheduled), ...toList(finished)]
+    const rows = [
+      ...toList(scheduled).map((row) => normalizePublicMatch(row, "SCHEDULED")),
+      ...toList(finished).map((row) => normalizePublicMatch(row, "FINAL")),
+    ].filter((row) => row.leagueId === null || row.leagueId === JUEVES_LEAGUE_ID)
+
     const unique = new Map<string, UiMatchCard>()
 
-    for (const game of merged) {
-      const parsed = toUiMatchCard(game)
-      const existing = unique.get(parsed.id)
+    for (const row of rows) {
+      const key = buildExactRowKey(row)
+      const existing = unique.get(key)
 
       if (!existing) {
-        unique.set(parsed.id, parsed)
+        unique.set(key, row)
         continue
       }
 
-      if (normalizeStatus(existing.status) !== "FINISHED" && normalizeStatus(parsed.status) === "FINISHED") {
-        unique.set(parsed.id, parsed)
-      }
+      unique.set(key, preferBestRow(existing, row))
     }
 
-    return Array.from(unique.values())
-      .filter((match) => match.leagueId === null || match.leagueId === JUEVES_LEAGUE_ID)
-      .sort((a, b) => a.timestamp - b.timestamp)
+    return Array.from(unique.values()).sort((a, b) => {
+      if (a.timestamp !== b.timestamp) return a.timestamp - b.timestamp
+
+      const aId = Number(a.rawId || 0)
+      const bId = Number(b.rawId || 0)
+
+      if (Number.isFinite(aId) && Number.isFinite(bId) && aId !== bId) {
+        return aId - bId
+      }
+
+      return a.mergeKey.localeCompare(b.mergeKey, "es")
+    })
   },
   {
     watch: [backendMatchQuery],
@@ -401,32 +443,24 @@ const {
 const matches = computed<UiMatchCard[]>(() => gamesData.value ?? [])
 
 const seasonOptions = computed<OptionItem[]>(() => {
-  const fromApi = toList(seasonsRaw.value)
-    .map((season: any) => {
-      const seasonId = firstNumber(season, ["id", "seasonId"])
-      const label =
-        firstValue(season, ["name", "label", "title", "seasonName"]) ||
-        (seasonId !== null ? `Temporada ${seasonId}` : "")
+  const map = new Map<string, OptionItem>()
 
-      if (!label) return null
+  for (const match of matches.value) {
+    const key = canonicalSeasonKey(match.seasonValue, match.seasonLabel)
+    const label = canonicalSeasonLabel(match.seasonValue, match.seasonLabel)
 
-      return {
-        value: buildSeasonValue(seasonId, label),
-        label: String(label).trim(),
-      }
-    })
-    .filter(Boolean) as OptionItem[]
+    if (!key || !label) continue
+    if (isExcludedSeasonKey(key)) continue
 
-  const fromRows = matches.value
-    .filter((m) => m.seasonValue && m.seasonLabel)
-    .map((m) => ({
-      value: m.seasonValue,
-      label: m.seasonLabel,
-    }))
+    if (!map.has(key)) {
+      map.set(key, {
+        value: key,
+        label,
+      })
+    }
+  }
 
-  return uniqueOptions([...fromApi, ...fromRows])
-    .filter((option) => !isExcludedSeasonOption(option))
-    .sort((a, b) => a.label.localeCompare(b.label, "es"))
+  return Array.from(map.values()).sort(sortSeasonOptions)
 })
 
 const categoryOptions = computed<OptionItem[]>(() => {
@@ -494,8 +528,10 @@ const filteredMatches = computed<UiMatchCard[]>(() => {
   const q = normalizeText(search.value)
 
   return matches.value.filter((m) => {
+    const normalizedSeason = canonicalSeasonKey(m.seasonValue, m.seasonLabel)
+
     const matchesSeason =
-      selectedSeason.value === "ALL" || m.seasonValue === selectedSeason.value
+      selectedSeason.value === "ALL" || normalizedSeason === selectedSeason.value
 
     const matchesCategory =
       selectedCategory.value === "ALL" || m.categoryValue === selectedCategory.value
@@ -507,8 +543,7 @@ const filteredMatches = computed<UiMatchCard[]>(() => {
       selectedRound.value === "ALL" || m.roundValue === selectedRound.value
 
     const matchesSearch =
-      !q ||
-      normalizeText(`${m.home} ${m.away} ${m.venue || ""}`).includes(q)
+      !q || normalizeText(`${m.home} ${m.away} ${m.venue || ""}`).includes(q)
 
     return matchesSeason && matchesCategory && matchesBranch && matchesRound && matchesSearch
   })
@@ -576,14 +611,18 @@ watch(
   { immediate: true }
 )
 
-watch(roundOptions, (options) => {
-  if (
-    selectedRound.value !== "ALL" &&
-    !options.some((option) => option.value === selectedRound.value)
-  ) {
-    selectedRound.value = "ALL"
-  }
-})
+watch(
+  roundOptions,
+  (options) => {
+    if (
+      selectedRound.value !== "ALL" &&
+      !options.some((option) => option.value === selectedRound.value)
+    ) {
+      selectedRound.value = "ALL"
+    }
+  },
+  { immediate: true }
+)
 
 watch(totalMatchPages, (pages) => {
   if (currentPage.value > pages) currentPage.value = pages
@@ -612,9 +651,17 @@ function getTeamInitials(name: string) {
     .toUpperCase()
 }
 
+function hasFinalScore(match: UiMatchCard) {
+  return (
+    normalizeStatus(match.status) === "FINAL" &&
+    match.homeScore !== null &&
+    match.awayScore !== null
+  )
+}
+
 function statusLabel(status: string) {
   const normalized = normalizeStatus(status)
-  if (normalized === "FINISHED") return "Finalizado"
+  if (normalized === "FINAL") return "Finalizado"
   if (normalized === "CANCELLED") return "Cancelado"
   return "Programado"
 }
@@ -622,7 +669,7 @@ function statusLabel(status: string) {
 function statusPillClass(status: string) {
   const normalized = normalizeStatus(status)
 
-  if (normalized === "FINISHED") {
+  if (normalized === "FINAL") {
     return "border border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
   }
 
@@ -633,57 +680,54 @@ function statusPillClass(status: string) {
   return "border border-sky-400/20 bg-sky-400/10 text-sky-200"
 }
 
-function toUiMatchCard(game: any): UiMatchCard {
-  const startRaw = firstValue(game, [
+function normalizePublicMatch(row: any, sourceStatus: "SCHEDULED" | "FINAL"): UiMatchCard {
+  const startRaw = firstValue(row, [
+    "matchDateUtc",
+    "match_date_utc",
+    "gameStatus.matchDateUtc",
+    "gameStatus.match_date_utc",
+    "status.matchDateUtc",
+    "status.match_date_utc",
     "startTime",
+    "start_time",
     "dateTime",
+    "date_time",
     "kickoff",
     "gameDate",
+    "game_date",
     "date",
     "scheduledAt",
+    "scheduled_at",
+    "fecha",
+    "fechaHora",
+    "fecha_hora",
   ])
 
   const { timestamp, date, time } = formatDateParts(startRaw)
+  const seasonInfo = resolveSeasonInfo(row)
 
-  const home = firstValue(game, [
+  const home = firstValue(row, [
     "homeTeam.name",
     "home_team.name",
     "home.name",
     "homeName",
     "localTeam.name",
     "teamHome.name",
+    "home_team",
   ]) || "Local"
 
-  const away = firstValue(game, [
+  const away = firstValue(row, [
     "awayTeam.name",
     "away_team.name",
     "away.name",
     "awayName",
     "visitorTeam.name",
     "teamAway.name",
+    "away_team",
   ]) || "Visitante"
 
-  const seasonId = firstNumber(game, [
-    "season.id",
-    "seasonId",
-    "temporada.id",
-  ])
-
-  const seasonLabel =
-    firstValue(game, [
-      "season.name",
-      "seasonName",
-      "season.label",
-      "season.title",
-      "temporada.nombre",
-      "temporada.name",
-      "temporada",
-    ]) || (seasonId !== null ? `Temporada ${seasonId}` : "Sin temporada")
-
-  const seasonValue = buildSeasonValue(seasonId, seasonLabel)
-
   const branchValue = normalizeCodeValue(
-    firstValue(game, [
+    firstValue(row, [
       "category.code",
       "categoryCode",
       "code",
@@ -694,7 +738,7 @@ function toUiMatchCard(game: any): UiMatchCard {
   )
 
   const categoryValue = normalizeGenderValue(
-    firstValue(game, [
+    firstValue(row, [
       "category.gender",
       "gender",
       "categoryGender",
@@ -703,7 +747,7 @@ function toUiMatchCard(game: any): UiMatchCard {
     ])
   )
 
-  const rawRound = firstValue(game, [
+  const rawRound = firstValue(row, [
     "roundLabel",
     "round",
     "roundNumber",
@@ -718,29 +762,110 @@ function toUiMatchCard(game: any): UiMatchCard {
   const roundValue = normalizeRoundValue(rawRound)
   const roundLabel = formatRoundLabel(rawRound)
 
-  const status = normalizeStatus(
-    firstValue(game, [
-      "status",
-      "gameStatus",
-      "matchStatus",
-    ]) || "SCHEDULED"
+  const rawId = String(
+    firstValue(row, [
+      "game_id",
+      "gameId",
+      "id",
+      "matchId",
+      "match_id",
+    ]) || ""
   )
 
-  return {
-    id: String(firstValue(game, ["game_id", "gameId", "id"]) || `${home}-${away}-${timestamp}`),
+  const homeTeamId = String(
+    firstValue(row, [
+      "homeTeam.id",
+      "home_team.id",
+      "homeTeamId",
+      "teamHome.id",
+      "home_id",
+      "homeId",
+    ]) || ""
+  )
+
+  const awayTeamId = String(
+    firstValue(row, [
+      "awayTeam.id",
+      "away_team.id",
+      "awayTeamId",
+      "teamAway.id",
+      "away_id",
+      "awayId",
+    ]) || ""
+  )
+
+  const leagueId = firstNumber(row, [
+    "leagueId",
+    "league_id",
+    "league.league_id",
+    "league.leagueId",
+    "league.id",
+  ])
+
+  const status = sourceStatus === "FINAL"
+    ? "FINAL"
+    : normalizeStatus(
+        firstValue(row, [
+          "status",
+          "gameStatus.status",
+          "gameStatus",
+          "matchStatus",
+          "game_status",
+          "match_status",
+        ]) || "SCHEDULED"
+      )
+
+  const homeScore = firstNumber(row, [
+    "homeScore",
+    "scoreHome",
+    "home_score",
+    "score_home",
+    "localScore",
+    "scoreLocal",
+    "local_score",
+    "score_local",
+    "result.home",
+    "result.local",
+    "score.home",
+    "score.local",
+    "marcadorLocal",
+    "team1Score",
+    "score1",
+    "pointsHome",
+    "homePoints",
+  ])
+
+  const awayScore = firstNumber(row, [
+    "awayScore",
+    "scoreAway",
+    "away_score",
+    "score_away",
+    "visitorScore",
+    "scoreVisitor",
+    "visitor_score",
+    "score_visitor",
+    "result.away",
+    "result.visitor",
+    "score.away",
+    "score.visitor",
+    "marcadorVisitante",
+    "team2Score",
+    "score2",
+    "pointsAway",
+    "awayPoints",
+  ])
+
+  const base: UiMatchCard = {
+    id: rawId || `${home}-${away}-${timestamp}`,
+    rawId,
+    mergeKey: "",
     timestamp,
     date,
     time,
-    venue: firstValue(game, [
-      "venue",
-      "field",
-      "location",
-      "court",
-      "stadium",
-    ]),
+    venue: firstValue(row, ["venue", "field", "location", "court", "stadium"]),
     home,
     away,
-    homeLogo: firstValue(game, [
+    homeLogo: firstValue(row, [
       "homeTeam.logoUrl",
       "homeTeam.logo",
       "home_team.logo_url",
@@ -749,7 +874,7 @@ function toUiMatchCard(game: any): UiMatchCard {
       "localTeam.logoUrl",
       "local.logoUrl",
     ]),
-    awayLogo: firstValue(game, [
+    awayLogo: firstValue(row, [
       "awayTeam.logoUrl",
       "awayTeam.logo",
       "away_team.logo_url",
@@ -758,20 +883,24 @@ function toUiMatchCard(game: any): UiMatchCard {
       "visitorTeam.logoUrl",
       "visitor.logoUrl",
     ]),
-    homeShort: firstValue(game, [
+    homeShort: firstValue(row, [
       "homeTeam.shortName",
       "home_team.short_name",
       "home.shortName",
       "localTeam.shortName",
     ]),
-    awayShort: firstValue(game, [
+    awayShort: firstValue(row, [
       "awayTeam.shortName",
       "away_team.short_name",
       "away.shortName",
       "visitorTeam.shortName",
     ]),
-    seasonValue,
-    seasonLabel,
+    homeTeamId,
+    awayTeamId,
+    homeScore,
+    awayScore,
+    seasonValue: seasonInfo.value,
+    seasonLabel: seasonInfo.label,
     categoryValue,
     categoryLabel: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",
     branchValue,
@@ -779,14 +908,216 @@ function toUiMatchCard(game: any): UiMatchCard {
     roundValue,
     roundLabel,
     status,
-    leagueId: firstNumber(game, [
-      "leagueId",
-      "league_id",
-      "league.league_id",
-      "league.leagueId",
-      "league.id",
-    ]),
+    leagueId,
   }
+
+  return {
+    ...base,
+    mergeKey: buildExactRowKey(base),
+  }
+}
+
+function buildExactRowKey(match: UiMatchCard) {
+  if (match.rawId) return `ID|${match.rawId}`
+
+  const teamPart =
+    match.homeTeamId && match.awayTeamId
+      ? `${match.homeTeamId}|${match.awayTeamId}`
+      : `${normalizeText(match.home)}|${normalizeText(match.away)}`
+
+  return [
+    String(match.leagueId ?? JUEVES_LEAGUE_ID),
+    teamPart,
+    String(match.timestamp),
+    match.roundValue || "NO_ROUND",
+    normalizeStatus(match.status),
+  ].join("|")
+}
+
+function preferBestRow(a: UiMatchCard, b: UiMatchCard): UiMatchCard {
+  const aIsFinal = normalizeStatus(a.status) === "FINAL"
+  const bIsFinal = normalizeStatus(b.status) === "FINAL"
+
+  const primary = bIsFinal && !aIsFinal ? b : a
+  const secondary = primary === a ? b : a
+
+  const merged: UiMatchCard = {
+    id: primary.id || secondary.id,
+    rawId: primary.rawId || secondary.rawId,
+    mergeKey: primary.mergeKey || secondary.mergeKey,
+    timestamp: primary.timestamp !== UNKNOWN_TIMESTAMP ? primary.timestamp : secondary.timestamp,
+    date: primary.date !== "Por definir" ? primary.date : secondary.date,
+    time: primary.time !== "Por definir" ? primary.time : secondary.time,
+    venue: primary.venue || secondary.venue,
+    home: primary.home || secondary.home,
+    away: primary.away || secondary.away,
+    homeLogo: primary.homeLogo || secondary.homeLogo,
+    awayLogo: primary.awayLogo || secondary.awayLogo,
+    homeShort: primary.homeShort || secondary.homeShort,
+    awayShort: primary.awayShort || secondary.awayShort,
+    homeTeamId: primary.homeTeamId || secondary.homeTeamId,
+    awayTeamId: primary.awayTeamId || secondary.awayTeamId,
+    homeScore: primary.homeScore ?? secondary.homeScore,
+    awayScore: primary.awayScore ?? secondary.awayScore,
+    seasonValue: canonicalSeasonKey(primary.seasonValue, primary.seasonLabel),
+    seasonLabel: canonicalSeasonLabel(primary.seasonValue, primary.seasonLabel),
+    categoryValue: primary.categoryValue || secondary.categoryValue,
+    categoryLabel: primary.categoryValue ? primary.categoryLabel : secondary.categoryLabel,
+    branchValue: primary.branchValue || secondary.branchValue,
+    branchLabel: primary.branchValue ? primary.branchLabel : secondary.branchLabel,
+    roundValue: primary.roundValue || secondary.roundValue,
+    roundLabel: primary.roundValue ? primary.roundLabel : secondary.roundLabel,
+    status: aIsFinal || bIsFinal ? "FINAL" : normalizeStatus(primary.status || secondary.status),
+    leagueId: primary.leagueId ?? secondary.leagueId,
+  }
+
+  return {
+    ...merged,
+    mergeKey: buildExactRowKey(merged),
+  }
+}
+
+function resolveSeasonInfo(game: any) {
+  const seasonId = firstNumber(game, [
+    "season.id",
+    "seasonId",
+    "temporada.id",
+    "season_id",
+  ])
+
+  const rawLabel = firstValue(game, [
+    "season.name",
+    "seasonName",
+    "season.label",
+    "season.title",
+    "temporada.nombre",
+    "temporada.name",
+    "temporadaLabel",
+    "seasonLabel",
+    "temporada",
+  ])
+
+  const normalizedLabel = normalizeText(rawLabel)
+
+  if (normalizedLabel === "wt" || normalizedLabel === "temporada wt") {
+    return {
+      value: "SEASON_1",
+      label: "Temporada 1",
+    }
+  }
+
+  const seasonNumber = seasonId ?? extractSeasonNumber(rawLabel)
+
+  if (seasonNumber !== null) {
+    return {
+      value: `SEASON_${seasonNumber}`,
+      label: `Temporada ${seasonNumber}`,
+    }
+  }
+
+  if (
+    normalizedLabel === "nocturna" ||
+    normalizedLabel === "liga nocturna" ||
+    normalizedLabel === "temporada nocturna"
+  ) {
+    return {
+      value: "SEASON_1",
+      label: "Temporada 1",
+    }
+  }
+
+  if (rawLabel) {
+    return {
+      value: `LABEL_${normalizeText(rawLabel)}`,
+      label: rawLabel,
+    }
+  }
+
+  return {
+    value: "UNASSIGNED",
+    label: "Sin temporada",
+  }
+}
+
+function canonicalSeasonKey(value: string, label: string) {
+  const rawValue = String(value || "").trim()
+  const rawLabel = String(label || "").trim()
+  const normalizedValue = normalizeText(rawValue)
+  const normalizedLabel = normalizeText(rawLabel)
+
+  if (
+    normalizedValue === "wt" ||
+    normalizedLabel === "wt" ||
+    normalizedLabel === "temporada wt"
+  ) {
+    return "SEASON_1"
+  }
+
+  const seasonNumber = extractSeasonNumber(rawValue) ?? extractSeasonNumber(rawLabel)
+  if (seasonNumber !== null) return `SEASON_${seasonNumber}`
+
+  if (
+    normalizedValue === "nocturna" ||
+    normalizedLabel === "nocturna" ||
+    normalizedLabel === "liga nocturna" ||
+    normalizedLabel === "temporada nocturna"
+  ) {
+    return "SEASON_1"
+  }
+
+  if (rawValue) return rawValue
+  if (rawLabel) return `LABEL_${normalizeText(rawLabel)}`
+  return "UNASSIGNED"
+}
+
+function canonicalSeasonLabel(value: string, label: string) {
+  const rawValue = String(value || "").trim()
+  const rawLabel = String(label || "").trim()
+  const normalizedValue = normalizeText(rawValue)
+  const normalizedLabel = normalizeText(rawLabel)
+
+  if (
+    normalizedValue === "wt" ||
+    normalizedLabel === "wt" ||
+    normalizedLabel === "temporada wt"
+  ) {
+    return "Temporada 1"
+  }
+
+  const seasonNumber = extractSeasonNumber(rawValue) ?? extractSeasonNumber(rawLabel)
+  if (seasonNumber !== null) return `Temporada ${seasonNumber}`
+
+  if (
+    normalizedValue === "nocturna" ||
+    normalizedLabel === "nocturna" ||
+    normalizedLabel === "liga nocturna" ||
+    normalizedLabel === "temporada nocturna"
+  ) {
+    return "Temporada 1"
+  }
+
+  return rawLabel || "Sin temporada"
+}
+
+function extractSeasonNumber(value: string) {
+  const raw = String(value || "").trim()
+  if (!raw) return null
+
+  const directSeason = raw.match(/SEASON_(\d+)/i)
+  if (directSeason) return Number(directSeason[1])
+
+  const normalized = normalizeText(raw)
+  const named = normalized.match(/(?:temporada|season)\s*(\d+)/)
+  if (named) return Number(named[1])
+
+  if (/^\d+$/.test(normalized)) return Number(normalized)
+
+  return null
+}
+
+function isExcludedSeasonKey(value: string) {
+  const normalizedValue = normalizeText(value)
+  return normalizedValue === "wt"
 }
 
 function toList(value: any): any[] {
@@ -811,14 +1142,15 @@ function uniqueOptions(items: OptionItem[]) {
   return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
 }
 
-function buildSeasonValue(seasonId: number | null, seasonLabel: string) {
-  if (seasonId !== null) return `SEASON_${seasonId}`
-  return `LABEL_${normalizeText(seasonLabel)}`
-}
+function sortSeasonOptions(a: OptionItem, b: OptionItem) {
+  const seasonA = extractSeasonNumber(a.value) ?? extractSeasonNumber(a.label)
+  const seasonB = extractSeasonNumber(b.value) ?? extractSeasonNumber(b.label)
 
-function isExcludedSeasonOption(option: OptionItem) {
-  const normalizedLabel = normalizeText(option?.label || "")
-  return normalizedLabel === "wt" || normalizedLabel === "temporada wt"
+  if (seasonA !== null && seasonB !== null) return seasonA - seasonB
+  if (seasonA !== null) return -1
+  if (seasonB !== null) return 1
+
+  return a.label.localeCompare(b.label, "es")
 }
 
 function sortRoundOptions(a: OptionItem, b: OptionItem) {
@@ -845,7 +1177,7 @@ function formatRoundLabel(raw: unknown) {
   const normalized = normalizeRoundValue(clean)
 
   if (/^\d+$/.test(normalized)) {
-    return `Jornada ${normalized}`
+    return `J${normalized}`
   }
 
   if (clean.toLowerCase().startsWith("jornada")) {
@@ -887,7 +1219,12 @@ function normalizeCodeValue(value: unknown) {
 }
 
 function normalizeStatus(value: unknown) {
-  return String(value || "").trim().toUpperCase()
+  const normalized = String(value || "").trim().toUpperCase()
+
+  if (normalized === "FINISHED") return "FINAL"
+  if (normalized === "COMPLETED") return "FINAL"
+
+  return normalized || "SCHEDULED"
 }
 
 function normalizeText(value: string) {
@@ -902,9 +1239,11 @@ function normalizeText(value: string) {
 function firstValue(obj: any, paths: string[]) {
   for (const path of paths) {
     const value = readPath(obj, path)
-    if (value !== null && value !== undefined && String(value).trim() !== "") {
-      return String(value).trim()
-    }
+    if (value === null || value === undefined) continue
+    if (typeof value === "object") continue
+
+    const text = String(value).trim()
+    if (text !== "") return text
   }
   return ""
 }
@@ -912,9 +1251,13 @@ function firstValue(obj: any, paths: string[]) {
 function firstNumber(obj: any, paths: string[]) {
   for (const path of paths) {
     const value = readPath(obj, path)
-    if (value === null || value === undefined || String(value).trim() === "") continue
+    if (value === null || value === undefined) continue
+    if (typeof value === "object") continue
 
-    const parsed = Number(value)
+    const text = String(value).trim()
+    if (text === "") continue
+
+    const parsed = Number(text)
     if (Number.isFinite(parsed)) return parsed
   }
   return null
@@ -927,9 +1270,57 @@ function readPath(obj: any, path: string) {
   }, obj)
 }
 
+function normalizeDateInput(raw: unknown): string {
+  if (raw === null || raw === undefined) return ""
+
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime()) ? "" : raw.toISOString()
+  }
+
+  const value = String(raw).trim()
+  if (!value) return ""
+
+  if (/^\d{13}$/.test(value)) {
+    const ms = Number(value)
+    return Number.isFinite(ms) ? new Date(ms).toISOString() : ""
+  }
+
+  if (/^\d{10}$/.test(value)) {
+    const sec = Number(value)
+    return Number.isFinite(sec) ? new Date(sec * 1000).toISOString() : ""
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${value}T00:00:00`
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/.test(value)) {
+    return value.replace(" ", "T")
+  }
+
+  return value
+}
+
 function formatDateParts(raw: unknown) {
-  const dateObj = raw ? new Date(String(raw)) : new Date()
-  const safeDate = Number.isNaN(dateObj.getTime()) ? new Date() : dateObj
+  const normalized = normalizeDateInput(raw)
+
+  if (!normalized) {
+    return {
+      timestamp: UNKNOWN_TIMESTAMP,
+      date: "Por definir",
+      time: "Por definir",
+    }
+  }
+
+  const safeDate = new Date(normalized)
+
+  if (Number.isNaN(safeDate.getTime())) {
+    return {
+      timestamp: UNKNOWN_TIMESTAMP,
+      date: "Por definir",
+      time: "Por definir",
+    }
+  }
 
   return {
     timestamp: safeDate.getTime(),
