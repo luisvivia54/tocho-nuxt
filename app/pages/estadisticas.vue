@@ -1,15 +1,15 @@
 <template>
-  <main class="min-h-screen bg-[#F3F4FF] text-slate-900">
-    <section class="pt-24 md:pt-28 lg:pt-32">
-      <div class="max-w-6xl mx-auto container-pad px-6 pb-10">
-        <!-- Tabs internas -->
+  <main class="bg-[#050816] text-slate-50 min-h-screen">
+    <section class="pt-16 md:pt-16 lg:pt-16">
+      <div class="max-w-6xl mx-auto container-pad px-4 sm:px-6">
+        <!-- TABS -->
         <div class="mb-5 flex items-center gap-2">
           <button
             type="button"
             class="rounded-full px-4 py-2 text-sm font-semibold border transition"
             :class="view === 'equipos'
-              ? 'bg-slate-900 text-white border-slate-900'
-              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'"
+              ? 'bg-white text-slate-900 border-white'
+              : 'bg-slate-900/70 text-slate-200 border-slate-700 hover:border-slate-500'"
             @click="setView('equipos')"
           >
             Equipos
@@ -19,314 +19,390 @@
             type="button"
             class="rounded-full px-4 py-2 text-sm font-semibold border transition"
             :class="view === 'jugadores'
-              ? 'bg-slate-900 text-white border-slate-900'
-              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'"
+              ? 'bg-white text-slate-900 border-white'
+              : 'bg-slate-900/70 text-slate-200 border-slate-700 hover:border-slate-500'"
             @click="setView('jugadores')"
           >
             Jugadores
           </button>
         </div>
 
+        <!-- HEADER -->
+        <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div v-once>
+            <p class="text-[11px] uppercase tracking-[0.2em] text-slate-400">
+              Tochero5 · Liga domingo
+            </p>
+            <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">
+              {{ view === 'equipos' ? 'Estadísticas de equipos' : 'Estadísticas de jugadores' }}
+            </h1>
+            <p class="mt-1 text-sm md:text-base text-slate-400 max-w-xl">
+              {{ view === 'equipos'
+                ? 'Tabla y métricas únicamente de equipos que pertenecen a la liga de domingo.'
+                : 'Ranking de jugadores filtrado únicamente con equipos reales de la liga de domingo.' }}
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-xs text-slate-300 shadow-lg backdrop-blur">
+            <p class="font-semibold text-slate-100">
+              {{ view === 'equipos'
+                ? `${filteredRows.length} equipo${filteredRows.length === 1 ? '' : 's'}`
+                : `${sortedPlayers.length} jugador${sortedPlayers.length === 1 ? '' : 'es'}` }}
+            </p>
+            <p class="mt-0.5">
+              Filtros:
+              <span class="text-slate-100 font-semibold">{{ selectedRamaLabel }}</span>
+              ·
+              <span class="text-slate-100 font-semibold">{{ selectedCategoriaLabel }}</span>
+            </p>
+          </div>
+        </header>
+
+        <!-- FILTROS GLOBALES -->
+        <section class="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-4 sm:p-5 shadow-lg backdrop-blur">
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+              <!-- Rama -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Rama (code)</label>
+                <div class="relative">
+                  <select
+                    v-model="selectedRama"
+                    class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    :disabled="categoriesPending"
+                  >
+                    <option value="all">Todas</option>
+                    <option v-for="code in ramaOptions" :key="code" :value="code">
+                      {{ code }}
+                    </option>
+                  </select>
+
+                  <button
+                    v-if="selectedRama !== 'all'"
+                    type="button"
+                    class="absolute inset-y-0 right-2 my-auto h-8 px-2 rounded-lg border border-slate-700 bg-slate-900/70 text-slate-200 text-xs hover:border-slate-500"
+                    @click="clearRama"
+                    aria-label="Quitar filtro de rama"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <!-- Categoría -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Categoría (gender)</label>
+                <div class="relative">
+                  <select
+                    v-model="selectedCategoria"
+                    class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    :disabled="categoriesPending"
+                  >
+                    <option value="all">Todas</option>
+                    <option v-for="g in categoriaOptions" :key="g" :value="g">
+                      {{ niceGender(g) }}
+                    </option>
+                  </select>
+
+                  <button
+                    v-if="selectedCategoria !== 'all'"
+                    type="button"
+                    class="absolute inset-y-0 right-2 my-auto h-8 px-2 rounded-lg border border-slate-700 bg-slate-900/70 text-slate-200 text-xs hover:border-slate-500"
+                    @click="clearCategoria"
+                    aria-label="Quitar filtro de categoría"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <!-- Buscar -->
+              <div v-if="view === 'equipos'">
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Buscar equipo</label>
+                <div class="relative">
+                  <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500 text-xs">
+                    🔍
+                  </span>
+                  <input
+                    v-model="searchQuery"
+                    type="text"
+                    placeholder="Buscar equipo..."
+                    class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-8 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div v-else>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Buscar jugador</label>
+                <div class="relative">
+                  <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500 text-xs">
+                    🔍
+                  </span>
+                  <input
+                    v-model="playerNameQuery"
+                    type="text"
+                    placeholder="Buscar jugador..."
+                    class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-8 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                class="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2.5 text-xs font-semibold text-slate-200 hover:border-slate-500"
+                @click="clearFilters"
+              >
+                Limpiar filtros
+              </button>
+
+              <button
+                type="button"
+                class="rounded-xl border border-slate-700 bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 hover:bg-slate-100"
+                @click="refreshAll"
+              >
+                Refrescar
+              </button>
+            </div>
+          </div>
+
+          <div v-if="view === 'jugadores'" class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Equipo</label>
+              <select
+                v-model="teamPick"
+                class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="ALL">Todos</option>
+                <option v-for="team in playerTeamOptions" :key="team.teamId" :value="String(team.teamId)">
+                  {{ team.name }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Número</label>
+              <input
+                v-model.trim="playerNumberQuery"
+                inputmode="numeric"
+                placeholder="Ej. 7"
+                class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <!-- Chips / estado -->
+          <div class="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+            <span class="text-slate-400">Estado:</span>
+
+            <span
+              v-if="selectedRama !== 'all'"
+              class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
+            >
+              Rama: <strong class="text-slate-100">{{ selectedRama }}</strong>
+              <button type="button" class="text-slate-300 hover:text-white" @click="clearRama">✕</button>
+            </span>
+
+            <span
+              v-if="selectedCategoria !== 'all'"
+              class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
+            >
+              Categoría: <strong class="text-slate-100">{{ niceGender(selectedCategoria) }}</strong>
+              <button type="button" class="text-slate-300 hover:text-white" @click="clearCategoria">✕</button>
+            </span>
+
+            <span
+              v-if="view === 'equipos' && searchQuery.trim()"
+              class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
+            >
+              Búsqueda: <strong class="text-slate-100">“{{ searchQuery.trim() }}”</strong>
+              <button type="button" class="text-slate-300 hover:text-white" @click="clearSearch">✕</button>
+            </span>
+
+            <span
+              v-if="view === 'jugadores' && playerNameQuery.trim()"
+              class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
+            >
+              Jugador: <strong class="text-slate-100">“{{ playerNameQuery.trim() }}”</strong>
+              <button type="button" class="text-slate-300 hover:text-white" @click="clearPlayerName">✕</button>
+            </span>
+
+            <span
+              v-if="view === 'jugadores' && playerNumberQuery.trim()"
+              class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
+            >
+              Número: <strong class="text-slate-100">{{ playerNumberQuery.trim() }}</strong>
+              <button type="button" class="text-slate-300 hover:text-white" @click="clearPlayerNumber">✕</button>
+            </span>
+
+            <span
+              v-if="categoriesError"
+              class="text-amber-200"
+            >
+              No se pudo cargar /categories de la liga 1. El filtrado principal sigue funcionando con teams/list.
+            </span>
+          </div>
+        </section>
+
         <!-- =========================
              VIEW: EQUIPOS
              ========================= -->
-        <div v-if="view === 'equipos'">
-          <!-- HEADER -->
-          <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <h1 class="font-display text-3xl font-extrabold text-slate-900">
-                  Estadísticas de equipos
-                </h1>
-
-                <span
-                  class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-100"
-                  title="Se muestran únicamente equipos con isActive = true"
-                >
-                  Solo activos
-                </span>
-              </div>
-
-              <p class="mt-2 text-slate-600 max-w-2xl">
-                Partidos jugados, ganados, perdidos, puntos a favor y en contra, diferencia e índice de victorias.
-              </p>
-
-              <!-- FILTROS -->
-              <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <!-- ✅ Temporada -->
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                    Temporada
-                  </label>
-                  <select
-                    v-model="seasonPick"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="ALL">Todas</option>
-                    <option v-for="s in seasonOptions" :key="s.id" :value="String(s.id)">
-                      {{ s.name }}
-                    </option>
-                  </select>
-                  <p class="mt-1 text-[11px] text-slate-500">
-                    Default: <span class="font-semibold text-slate-700">{{ defaultSeasonLabel }}</span>
-                  </p>
-                </div>
-
-                <!-- Categoría (categoryCode) -->
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                    Categoría (code)
-                  </label>
-                  <select
-                    v-model="selectedCategoryCode"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Todas</option>
-                    <option v-for="cat in categoryOptions" :key="cat.value" :value="cat.value">
-                      {{ cat.label }}
-                    </option>
-                  </select>
-                </div>
-
-                <!-- Rama (gender) -->
-                <div>
-                  <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                    Rama (gender)
-                  </label>
-                  <select
-                    v-model="selectedGender"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">Todas</option>
-                    <option value="VARONIL">Varonil</option>
-                    <option value="FEMENIL">Femenil</option>
-                    <option value="MIXTO">Mixto</option>
-                  </select>
-                </div>
-
-                <!-- Buscar + acciones -->
-                <div class="flex flex-col gap-2">
-                  <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
-                      Buscar equipo
-                    </label>
-                    <input
-                      v-model="searchQuery"
-                      type="text"
-                      placeholder="Ej. Buhos, Aguilas…"
-                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div class="flex items-center gap-2">
-                    <button
-                      type="button"
-                      class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      @click="clearTeamFilters"
-                    >
-                      Limpiar filtros
-                    </button>
-
-                    <button
-                      type="button"
-                      class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-                      @click="refreshAllEquipos()"
-                    >
-                      Refrescar
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Ruta actual -->
-              
-            </div>
-
-            <NuxtLink
-              to="/"
-              class="hidden sm:inline-flex items-center rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-            >
-              ← Volver al inicio
-            </NuxtLink>
-          </header>
-
-          <!-- ESTADOS -->
-          <div
-            v-if="pendingEquiposUI"
-            class="mt-6 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"
-          >
-            Cargando estadísticas (y equipos activos)...
+        <div v-if="view === 'equipos'" class="mt-6">
+          <div v-if="pendingEquiposUI" class="text-sm text-slate-400">
+            Cargando estadísticas de equipos...
           </div>
 
           <div
             v-else-if="errorEquiposUI"
-            class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            class="rounded-2xl bg-red-950/60 text-red-100 border border-red-500/60 px-4 py-3 text-sm"
           >
-            Error al cargar estadísticas / equipos.
+            Ocurrió un error al cargar estadísticas de equipos.
           </div>
 
-          <!-- CONTENIDO -->
-          <div v-else class="mt-6">
-            <!-- Vacío -->
+          <div
+            v-else-if="filteredRows.length === 0"
+            class="rounded-2xl bg-slate-900/70 border border-slate-700 px-4 py-5 text-sm text-slate-300"
+          >
+            <p class="font-semibold text-slate-100">Sin resultados</p>
+            <p class="mt-1 text-slate-300">
+              No hay estadísticas de equipos para la combinación seleccionada.
+            </p>
+          </div>
+
+          <div v-else>
             <div
-              v-if="filteredRows.length === 0"
-              class="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600"
+              class="rounded-2xl border border-slate-700 bg-slate-900/90 shadow-lg overflow-x-auto"
             >
-              No hay equipos activos que coincidan con los filtros / búsqueda actual.
-              <div class="mt-2">
-                <button
-                  type="button"
-                  class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  @click="clearTeamFilters"
-                >
-                  Limpiar filtros
-                </button>
-              </div>
-            </div>
-
-            <!-- MOBILE: Cards -->
-            <div v-else class="md:hidden space-y-3">
-              <article
-                v-for="row in filteredRows"
-                :key="row.key"
-                class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <p class="font-semibold text-slate-900 truncate">{{ row.teamName }}</p>
-                    <p class="mt-1 text-xs text-slate-600">
-                      Temporada:
-                      <span class="font-semibold text-slate-800">{{ row.seasonName }}</span>
-                      · Categoría:
-                      <span class="font-semibold text-slate-800">{{ row.categoryCode || '—' }}</span>
-                      · Rama:
-                      <span class="font-semibold text-slate-800">{{ prettyDivision(row.gender) }}</span>
-                    </p>
-                  </div>
-
-                  <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                    {{ row.winRate }}
-                  </span>
-                </div>
-
-                <div class="mt-3 grid grid-cols-3 gap-2 text-xs">
-                  <div class="rounded-xl bg-slate-50 px-3 py-2">
-                    <p class="text-slate-500">PJ</p>
-                    <p class="font-semibold text-slate-900">{{ row.gp }}</p>
-                  </div>
-                  <div class="rounded-xl bg-slate-50 px-3 py-2">
-                    <p class="text-slate-500">G</p>
-                    <p class="font-semibold text-slate-900">{{ row.wins }}</p>
-                  </div>
-                  <div class="rounded-xl bg-slate-50 px-3 py-2">
-                    <p class="text-slate-500">P</p>
-                    <p class="font-semibold text-slate-900">{{ row.losses }}</p>
-                  </div>
-
-                  <div class="rounded-xl bg-slate-50 px-3 py-2">
-                    <p class="text-slate-500">PF</p>
-                    <p class="font-semibold text-slate-900">{{ row.pointsFor }}</p>
-                  </div>
-                  <div class="rounded-xl bg-slate-50 px-3 py-2">
-                    <p class="text-slate-500">PC</p>
-                    <p class="font-semibold text-slate-900">{{ row.pointsAgainst }}</p>
-                  </div>
-                  <div class="rounded-xl bg-slate-50 px-3 py-2">
-                    <p class="text-slate-500">Diff</p>
-                    <p class="font-semibold" :class="row.diff >= 0 ? 'text-emerald-700' : 'text-red-700'">
-                      {{ row.diff }}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            </div>
-
-            <!-- DESKTOP: Tabla -->
-            <div class="hidden md:block rounded-2xl bg-white border border-slate-200 shadow-[0_12px_30px_rgba(15,23,42,0.08)] overflow-x-auto">
-              <table class="min-w-[1020px] w-full text-sm">
+              <table class="min-w-[980px] w-full text-sm">
                 <thead>
-                  <tr class="text-left text-slate-500 border-b border-slate-200/80">
-                    <th class="px-3 py-2">Equipo</th>
-                    <th class="px-3 py-2">Temporada</th>
-                    <th class="px-3 py-2">Categoría</th>
-                    <th class="px-3 py-2">Rama</th>
-                    <th class="px-3 py-2">PJ</th>
-                    <th class="px-3 py-2">G</th>
-                    <th class="px-3 py-2">P</th>
-                    <th class="px-3 py-2">PF</th>
-                    <th class="px-3 py-2">PC</th>
-                    <th class="px-3 py-2">Diff</th>
-                    <th class="px-3 py-2">Índice</th>
+                  <tr class="text-left text-slate-400 border-b border-slate-700/80">
+                    <th class="px-4 py-3">Equipo</th>
+                    <th class="px-4 py-3">Rama</th>
+                    <th class="px-4 py-3">Categoría</th>
+                    <th class="px-4 py-3">PJ</th>
+                    <th class="px-4 py-3">G</th>
+                    <th class="px-4 py-3">P</th>
+                    <th class="px-4 py-3">E</th>
+                    <th class="px-4 py-3">PF</th>
+                    <th class="px-4 py-3">PC</th>
+                    <th class="px-4 py-3">Diff</th>
+                    <th class="px-4 py-3">PTS</th>
+                    <th class="px-4 py-3">Índice</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   <tr
-                    v-for="row in filteredRows"
+                    v-for="row in paginatedTeamRows"
                     :key="row.key"
-                    class="border-b border-slate-100 last:border-0 hover:bg-slate-50/70"
+                    class="border-b border-slate-800 last:border-0 hover:bg-slate-800/35"
                   >
-                    <td class="px-3 py-2 font-semibold text-slate-900">{{ row.teamName }}</td>
-                    <td class="px-3 py-2 text-slate-800">{{ row.seasonName }}</td>
-                    <td class="px-3 py-2 text-slate-800">{{ row.categoryCode || '—' }}</td>
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 rounded-xl overflow-hidden border border-slate-700 bg-slate-950/70 flex items-center justify-center shrink-0">
+                          <img
+                            v-if="row.logoUrl"
+                            :src="row.logoUrl"
+                            :alt="row.teamName"
+                            class="h-full w-full object-contain"
+                            loading="lazy"
+                          />
+                          <span v-else class="text-[11px] font-bold text-slate-200">
+                            {{ initials(row.teamName) }}
+                          </span>
+                        </div>
 
-                    <td class="px-3 py-2">
-                      <span
-                        class="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        :class="{
-                          'bg-blue-50 text-blue-700': row.gender === 'VARONIL',
-                          'bg-pink-50 text-pink-700': row.gender === 'FEMENIL',
-                          'bg-emerald-50 text-emerald-700': row.gender === 'MIXTO',
-                          'bg-slate-100 text-slate-700': !row.gender
-                        }"
-                      >
-                        {{ prettyDivision(row.gender) }}
-                      </span>
+                        <div class="min-w-0">
+                          <p class="font-semibold text-white truncate">{{ row.teamName }}</p>
+                          <p class="text-[11px] text-slate-400 truncate">
+                            {{ row.shortName || 'Sin abreviatura' }}
+                          </p>
+                        </div>
+                      </div>
                     </td>
 
-                    <td class="px-3 py-2 text-slate-800">{{ row.gp }}</td>
-                    <td class="px-3 py-2 text-slate-800">{{ row.wins }}</td>
-                    <td class="px-3 py-2 text-slate-800">{{ row.losses }}</td>
-                    <td class="px-3 py-2 text-slate-800">{{ row.pointsFor }}</td>
-                    <td class="px-3 py-2 text-slate-800">{{ row.pointsAgainst }}</td>
-
-                    <td class="px-3 py-2">
+                    <td class="px-4 py-3 text-slate-200">{{ row.categoryCode || '—' }}</td>
+                    <td class="px-4 py-3">
                       <span
-                        class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                        :class="row.diff >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'"
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                        :class="{
+                          'bg-blue-500/10 text-blue-200 border border-blue-500/20': row.gender === 'VARONIL',
+                          'bg-pink-500/10 text-pink-200 border border-pink-500/20': row.gender === 'FEMENIL',
+                          'bg-emerald-500/10 text-emerald-200 border border-emerald-500/20': row.gender === 'MIXTO',
+                          'bg-slate-500/10 text-slate-200 border border-slate-500/20': !row.gender
+                        }"
+                      >
+                        {{ niceGender(row.gender) }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-200">{{ row.gp }}</td>
+                    <td class="px-4 py-3 text-slate-200">{{ row.wins }}</td>
+                    <td class="px-4 py-3 text-slate-200">{{ row.losses }}</td>
+                    <td class="px-4 py-3 text-slate-200">{{ row.draws }}</td>
+                    <td class="px-4 py-3 text-slate-200">{{ row.pointsFor }}</td>
+                    <td class="px-4 py-3 text-slate-200">{{ row.pointsAgainst }}</td>
+                    <td class="px-4 py-3">
+                      <span
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                        :class="row.diff >= 0
+                          ? 'bg-emerald-500/10 text-emerald-200 border border-emerald-500/20'
+                          : 'bg-red-500/10 text-red-200 border border-red-500/20'"
                       >
                         {{ row.diff }}
                       </span>
                     </td>
-
-                    <td class="px-3 py-2">
-                      <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                    <td class="px-4 py-3 text-slate-100 font-semibold">{{ row.tablePoints }}</td>
+                    <td class="px-4 py-3">
+                      <span class="inline-flex items-center rounded-full bg-white/10 text-white px-2 py-0.5 text-xs font-semibold border border-white/10">
                         {{ row.winRate }}
                       </span>
-                    </td>
-                  </tr>
-
-                  <tr v-if="filteredRows.length === 0">
-                    <td colspan="11" class="px-3 py-3 text-sm text-slate-500">
-                      No hay equipos activos que coincidan con los filtros seleccionados.
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <!-- Volver mobile -->
-            <div class="sm:hidden mt-4">
-              <NuxtLink
-                to="/"
-                class="inline-flex items-center rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200"
-              >
-                ← Volver al inicio
-              </NuxtLink>
+            <!-- PAGINACIÓN EQUIPOS -->
+            <div
+              v-if="filteredRows.length > 0 && totalTeamPages > 1"
+              class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-400"
+            >
+              <p>
+                Mostrando
+                <span class="font-semibold text-slate-100">
+                  {{ teamPageStart + 1 }}–{{ teamPageEnd }}
+                </span>
+                de
+                <span class="font-semibold text-slate-100">
+                  {{ filteredRows.length }}
+                </span>
+                equipos
+              </p>
+
+              <div class="flex items-center justify-between sm:justify-end gap-2">
+                <button
+                  type="button"
+                  class="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 hover:border-slate-500 disabled:opacity-40 disabled:hover:border-slate-700"
+                  :disabled="currentTeamPage === 1"
+                  @click="currentTeamPage = Math.max(1, currentTeamPage - 1)"
+                >
+                  ← Anterior
+                </button>
+
+                <span class="px-2">
+                  Página <span class="font-semibold text-slate-100">{{ currentTeamPage }}</span> / {{ totalTeamPages }}
+                </span>
+
+                <button
+                  type="button"
+                  class="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 hover:border-slate-500 disabled:opacity-40 disabled:hover:border-slate-700"
+                  :disabled="currentTeamPage >= totalTeamPages"
+                  @click="currentTeamPage = Math.min(totalTeamPages, currentTeamPage + 1)"
+                >
+                  Siguiente →
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -334,240 +410,150 @@
         <!-- =========================
              VIEW: JUGADORES
              ========================= -->
-        <div v-else>
-          <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <h1 class="font-display text-3xl font-extrabold text-slate-900">Jugadores</h1>
-                <span
-                  class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-100"
-                  title="El filtro de equipo muestra únicamente equipos con isActive = true"
-                >
-                  Equipos activos
-                </span>
-              </div>
-
-              <p class="mt-2 text-slate-600 max-w-2xl">
-                Ranking por impacto (TD + INT + PA + SACK). Paginado de 10 en 10.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-              @click="refreshPlayersAll"
-            >
-              ⟳ Refrescar
-            </button>
-          </header>
-
-          <!-- filtros -->
-          <div class="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-              <div class="md:col-span-5">
-                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Equipo</label>
-                <select
-                  v-model="teamPick"
-                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="ALL">Todos (activos)</option>
-                  <option v-for="t in teamsActiveVm" :key="t.teamId" :value="String(t.teamId)">
-                    {{ t.name }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="md:col-span-3">
-                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Número</label>
-                <input
-                  v-model.trim="numberPick"
-                  inputmode="numeric"
-                  placeholder="Ej. 7"
-                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div class="md:col-span-4">
-                <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Nombre</label>
-                <input
-                  v-model.trim="namePick"
-                  placeholder="Escribe para buscar..."
-                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div class="md:col-span-12 flex flex-wrap items-center gap-2 pt-1">
-                <p class="text-[11px] text-slate-500">
-                  Mostrando <span class="text-slate-900 font-semibold">{{ sortedPlayers.length }}</span> jugador(es)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- estados -->
-          <div
-            v-if="pendingPlayersAny"
-            class="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"
-          >
-            Cargando jugadores...
+        <div v-else class="mt-6">
+          <div v-if="pendingPlayersAny" class="text-sm text-slate-400">
+            Cargando estadísticas de jugadores...
           </div>
 
           <div
             v-else-if="errorPlayersAny"
-            class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            class="rounded-2xl bg-red-950/60 text-red-100 border border-red-500/60 px-4 py-3 text-sm"
           >
-            Error al cargar jugadores / equipos.
+            Ocurrió un error al cargar estadísticas de jugadores.
           </div>
 
-          <!-- lista -->
-          <div v-else class="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div class="text-sm text-slate-600">
-                Mostrando <span class="font-semibold text-slate-900">{{ rangeLabel }}</span>
-                de <span class="font-semibold text-slate-900">{{ sortedPlayers.length }}</span>
-              </div>
+          <div
+            v-else-if="sortedPlayers.length === 0"
+            class="rounded-2xl bg-slate-900/70 border border-slate-700 px-4 py-5 text-sm text-slate-300"
+          >
+            <p class="font-semibold text-slate-100">Sin resultados</p>
+            <p class="mt-1 text-slate-300">
+              No hay jugadores para la combinación seleccionada.
+            </p>
+          </div>
 
-              <div class="flex items-center gap-2">
-                <button
-                  class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                  :disabled="page <= 1"
-                  @click="page = Math.max(1, page - 1)"
-                >
-                  ←
-                </button>
-
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                  Página {{ page }} / {{ totalPages }}
-                </span>
-
-                <button
-                  class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                  :disabled="page >= totalPages"
-                  @click="page = Math.min(totalPages, page + 1)"
-                >
-                  →
-                </button>
-
-                <button
-                  class="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
-                  @click="clearPlayerFilters"
-                >
-                  Limpiar
-                </button>
-              </div>
-            </div>
-
-            <div v-if="pagedPlayers.length === 0" class="px-4 py-6 text-sm text-slate-600">
-              No hay jugadores para esos filtros.
-            </div>
-
-            <div v-else class="p-4 space-y-3">
-              <article
-                v-for="(p, idx) in pagedPlayers"
-                :key="p.id"
-                class="rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition p-4"
-              >
-                <div class="flex flex-col md:flex-row md:items-center gap-4">
-                  <div class="flex items-center gap-3 min-w-0 flex-1">
-                    <div class="h-10 w-10 rounded-2xl border border-slate-200 bg-slate-50 grid place-items-center shrink-0">
-                      <span class="text-sm font-extrabold text-slate-700 tabular-nums">
-                        {{ pageStartIndex + idx + 1 }}
-                      </span>
-                    </div>
-
-                    <div class="h-12 w-12 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0">
-                      <img
-                        v-if="p.photoUrl"
-                        :src="p.photoUrl"
-                        :alt="p.fullName"
-                        class="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                      <span v-else class="text-[12px] font-extrabold text-slate-700">
-                        {{ initials(p.fullName) }}
-                      </span>
-                    </div>
-
-                    <div class="min-w-0">
-                      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
-                        <p class="font-semibold text-slate-900 truncate max-w-[520px]">
-                          {{ p.fullName }}
-                        </p>
-                        <span v-if="p.number" class="text-slate-500 font-semibold">#{{ p.number }}</span>
-
-                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                          IMP: <span class="ml-1 text-slate-900 tabular-nums">{{ impact(p) }}</span>
-                        </span>
-                      </div>
-
-                      <p class="mt-0.5 text-[12px] text-slate-700 truncate">
-                        {{ p.teamName || '—' }}
-                        <span v-if="p.teamMeta" class="text-slate-500"> · {{ p.teamMeta }}</span>
-                      </p>
-
-                      <p class="text-[11px] text-slate-500 truncate">
-                        {{ p.gender || '—' }}<span v-if="p.categoryCode"> · {{ p.categoryCode }}</span>
-                      </p>
-                    </div>
+          <div v-else class="space-y-3">
+            <article
+              v-for="(player, idx) in pagedPlayers"
+              :key="player.id"
+              class="rounded-2xl border border-slate-700 bg-slate-900/90 p-4 shadow-lg hover:border-slate-500 transition"
+            >
+              <div class="flex flex-col md:flex-row md:items-center gap-4">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <div class="h-10 w-10 rounded-2xl border border-slate-700 bg-slate-950/70 grid place-items-center shrink-0">
+                    <span class="text-sm font-extrabold text-slate-200 tabular-nums">
+                      {{ pageStartIndex + idx + 1 }}
+                    </span>
                   </div>
 
-                  <div class="w-full md:w-auto">
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div class="rounded-2xl border border-fuchsia-200 bg-fuchsia-50 px-3 py-2">
-                        <p class="text-[10px] uppercase tracking-[0.22em] text-slate-500">INT</p>
-                        <p class="mt-0.5 text-lg font-extrabold text-fuchsia-700 tabular-nums">{{ p.stats.int }}</p>
-                      </div>
+                  <div class="h-12 w-12 rounded-2xl border border-slate-700 bg-slate-950/70 overflow-hidden flex items-center justify-center shrink-0">
+                    <img
+                      v-if="player.photoUrl"
+                      :src="player.photoUrl"
+                      :alt="player.fullName"
+                      class="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <span v-else class="text-[12px] font-extrabold text-slate-200">
+                      {{ initials(player.fullName) }}
+                    </span>
+                  </div>
 
-                      <div class="rounded-2xl border border-violet-200 bg-violet-50 px-3 py-2">
-                        <p class="text-[10px] uppercase tracking-[0.22em] text-slate-500">TD</p>
-                        <p class="mt-0.5 text-lg font-extrabold text-violet-700 tabular-nums">{{ p.stats.td }}</p>
-                      </div>
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p class="font-semibold text-white truncate max-w-[420px]">
+                        {{ player.fullName }}
+                      </p>
 
-                      <div class="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2">
-                        <p class="text-[10px] uppercase tracking-[0.22em] text-slate-500">PA</p>
-                        <p class="mt-0.5 text-lg font-extrabold text-sky-700 tabular-nums">{{ p.stats.pa }}</p>
-                      </div>
+                      <span
+                        v-if="player.number !== null && player.number !== undefined"
+                        class="text-slate-400 font-semibold"
+                      >
+                        #{{ player.number }}
+                      </span>
 
-                      <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-                        <p class="text-[10px] uppercase tracking-[0.22em] text-slate-500">SACK</p>
-                        <p class="mt-0.5 text-lg font-extrabold text-emerald-700 tabular-nums">{{ p.stats.sack }}</p>
-                      </div>
+                      <span class="inline-flex items-center rounded-full bg-white/10 text-white px-2 py-0.5 text-[11px] font-semibold border border-white/10">
+                        IMP: {{ impact(player) }}
+                      </span>
+                    </div>
+
+                    <p class="mt-0.5 text-[12px] text-slate-300 truncate">
+                      {{ player.teamName || '—' }}
+                    </p>
+
+                    <p class="text-[11px] text-slate-500 truncate">
+                      {{ player.teamCode || '—' }}<span v-if="player.gender"> · {{ niceGender(player.gender) }}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div class="w-full md:w-auto">
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div class="rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/10 px-3 py-2">
+                      <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">INT</p>
+                      <p class="mt-0.5 text-lg font-extrabold text-fuchsia-200 tabular-nums">{{ player.stats.int }}</p>
+                    </div>
+
+                    <div class="rounded-2xl border border-violet-500/20 bg-violet-500/10 px-3 py-2">
+                      <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">TD</p>
+                      <p class="mt-0.5 text-lg font-extrabold text-violet-200 tabular-nums">{{ player.stats.td }}</p>
+                    </div>
+
+                    <div class="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-3 py-2">
+                      <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">PA</p>
+                      <p class="mt-0.5 text-lg font-extrabold text-sky-200 tabular-nums">{{ player.stats.pa }}</p>
+                    </div>
+
+                    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+                      <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">SACK</p>
+                      <p class="mt-0.5 text-lg font-extrabold text-emerald-200 tabular-nums">{{ player.stats.sack }}</p>
                     </div>
                   </div>
                 </div>
-              </article>
-            </div>
-
-            <div class="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-2">
-              <div class="text-[11px] text-slate-500">
-                Total: <span class="font-semibold text-slate-900">{{ sortedPlayers.length }}</span>
               </div>
+            </article>
 
-              <div class="flex items-center gap-2">
+            <!-- PAGINACIÓN JUGADORES -->
+            <div
+              v-if="sortedPlayers.length > 0 && totalPlayerPages > 1"
+              class="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-400"
+            >
+              <p>
+                Mostrando
+                <span class="font-semibold text-slate-100">
+                  {{ pageStartIndex + 1 }}–{{ pageEndIndex }}
+                </span>
+                de
+                <span class="font-semibold text-slate-100">
+                  {{ sortedPlayers.length }}
+                </span>
+                jugadores
+              </p>
+
+              <div class="flex items-center justify-between sm:justify-end gap-2">
                 <button
-                  class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                  type="button"
+                  class="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 hover:border-slate-500 disabled:opacity-40 disabled:hover:border-slate-700"
                   :disabled="page <= 1"
                   @click="page = Math.max(1, page - 1)"
                 >
                   ← Anterior
                 </button>
 
+                <span class="px-2">
+                  Página <span class="font-semibold text-slate-100">{{ page }}</span> / {{ totalPlayerPages }}
+                </span>
+
                 <button
-                  class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                  :disabled="page >= totalPages"
-                  @click="page = Math.min(totalPages, page + 1)"
+                  type="button"
+                  class="rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 hover:border-slate-500 disabled:opacity-40 disabled:hover:border-slate-700"
+                  :disabled="page >= totalPlayerPages"
+                  @click="page = Math.min(totalPlayerPages, page + 1)"
                 >
                   Siguiente →
                 </button>
               </div>
             </div>
-          </div>
-
-          <div class="mt-4 text-xs text-slate-500">
-            Nota: si tu backend no manda stats por jugador aún, se verán en 0. Cuando tengas endpoint real, solo mapeamos campos.
           </div>
         </div>
       </div>
@@ -577,9 +563,99 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter, useRuntimeConfig, useAsyncData } from '#imports'
+import { useRuntimeConfig, useFetch, useAsyncData, useRoute, useRouter } from '#imports'
+import { normalizeApiBase } from '../composables/useApiBase'
 
 type View = 'equipos' | 'jugadores'
+type Nullable<T> = T | null
+
+interface ApiTeam {
+  teamId: number
+  leagueId?: number | null
+  name: string
+  shortName: Nullable<string>
+  colorPrimary: Nullable<string>
+  colorSecondary: Nullable<string>
+  logoUrl: Nullable<string>
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+  code?: Nullable<string>
+  categoryCode?: Nullable<string>
+  gender?: Nullable<string>
+  categoryGender?: Nullable<string>
+  category?: Nullable<{ code?: string; gender?: string; name?: string; leagueId?: number | null }>
+}
+
+interface CategoryDto {
+  id: number
+  leagueId?: number | null
+  name: string
+  code: string
+  gender: string
+}
+
+interface ApiStanding {
+  standingId?: number
+  teamId?: number
+  teamName?: string
+  shortName?: string
+  gender?: string
+  categoryCode?: string
+  seasonId?: number
+  categoryId?: number
+  leagueId?: number | null
+  pointsFor?: number
+  pointsAgainst?: number
+  tablePoints?: number
+  gp?: number
+  wins?: number
+  losses?: number
+  draws?: number
+}
+
+interface TeamRowVM {
+  key: string
+  teamId: number | null
+  teamName: string
+  shortName: string
+  logoUrl: string | null
+  gender: string
+  categoryCode: string
+  gp: number
+  wins: number
+  losses: number
+  draws: number
+  pointsFor: number
+  pointsAgainst: number
+  tablePoints: number
+  diff: number
+  winRate: string
+}
+
+interface PlayerStats {
+  td: number
+  int: number
+  pa: number
+  sack: number
+  rec: number
+}
+
+interface PlayerVM {
+  id: number
+  fullName: string
+  number?: number | null
+  photoUrl?: string | null
+  teamId?: number | null
+  teamName?: string
+  teamCode?: string
+  gender?: string
+  stats: PlayerStats
+}
+
+/* =========================
+   VIEW
+   ========================= */
 const route = useRoute()
 const router = useRouter()
 
@@ -594,575 +670,664 @@ watch(
 
 function setView(v: View) {
   view.value = v
-  const q: any = { ...route.query }
+  const q: Record<string, any> = { ...route.query }
   if (v === 'jugadores') q.view = 'jugadores'
   else delete q.view
   router.replace({ query: q })
 }
 
-const config = useRuntimeConfig()
-const API_BASE = ((config.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
-const LEAGUE_ID = 1
-
-function withLeague(query: Record<string, any> = {}) {
-  return {
-    ...query,
-    leagueId: LEAGUE_ID,
-  }
-}
-
-async function leagueGet<T = any>(path: string, query: Record<string, any> = {}) {
-  return await $fetch<T>(`${API_BASE}${path}`, {
-    query: withLeague(query),
-  })
-}
-
-function leaguePath(path: string, query: Record<string, any> = {}) {
-  const params = new URLSearchParams()
-  const merged = withLeague(query)
-
-  for (const [key, value] of Object.entries(merged)) {
-    if (value === undefined || value === null || value === '') continue
-    params.set(key, String(value))
-  }
-
-  const qs = params.toString()
-  return qs ? `${path}?${qs}` : path
-}
-
+/* =========================
+   HELPERS
+   ========================= */
 function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
   if (x && Array.isArray(x.items)) return x.items
+  if (x && Array.isArray(x.data)) return x.data
+  if (x && Array.isArray(x.results)) return x.results
+  if (x?.data && Array.isArray(x.data.content)) return x.data.content
   return []
 }
 
-function toBool(v: any): boolean {
-  if (typeof v === 'boolean') return v
-  if (typeof v === 'number') return v === 1
-  const s = String(v ?? '').trim().toLowerCase()
-  if (!s) return false
-  return ['true', '1', 'yes', 'y', 'si', 'sí', 's', 'active', 'activo', 'activa', 'enabled'].includes(s)
+function toNum(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
 }
 
-const upper = (v: any) => String(v ?? '').toUpperCase()
-const toNum = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
 
-type TeamVM = { teamId: number; name: string; shortName?: string; isActive: boolean }
+function normalizeUpper(value: unknown): string {
+  return String(value || '').trim().toUpperCase()
+}
+
+function niceGender(g: string) {
+  const x = String(g || '').toUpperCase()
+  if (x === 'VARONIL') return 'Varonil'
+  if (x === 'FEMENIL') return 'Femenil'
+  if (x === 'MIXTO') return 'Mixto'
+  return g
+}
+
+function initials(text: string): string {
+  const s = String(text || '').trim()
+  if (!s) return 'T5'
+  const parts = s.split(/\s+/).slice(0, 2)
+  return parts.map((p) => p[0]?.toUpperCase() || '').join('')
+}
+
+function impact(p: PlayerVM): number {
+  return p.stats.td + p.stats.int + p.stats.pa + p.stats.sack
+}
+
+function stringHash(text: string): number {
+  let hash = 0
+  for (let i = 0; i < text.length; i++) {
+    hash = (hash << 5) - hash + text.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash || 1)
+}
+
+/* =========================
+   API
+   ========================= */
+const PAGE_LEAGUE_ID = 1
+
+const config = useRuntimeConfig()
+const API_BASE = `${normalizeApiBase(config.public.apiBase)}/`
+
+/* =========================
+   FILTROS GLOBALES
+   ========================= */
+const selectedRama = ref<string>('all')
+const selectedCategoria = ref<string>('all')
+const searchQuery = ref('')
+
+const selectedRamaLabel = computed(() =>
+  selectedRama.value === 'all' ? 'Todas las ramas' : selectedRama.value
+)
+
+const selectedCategoriaLabel = computed(() =>
+  selectedCategoria.value === 'all' ? 'Todas las categorías' : niceGender(selectedCategoria.value)
+)
+
+/* =========================
+   CATEGORIES
+   ========================= */
+const categoriesQuery = computed(() => ({
+  leagueId: PAGE_LEAGUE_ID,
+}))
+
+const {
+  data: categoriesRaw,
+  pending: categoriesPending,
+  error: categoriesError,
+  refresh: refreshCategories,
+} = useFetch<any>('categories', {
+  baseURL: API_BASE,
+  query: categoriesQuery,
+  default: () => [],
+})
+
+const allCategories = computed<CategoryDto[]>(() => unwrapList<CategoryDto>(categoriesRaw.value))
+
+const categoriesList = computed<CategoryDto[]>(() => {
+  const list = allCategories.value || []
+  const withLeagueMeta = list.some((c) => c?.leagueId !== null && c?.leagueId !== undefined)
+  if (!withLeagueMeta) return list
+  return list.filter((c) => Number(c?.leagueId) === PAGE_LEAGUE_ID)
+})
+
+const validCategoryCodes = computed<Set<string>>(() => {
+  const set = new Set<string>()
+  for (const c of categoriesList.value) {
+    const code = normalizeUpper(c?.code)
+    if (code) set.add(code)
+  }
+  return set
+})
+
+const validCategoryGenders = computed<Set<string>>(() => {
+  const set = new Set<string>()
+  for (const c of categoriesList.value) {
+    const gender = normalizeUpper(c?.gender)
+    if (gender) set.add(gender)
+  }
+  return set
+})
+
+const hasUsableCategoryCatalog = computed(() =>
+  !categoriesPending.value &&
+  !categoriesError.value &&
+  categoriesList.value.length > 0
+)
+
+const ramaOptions = computed(() => {
+  const set = new Set<string>()
+  for (const c of categoriesList.value) {
+    const code = normalizeUpper(c?.code)
+    if (code) set.add(code)
+  }
+  return Array.from(set).sort()
+})
+
+const categoriaOptions = computed(() => {
+  const set = new Set<string>()
+  for (const c of categoriesList.value) {
+    const gender = normalizeUpper(c?.gender)
+    if (gender) set.add(gender)
+  }
+  return Array.from(set).sort()
+})
+
+/* =========================
+   TEAMS (SOURCE OF TRUTH FOR DOMINGO)
+   ========================= */
+const teamsQuery = computed(() => ({
+  leagueId: PAGE_LEAGUE_ID,
+}))
 
 const {
   data: teamsRaw,
   pending: pendingTeams,
   error: errorTeams,
-  refresh: refreshTeams
-} = useAsyncData<any[]>(
-  'stats-teams-league-1',
-  async () => {
-    const raw = await leagueGet<any[]>('/teams').catch(() => [])
-    return Array.isArray(raw) ? raw : []
-  },
-  { server: false, default: () => [] }
-)
-
-const teamsVm = computed<TeamVM[]>(() => {
-  const list = unwrapList<any>(teamsRaw.value)
-  return list
-    .map((x) => {
-      const teamId = Number(x.teamId ?? x.team_id ?? x.id)
-      const name = String(x.name ?? x.teamName ?? 'Equipo')
-      const shortName = String(x.shortName ?? x.short_name ?? '').trim()
-
-      const rawActive =
-        x.isActive ??
-        x.is_active ??
-        x.active ??
-        x.enabled ??
-        x.teamActive ??
-        x.team_active ??
-        x.team?.isActive ??
-        x.team?.is_active ??
-        x.team?.active ??
-        x.team?.enabled
-
-      const rawDeleted =
-        x.deleted ??
-        x.isDeleted ??
-        x.is_deleted ??
-        x.archived ??
-        x.isArchived ??
-        x.is_archived ??
-        x.team?.deleted ??
-        x.team?.isDeleted ??
-        x.team?.is_deleted ??
-        x.team?.archived ??
-        x.team?.isArchived ??
-        x.team?.is_archived
-
-      const status = String(x.status ?? x.team?.status ?? '').trim().toUpperCase()
-
-      let isActive = toBool(rawActive)
-      if (!isActive && status === 'ACTIVE') isActive = true
-      if (toBool(rawDeleted)) isActive = false
-
-      return { teamId, name, shortName, isActive }
-    })
-    .filter((t) => Number.isFinite(t.teamId))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  refresh: refreshTeams,
+} = useFetch<any>('teams/list', {
+  baseURL: API_BASE,
+  query: teamsQuery,
+  default: () => [],
 })
 
-const teamsActiveVm = computed(() => teamsVm.value.filter((t) => t.isActive))
+const allTeams = computed<ApiTeam[]>(() => unwrapList<ApiTeam>(teamsRaw.value))
 
-const activeTeamIds = computed(() => {
+const getTeamCode = (team: ApiTeam): string => {
+  const v = team.category?.code || team.categoryCode || team.code || null
+  return v ? String(v).toUpperCase() : ''
+}
+
+const getTeamGender = (team: ApiTeam): string => {
+  const v = team.category?.gender || team.gender || team.categoryGender || null
+  return v ? String(v).toUpperCase() : ''
+}
+
+function teamBelongsToLeagueOne(team: ApiTeam): boolean {
+  const teamLeagueId = toNullableNumber(team?.leagueId)
+  const nestedCategoryLeagueId = toNullableNumber(team?.category?.leagueId)
+
+  const teamCode = normalizeUpper(getTeamCode(team))
+  const teamGender = normalizeUpper(getTeamGender(team))
+
+  if (teamLeagueId !== null && teamLeagueId !== PAGE_LEAGUE_ID) {
+    return false
+  }
+
+  if (nestedCategoryLeagueId !== null && nestedCategoryLeagueId !== PAGE_LEAGUE_ID) {
+    return false
+  }
+
+  if (hasUsableCategoryCatalog.value) {
+    if (teamCode && !validCategoryCodes.value.has(teamCode)) {
+      return false
+    }
+
+    if (!teamCode && teamGender && !validCategoryGenders.value.has(teamGender)) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const teamsList = computed<ApiTeam[]>(() => {
+  return (allTeams.value || []).filter((team) => teamBelongsToLeagueOne(team))
+})
+
+const sundayTeamIds = computed(() => {
   const set = new Set<number>()
-  for (const t of teamsActiveVm.value) set.add(t.teamId)
-  return set
-})
-
-const activeTeamNamesLower = computed(() => {
-  const set = new Set<string>()
-  for (const t of teamsActiveVm.value) {
-    set.add(String(t.name).toLowerCase())
-    if (t.shortName) set.add(String(t.shortName).toLowerCase())
+  for (const t of teamsList.value) {
+    if (Number.isFinite(t.teamId)) set.add(Number(t.teamId))
   }
   return set
 })
 
-const totalTeams = computed(() => teamsVm.value.length)
-const totalActiveTeams = computed(() => teamsActiveVm.value.length)
-
-type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO'
-
-interface ApiStanding {
-  standingId: number
-  pointsFor: number
-  pointsAgainst: number
-  tablePoints: number
-  gp: number
-  wins: number
-  losses: number
-  draws: number
-  teamName: string
-  gender: Gender | string
-  teamId: number
-  categoryId: number
-  seasonId: number
-  categoryCode: string
-  seasonName?: string
-  isActive?: boolean | number | string
-  teamIsActive?: boolean | number | string
-  active?: boolean | number | string
-  team_active?: boolean | number | string
-}
-
-interface RowVM {
-  key: string
-  teamName: string
-  gender: Gender | string
-  categoryCode: string
-  seasonId: number
-  seasonName: string
-  gp: number
-  wins: number
-  losses: number
-  draws: number
-  pointsFor: number
-  pointsAgainst: number
-  tablePoints: number
-  diff: number
-  winRate: string
-}
-
-const DEFAULT_SEASON_ID = 2
-const seasonPick = ref<'ALL' | string>(String(DEFAULT_SEASON_ID))
-
-type SeasonOpt = { id: number; name: string }
-
-const { data: seasonsRaw } = useAsyncData<any[]>(
-  'seasons-stats-lite-league-1',
-  async () => {
-    const try1 = await leagueGet<any[]>('/seasons/list').catch(() => null)
-    if (Array.isArray(try1)) return try1
-
-    const try2 = await leagueGet<any[]>('/seasons').catch(() => [])
-    return Array.isArray(try2) ? try2 : []
-  },
-  { server: false, default: () => [] }
-)
-
-const seasonOptions = computed<SeasonOpt[]>(() => {
-  const list = Array.isArray(seasonsRaw.value) ? seasonsRaw.value : []
-  return list
-    .map((s: any) => {
-      const id = Number(s?.id ?? s?.seasonId ?? s?.season_id ?? 0) || 0
-      const name = String(s?.name ?? s?.seasonName ?? s?.title ?? `Temporada #${id}`).trim()
-      return { id, name }
-    })
-    .filter((s) => s.id > 0)
-    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+const sundayTeamNamesLower = computed(() => {
+  const set = new Set<string>()
+  for (const t of teamsList.value) {
+    const name = String(t.name || '').trim().toLowerCase()
+    const short = String(t.shortName || '').trim().toLowerCase()
+    if (name) set.add(name)
+    if (short) set.add(short)
+  }
+  return set
 })
 
-const seasonsMap = computed<Record<number, string>>(() => {
-  const m: Record<number, string> = {}
-  for (const s of seasonOptions.value) m[s.id] = s.name
-  return m
+const teamById = computed(() => {
+  const map = new Map<number, ApiTeam>()
+  for (const t of teamsList.value) map.set(Number(t.teamId), t)
+  return map
 })
 
-const defaultSeasonLabel = computed(() => seasonsMap.value[DEFAULT_SEASON_ID] || `Temporada #${DEFAULT_SEASON_ID}`)
-
-const categoryOptions = [
-  { label: 'Libre', value: 'Libre' },
-  { label: '35+', value: '35+' },
-  { label: 'U-8', value: 'U8' },
-  { label: 'U-10', value: 'U10' },
-  { label: 'U-12', value: 'U12' },
-  { label: 'U-14', value: 'U14' },
-  { label: 'U-16', value: 'U16' }
-]
-
-const selectedCategoryCode = ref<'all' | string>('all')
-const selectedGender = ref<'all' | Gender>('all')
-const searchQuery = ref('')
-
-const standingsQuery = computed<Record<string, any>>(() => {
-  const q: Record<string, any> = {}
-  if (seasonPick.value !== 'ALL') q.seasonId = seasonPick.value
-  if (selectedCategoryCode.value !== 'all') q.categoryCode = selectedCategoryCode.value
-  if (selectedGender.value !== 'all') q.gender = selectedGender.value
-  return q
-})
-
-const pointsUrl = computed(() => leaguePath('/points', standingsQuery.value))
+/* =========================
+   STANDINGS
+   ========================= */
+const standingsQuery = computed(() => ({
+  leagueId: PAGE_LEAGUE_ID,
+  categoryCode: selectedRama.value === 'all' ? undefined : selectedRama.value,
+  gender: selectedCategoria.value === 'all' ? undefined : selectedCategoria.value,
+}))
 
 const {
-  data: standings,
+  data: standingsRaw,
   pending: pendingStandings,
   error: errorStandings,
-  refresh: refreshStandings
-} = useAsyncData<ApiStanding[]>(
-  'stats-points-league-1',
-  async () => {
-    const raw = await leagueGet<ApiStanding[]>('/points', standingsQuery.value).catch(() => [])
-    return Array.isArray(raw) ? raw : []
-  },
-  {
-    server: false,
-    default: () => [],
-    watch: [seasonPick, selectedCategoryCode, selectedGender]
+  refresh: refreshStandings,
+} = useFetch<any>('points', {
+  baseURL: API_BASE,
+  query: standingsQuery,
+  default: () => [],
+})
+
+const standingsList = computed<ApiStanding[]>(() => unwrapList<ApiStanding>(standingsRaw.value))
+
+function standingBelongsToSunday(row: ApiStanding): boolean {
+  const rowLeagueId = toNullableNumber(row?.leagueId)
+  if (rowLeagueId !== null && rowLeagueId !== PAGE_LEAGUE_ID) return false
+
+  const rowTeamId = toNullableNumber(row?.teamId)
+  if (rowTeamId !== null && sundayTeamIds.value.has(rowTeamId)) return true
+
+  const rowName = String(row?.teamName || '').trim().toLowerCase()
+  if (rowName && sundayTeamNamesLower.value.has(rowName)) return true
+
+  const rowCode = normalizeUpper(row?.categoryCode)
+  const rowGender = normalizeUpper(row?.gender)
+
+  if (hasUsableCategoryCatalog.value) {
+    if (rowCode && !validCategoryCodes.value.has(rowCode)) return false
+    if (!rowCode && rowGender && !validCategoryGenders.value.has(rowGender)) return false
   }
-)
 
-const standingsList = computed(() => (Array.isArray(standings.value) ? standings.value : []))
+  if (teamsList.value.length > 0) {
+    return false
+  }
 
-const standingsHaveActiveFlag = computed(() => {
-  return standingsList.value.some(
-    (s) => s.isActive != null || s.teamIsActive != null || s.active != null || (s as any).team_active != null
-  )
-})
-
-const activeIndexReady = computed(() => {
-  return !pendingTeams.value && !errorTeams.value && teamsVm.value.length > 0
-})
-
-function standingActiveFlag(s: ApiStanding): boolean | null {
-  const has = s.isActive != null || s.teamIsActive != null || s.active != null || (s as any).team_active != null
-  if (!has) return null
-  return toBool(s.isActive ?? s.teamIsActive ?? s.active ?? (s as any).team_active)
+  return true
 }
 
-const allRows = computed<RowVM[]>(() => {
-  const rows = standingsList.value
-  const sp = seasonPick.value === 'ALL' ? 0 : Number(seasonPick.value || 0)
-  const activeIds = activeTeamIds.value
-  const activeNames = activeTeamNamesLower.value
+const allRows = computed<TeamRowVM[]>(() => {
+  return standingsList.value
+    .filter((row) => standingBelongsToSunday(row))
+    .map((row) => {
+      const teamId = toNullableNumber(row.teamId)
+      const team = teamId !== null ? teamById.value.get(teamId) : undefined
 
-  return rows
-    .filter((s) => (sp ? Number(s.seasonId || 0) === sp : true))
-    .filter((s) => {
-      const flag = standingActiveFlag(s)
-      if (flag !== null) return flag
+      const teamName = String(row.teamName || team?.name || '—').trim()
+      const shortName = String(row.shortName || team?.shortName || '').trim()
+      const categoryCode = normalizeUpper(row.categoryCode || team?.categoryCode || team?.code || team?.category?.code || '')
+      const gender = normalizeUpper(row.gender || team?.gender || team?.categoryGender || team?.category?.gender || '')
 
-      if (activeIndexReady.value) {
-        const tid = Number(s.teamId)
-        if (Number.isFinite(tid) && activeIds.has(tid)) return true
-        const tn = String(s.teamName ?? '').toLowerCase().trim()
-        if (tn && activeNames.has(tn)) return true
-        return false
-      }
-
-      return false
-    })
-    .slice()
-    .sort((a, b) => (b.tablePoints ?? 0) - (a.tablePoints ?? 0))
-    .map((s) => {
-      const gp = s.gp ?? 0
-      const wins = s.wins ?? 0
-      const losses = s.losses ?? 0
-      const draws = s.draws ?? 0
-      const pointsFor = s.pointsFor ?? 0
-      const pointsAgainst = s.pointsAgainst ?? 0
+      const gp = toNum(row.gp)
+      const wins = toNum(row.wins)
+      const losses = toNum(row.losses)
+      const draws = toNum(row.draws)
+      const pointsFor = toNum(row.pointsFor)
+      const pointsAgainst = toNum(row.pointsAgainst)
+      const tablePoints = toNum(row.tablePoints)
       const diff = pointsFor - pointsAgainst
-
       const rate = gp > 0 ? (wins / gp) * 100 : 0
-      const winRate =
-        Number.isFinite(rate) && rate >= 0
-          ? (rate % 1 === 0 ? rate.toFixed(0) : rate.toFixed(1)) + '%'
-          : '0%'
+      const winRate = Number.isInteger(rate) ? `${rate.toFixed(0)}%` : `${rate.toFixed(1)}%`
 
-      const sid = Number(s.seasonId || 0)
-      const sName =
-        String(s.seasonName ?? '').trim() ||
-        (sid ? (seasonsMap.value[sid] || `Temporada #${sid}`) : '—')
+      const keyBase = teamId ?? stringHash(`${teamName}-${categoryCode}-${gender}`)
 
       return {
-        key: `${s.teamId}-${s.seasonId}-${s.categoryId}`,
-        teamName: s.teamName ?? '—',
-        gender: s.gender ?? '—',
-        categoryCode: s.categoryCode ?? '—',
-        seasonId: sid,
-        seasonName: sName,
+        key: `${keyBase}-${categoryCode}-${gender}`,
+        teamId,
+        teamName,
+        shortName,
+        logoUrl: team?.logoUrl || null,
+        gender,
+        categoryCode,
         gp,
         wins,
         losses,
         draws,
         pointsFor,
         pointsAgainst,
-        tablePoints: s.tablePoints ?? 0,
+        tablePoints,
         diff,
-        winRate
+        winRate,
       }
+    })
+    .sort((a, b) => {
+      const byPts = b.tablePoints - a.tablePoints
+      if (byPts !== 0) return byPts
+
+      const byDiff = b.diff - a.diff
+      if (byDiff !== 0) return byDiff
+
+      const byPF = b.pointsFor - a.pointsFor
+      if (byPF !== 0) return byPF
+
+      return a.teamName.localeCompare(b.teamName, 'es')
     })
 })
 
-const filteredRows = computed<RowVM[]>(() => {
+const filteredRows = computed<TeamRowVM[]>(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return allRows.value
-  return allRows.value.filter((r) => (r.teamName || '').toLowerCase().includes(q))
+
+  return allRows.value.filter((row) => {
+    const name = String(row.teamName || '').toLowerCase()
+    const short = String(row.shortName || '').toLowerCase()
+    return name.includes(q) || short.includes(q)
+  })
 })
 
-const clearTeamFilters = () => {
-  seasonPick.value = String(DEFAULT_SEASON_ID)
-  selectedCategoryCode.value = 'all'
-  selectedGender.value = 'all'
-  searchQuery.value = ''
-}
+/* =========================
+   PAGINACIÓN EQUIPOS
+   ========================= */
+const teamPageSize = 15
+const currentTeamPage = ref(1)
 
-const prettyDivision = (division: string | null | undefined): string => {
-  if (!division) return '—'
-  const up = String(division).toUpperCase()
-  if (up === 'VARONIL') return 'Varonil'
-  if (up === 'FEMENIL') return 'Femenil'
-  if (up === 'MIXTO') return 'Mixto'
-  return division
-}
-
-const pendingEquiposUI = computed(() => {
-  if (pendingStandings.value) return true
-  if (standingsHaveActiveFlag.value) return false
-  return !activeIndexReady.value || pendingTeams.value
+const totalTeamPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredRows.value.length / teamPageSize))
 })
 
-const errorEquiposUI = computed(() => {
-  if (errorStandings.value) return true
-  if (standingsHaveActiveFlag.value) return false
-  return !!errorTeams.value
+const teamPageStart = computed(() => {
+  return filteredRows.value.length ? (currentTeamPage.value - 1) * teamPageSize : 0
 })
 
-async function refreshAllEquipos() {
-  await refreshTeams()
-  await refreshStandings()
-}
+const teamPageEnd = computed(() => {
+  return Math.min(filteredRows.value.length, teamPageStart.value + teamPageSize)
+})
 
-type PlayerStats = { td: number; int: number; pa: number; sack: number; rec: number }
+const paginatedTeamRows = computed<TeamRowVM[]>(() => {
+  return filteredRows.value.slice(teamPageStart.value, teamPageStart.value + teamPageSize)
+})
 
-type PlayerVM = {
-  id: number
-  fullName: string
-  number?: number | null
-  photoUrl?: string | null
-  teamId?: number | null
-  teamName?: string
-  teamMeta?: string
-  gender?: string
-  categoryCode?: string
-  stats: PlayerStats
-}
+watch([selectedRama, selectedCategoria, searchQuery], () => {
+  currentTeamPage.value = 1
+})
 
-function initials(text: string) {
-  const s = String(text || '').trim()
-  if (!s) return 'T5'
-  const parts = s.split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase()).join('')
-}
+watch(totalTeamPages, (tp) => {
+  if (currentTeamPage.value > tp) currentTeamPage.value = tp
+})
 
-async function fetchPlayersFallbackFromTeams(): Promise<any[]> {
-  const teams = teamsActiveVm.value
-  if (!teams.length) return []
+const pendingEquiposUI = computed(() => pendingStandings.value || pendingTeams.value)
+const errorEquiposUI = computed(() => !!errorStandings.value && filteredRows.value.length === 0)
 
-  const chunks = await Promise.all(
-    teams.map(async (t) => {
+/* =========================
+   PLAYERS
+   ========================= */
+const playerNameQuery = ref('')
+const playerNumberQuery = ref('')
+const teamPick = ref<'ALL' | string>('ALL')
+const page = ref(1)
+
+const playerTeamOptions = computed(() => {
+  return teamsList.value
+    .filter((team) => {
+      const code = normalizeUpper(getTeamCode(team))
+      const gender = normalizeUpper(getTeamGender(team))
+
+      if (selectedRama.value !== 'all' && code !== normalizeUpper(selectedRama.value)) return false
+      if (selectedCategoria.value !== 'all' && gender !== normalizeUpper(selectedCategoria.value)) return false
+      return true
+    })
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+})
+
+async function fetchPlayersFromCandidates(): Promise<any[]> {
+  const directCandidates = [
+    { path: 'stats/players', query: { leagueId: PAGE_LEAGUE_ID } },
+    { path: 'players', query: { leagueId: PAGE_LEAGUE_ID } },
+    { path: 'stats/players', query: {} },
+    { path: 'players', query: {} },
+  ]
+
+  for (const candidate of directCandidates) {
+    try {
+      const raw = await $fetch<any>(candidate.path, {
+        baseURL: API_BASE,
+        query: candidate.query,
+      })
+      const list = unwrapList<any>(raw)
+      if (list.length > 0) return list
+    } catch {
+      // ignore
+    }
+  }
+
+  const fallbackChunks = await Promise.all(
+    teamsList.value.map(async (team) => {
       try {
-        const raw = await leagueGet<any[]>(`/teams/${t.teamId}/players`).catch(() => [])
+        const raw = await $fetch<any>(`teams/${team.teamId}/players`, {
+          baseURL: API_BASE,
+        })
         const list = unwrapList<any>(raw)
-        return list.map((p) => ({ ...p, __teamId: t.teamId, __teamName: t.name }))
+        return list.map((p) => ({
+          ...p,
+          __teamId: team.teamId,
+          __teamName: team.name,
+          __teamCode: getTeamCode(team),
+          __teamGender: getTeamGender(team),
+        }))
       } catch {
         return []
       }
     })
   )
 
-  return chunks.flat()
+  return fallbackChunks.flat()
 }
 
-const { data: playersData, pending: playersPending, error: playersErr, refresh: refreshPlayers } = useAsyncData(
-  'stats-players-all-league-1',
+const {
+  data: playersRaw,
+  pending: pendingPlayers,
+  error: errorPlayers,
+  refresh: refreshPlayers,
+} = useAsyncData<any[]>(
+  'domingo-stats-players',
   async () => {
-    try {
-      const raw = await leagueGet<any[]>('/players')
-      const list = unwrapList<any>(raw)
-      if (list.length) return list
-    } catch {
-      // ignore
-    }
-    return await fetchPlayersFallbackFromTeams()
+    return await fetchPlayersFromCandidates()
   },
-  { server: false, default: () => [], watch: [teamsRaw] }
+  {
+    server: false,
+    default: () => [],
+    watch: [teamsRaw],
+  }
 )
 
-const teamById = computed(() => {
-  const m = new Map<number, TeamVM>()
-  for (const t of teamsVm.value) m.set(t.teamId, t)
-  return m
-})
+function playerBelongsToSunday(raw: any): boolean {
+  const rowLeagueId = toNullableNumber(raw?.leagueId ?? raw?.league_id ?? raw?.league?.id)
+  if (rowLeagueId !== null && rowLeagueId !== PAGE_LEAGUE_ID) return false
 
-const teamByNameLower = computed(() => {
-  const m = new Map<string, TeamVM>()
-  for (const t of teamsVm.value) {
-    m.set(String(t.name).toLowerCase(), t)
-    if (t.shortName) m.set(String(t.shortName).toLowerCase(), t)
-  }
-  return m
-})
+  const teamId = toNullableNumber(raw?.teamId ?? raw?.team_id ?? raw?.team?.teamId ?? raw?.team?.id ?? raw?.__teamId)
+  if (teamId !== null && sundayTeamIds.value.has(teamId)) return true
+
+  const teamName = String(raw?.teamName ?? raw?.team_name ?? raw?.team?.name ?? raw?.__teamName ?? '').trim().toLowerCase()
+  if (teamName && sundayTeamNamesLower.value.has(teamName)) return true
+
+  return false
+}
 
 const playersVm = computed<PlayerVM[]>(() => {
-  const list = unwrapList<any>(playersData.value)
+  const unique = new Map<number, PlayerVM>()
 
-  return list
-    .map((x) => {
-      const id = Number(x.playerId ?? x.player_id ?? x.id)
-      const fullName =
-        String(
-          x.fullName ??
-            x.full_name ??
-            x.name ??
-            [x.firstName ?? x.first_name, x.lastName ?? x.last_name].filter(Boolean).join(' ')
-        ).trim() || 'Jugador'
+  for (const raw of unwrapList<any>(playersRaw.value)) {
+    if (!playerBelongsToSunday(raw)) continue
 
-      const number = (x.number ?? x.jerseyNumber ?? x.jersey_number ?? x.num ?? null) as any
+    const fullName =
+      String(
+        raw.fullName ??
+        raw.full_name ??
+        raw.name ??
+        [raw.firstName ?? raw.first_name, raw.lastName ?? raw.last_name].filter(Boolean).join(' ')
+      ).trim() || 'Jugador'
 
-      let teamId = Number(x.teamId ?? x.team_id ?? x.team?.teamId ?? x.team?.id ?? x.__teamId ?? 0) || null
-      let teamName = String(x.teamName ?? x.team_name ?? x.team?.name ?? x.__teamName ?? '').trim() || ''
+    const teamId = toNullableNumber(raw?.teamId ?? raw?.team_id ?? raw?.team?.teamId ?? raw?.team?.id ?? raw?.__teamId)
+    const team = teamId !== null ? teamById.value.get(teamId) : undefined
 
-      if (!teamId && teamName) {
-        const tGuess = teamByNameLower.value.get(teamName.toLowerCase())
-        if (tGuess) teamId = tGuess.teamId
-      }
+    const teamName = String(
+      raw?.teamName ??
+      raw?.team_name ??
+      raw?.team?.name ??
+      raw?.__teamName ??
+      team?.name ??
+      ''
+    ).trim()
 
-      const t = teamId ? teamById.value.get(teamId) : undefined
-      if (!teamName && t?.name) teamName = t.name
+    const teamCode = normalizeUpper(
+      raw?.categoryCode ??
+      raw?.category_code ??
+      raw?.team?.code ??
+      raw?.__teamCode ??
+      team?.categoryCode ??
+      team?.code ??
+      team?.category?.code ??
+      ''
+    )
 
-      const td = toNum(x.td ?? x.tds ?? x.touchdowns ?? x.stats?.td ?? x.stats?.tds)
-      const it = toNum(x.int ?? x.interceptions ?? x.stats?.int ?? x.stats?.interceptions)
-      const pa = toNum(x.pa ?? x.passingTd ?? x.passing_td ?? x.stats?.pa ?? x.stats?.passingTd)
-      const sack = toNum(x.sack ?? x.sacks ?? x.stats?.sack ?? x.stats?.sacks)
-      const rec = toNum(x.rec ?? x.receptions ?? x.stats?.rec ?? x.stats?.receptions)
+    const gender = normalizeUpper(
+      raw?.gender ??
+      raw?.team?.gender ??
+      raw?.__teamGender ??
+      team?.gender ??
+      team?.categoryGender ??
+      team?.category?.gender ??
+      ''
+    )
 
-      const gender = x.gender ?? x.team?.gender ?? ''
-      const categoryCode = x.categoryCode ?? x.category_code ?? x.team?.code ?? ''
+    if (selectedRama.value !== 'all' && teamCode !== normalizeUpper(selectedRama.value)) continue
+    if (selectedCategoria.value !== 'all' && gender !== normalizeUpper(selectedCategoria.value)) continue
 
-      return {
-        id,
-        fullName,
-        number: number == null ? null : toNum(number),
-        photoUrl: x.photoUrl ?? x.photo_url ?? x.photo ?? x.avatarUrl ?? null,
-        teamId,
-        teamName: teamName || undefined,
-        teamMeta: '',
-        gender: gender ? upper(gender) : '',
-        categoryCode: categoryCode ? String(categoryCode) : '',
-        stats: { td, int: it, pa, sack, rec }
-      } satisfies PlayerVM
+    const explicitId = toNum(raw?.playerId ?? raw?.player_id ?? raw?.id)
+    const syntheticId = stringHash(`${fullName}|${teamId ?? 'x'}|${raw?.number ?? raw?.jerseyNumber ?? raw?.jersey_number ?? ''}`)
+    const id = explicitId > 0 ? explicitId : syntheticId
+
+    const stats: PlayerStats = {
+      td: toNum(raw?.td ?? raw?.tds ?? raw?.touchdowns ?? raw?.stats?.td ?? raw?.stats?.tds),
+      int: toNum(raw?.int ?? raw?.interceptions ?? raw?.stats?.int ?? raw?.stats?.interceptions),
+      pa: toNum(raw?.pa ?? raw?.passingTd ?? raw?.passing_td ?? raw?.stats?.pa ?? raw?.stats?.passingTd),
+      sack: toNum(raw?.sack ?? raw?.sacks ?? raw?.stats?.sack ?? raw?.stats?.sacks),
+      rec: toNum(raw?.rec ?? raw?.receptions ?? raw?.stats?.rec ?? raw?.stats?.receptions),
+    }
+
+    unique.set(id, {
+      id,
+      fullName,
+      number: raw?.number ?? raw?.jerseyNumber ?? raw?.jersey_number ?? raw?.num ?? null,
+      photoUrl: raw?.photoUrl ?? raw?.photo_url ?? raw?.photo ?? raw?.avatarUrl ?? null,
+      teamId,
+      teamName: teamName || undefined,
+      teamCode,
+      gender,
+      stats,
     })
-    .filter((p) => Number.isFinite(p.id))
+  }
+
+  return Array.from(unique.values())
 })
 
-const teamPick = ref<'ALL' | string>('ALL')
-const numberPick = ref('')
-const namePick = ref('')
+const filteredPlayers = computed<PlayerVM[]>(() => {
+  const nameQ = playerNameQuery.value.trim().toLowerCase()
+  const numQ = playerNumberQuery.value.trim()
 
-const filteredPlayers = computed(() => {
-  const tPick = teamPick.value
-  const qNum = numberPick.value.trim()
-  const qName = namePick.value.toLowerCase().trim()
-  const activeIds = activeTeamIds.value
-
-  return playersVm.value.filter((p) => {
-    if (activeIndexReady.value && p.teamId && !activeIds.has(p.teamId)) return false
-
-    if (tPick !== 'ALL') {
-      const id = Number(tPick)
-      if (Number.isFinite(id) && p.teamId !== id) return false
+  return playersVm.value.filter((player) => {
+    if (teamPick.value !== 'ALL') {
+      const wanted = Number(teamPick.value)
+      if (Number.isFinite(wanted) && player.teamId !== wanted) return false
     }
 
-    if (qNum) {
-      const n = String(p.number ?? '')
-      if (!n.includes(qNum)) return false
+    if (nameQ) {
+      const full = String(player.fullName || '').toLowerCase()
+      if (!full.includes(nameQ)) return false
     }
 
-    if (qName) {
-      const fn = String(p.fullName ?? '').toLowerCase()
-      if (!fn.includes(qName)) return false
+    if (numQ) {
+      const n = String(player.number ?? '')
+      if (!n.includes(numQ)) return false
     }
 
     return true
   })
 })
 
-function impact(p: PlayerVM) {
-  return p.stats.td + p.stats.int + p.stats.pa + p.stats.sack
-}
-
-const sortedPlayers = computed(() => filteredPlayers.value.slice().sort((a, b) => impact(b) - impact(a)))
-
-function clearPlayerFilters() {
-  teamPick.value = 'ALL'
-  numberPick.value = ''
-  namePick.value = ''
-}
+const sortedPlayers = computed<PlayerVM[]>(() => {
+  return filteredPlayers.value
+    .slice()
+    .sort((a, b) => {
+      const byImpact = impact(b) - impact(a)
+      if (byImpact !== 0) return byImpact
+      return a.fullName.localeCompare(b.fullName, 'es')
+    })
+})
 
 const pageSize = 10
-const page = ref(1)
-const totalPages = computed(() => Math.max(1, Math.ceil(sortedPlayers.value.length / pageSize)))
 
-watch([teamPick, numberPick, namePick], () => (page.value = 1))
-watch(totalPages, (tp) => {
+const totalPlayerPages = computed(() => Math.max(1, Math.ceil(sortedPlayers.value.length / pageSize)))
+const pageStartIndex = computed(() => (page.value - 1) * pageSize)
+const pageEndIndex = computed(() => Math.min(sortedPlayers.value.length, pageStartIndex.value + pageSize))
+
+const pagedPlayers = computed<PlayerVM[]>(() => {
+  return sortedPlayers.value.slice(pageStartIndex.value, pageEndIndex.value)
+})
+
+watch([selectedRama, selectedCategoria, playerNameQuery, playerNumberQuery, teamPick], () => {
+  page.value = 1
+})
+
+watch(totalPlayerPages, (tp) => {
   if (page.value > tp) page.value = tp
 })
 
-const pageStartIndex = computed(() => (page.value - 1) * pageSize)
-const pageEndIndex = computed(() => Math.min(sortedPlayers.value.length, pageStartIndex.value + pageSize))
-const pagedPlayers = computed(() => sortedPlayers.value.slice(pageStartIndex.value, pageEndIndex.value))
+const pendingPlayersAny = computed(() => pendingPlayers.value || pendingTeams.value)
+const errorPlayersAny = computed(() => !!errorPlayers.value && playersVm.value.length === 0)
 
-const rangeLabel = computed(() => {
-  const total = sortedPlayers.value.length
-  if (!total) return '0 - 0'
-  return `${pageStartIndex.value + 1} - ${pageEndIndex.value}`
-})
+/* =========================
+   ACTIONS
+   ========================= */
+const clearRama = () => {
+  selectedRama.value = 'all'
+}
 
-const pendingPlayersAny = computed(() => view.value === 'jugadores' && (!!pendingTeams.value || !!playersPending.value))
-const errorPlayersAny = computed(() => view.value === 'jugadores' && (!!errorTeams.value || !!playersErr.value))
+const clearCategoria = () => {
+  selectedCategoria.value = 'all'
+}
 
-async function refreshPlayersAll() {
+const clearSearch = () => {
+  searchQuery.value = ''
+}
+
+const clearPlayerName = () => {
+  playerNameQuery.value = ''
+}
+
+const clearPlayerNumber = () => {
+  playerNumberQuery.value = ''
+}
+
+const clearFilters = () => {
+  selectedRama.value = 'all'
+  selectedCategoria.value = 'all'
+  searchQuery.value = ''
+  playerNameQuery.value = ''
+  playerNumberQuery.value = ''
+  teamPick.value = 'ALL'
+  currentTeamPage.value = 1
+  page.value = 1
+}
+
+async function refreshAll() {
+  await refreshCategories()
   await refreshTeams()
+  await refreshStandings()
   await refreshPlayers()
 }
 </script>
