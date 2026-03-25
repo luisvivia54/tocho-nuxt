@@ -585,7 +585,7 @@ const stadiumBg = "/img/hero-stadium.jpg"
 
 const view = ref<ViewMode>("equipos")
 const search = ref("")
-const selectedSeason = ref("ALL")
+const selectedSeason = ref(`SEASON_${JUEVES_DEFAULT_SEASON_ID}`)
 const selectedCategory = ref("ALL")
 const selectedBranch = ref("ALL")
 const onlyActive = ref(true)
@@ -605,6 +605,7 @@ const seasonQueryValue = computed(() => {
 
 const teamFilterQuery = computed(() => ({
   leagueId: JUEVES_LEAGUE_ID,
+  seasonId: selectedSeason.value === "ALL" ? undefined : seasonQueryValue.value ?? undefined,
   categoryCode: selectedBranch.value === "ALL" ? undefined : selectedBranch.value,
   gender: selectedCategory.value === "ALL" ? undefined : selectedCategory.value,
 }))
@@ -706,6 +707,14 @@ const seasonCatalog = computed(() => {
 })
 
 const defaultSeasonInfo = computed(() => {
+  if (seasonCatalog.value.has(JUEVES_DEFAULT_SEASON_ID)) {
+    return {
+      seasonId: JUEVES_DEFAULT_SEASON_ID,
+      seasonValue: `SEASON_${JUEVES_DEFAULT_SEASON_ID}`,
+      season: seasonCatalog.value.get(JUEVES_DEFAULT_SEASON_ID) || JUEVES_DEFAULT_SEASON_LABEL,
+    }
+  }
+
   const firstEntry =
     Array.from(seasonCatalog.value.entries()).sort((a, b) => a[0] - b[0])[0] ||
     [JUEVES_DEFAULT_SEASON_ID, JUEVES_DEFAULT_SEASON_LABEL]
@@ -715,6 +724,15 @@ const defaultSeasonInfo = computed(() => {
     seasonValue: `SEASON_${firstEntry[0]}`,
     season: firstEntry[1],
   }
+})
+
+const preferredSeasonValue = computed(() => {
+  const currentDefault = `SEASON_${JUEVES_DEFAULT_SEASON_ID}`
+  if (seasonOptions.value.some((option) => option.value === currentDefault)) return currentDefault
+  if (seasonOptions.value.some((option) => option.value === defaultSeasonInfo.value.seasonValue)) {
+    return defaultSeasonInfo.value.seasonValue
+  }
+  return "ALL"
 })
 
 const categoryDefinitions = computed<CategoryDefinition[]>(() => {
@@ -758,13 +776,15 @@ const teamMetaById = computed(() => {
   return map
 })
 
-const teamMetaByName = computed(() => {
-  const map = new Map<string, TeamMeta>()
+const teamMetaByNameCandidates = computed(() => {
+  const map = new Map<string, TeamMeta[]>()
 
   for (const row of normalizeCollection(teamsMetaRaw.value)) {
     const meta = normalizeTeamMeta(row)
     const key = normalizeKey(meta.teamName)
-    if (key && !map.has(key)) map.set(key, meta)
+    if (!key) continue
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(meta)
   }
 
   return map
@@ -774,12 +794,7 @@ const teamRows = computed<TeamStanding[]>(() => {
   const rows = normalizeCollection(pointsData.value)
 
   return rows.map((row, index) => {
-    const rawTeamId = pick(row, ["team_id", "teamId", "team.id", "id"], "")
-    const rawTeamName = pick(row, ["team_name", "teamName", "team.name", "name"], "")
-    const meta =
-      teamMetaById.value.get(normalizeKey(rawTeamId)) ||
-      teamMetaByName.value.get(normalizeKey(rawTeamName))
-
+    const meta = resolveMetaForStatsRow(row)
     return buildTeamStanding(row, meta, index)
   })
 })
@@ -788,12 +803,7 @@ const playerRows = computed<PlayerSeasonRow[]>(() => {
   const rows = normalizeCollection(playersData.value)
 
   return rows.map((row, index) => {
-    const rawTeamId = pick(row, ["teamId", "team_id", "team.id"], "")
-    const rawTeamName = pick(row, ["teamName", "team_name", "team.name"], "")
-    const meta =
-      teamMetaById.value.get(normalizeKey(rawTeamId)) ||
-      teamMetaByName.value.get(normalizeKey(rawTeamName))
-
+    const meta = resolveMetaForStatsRow(row)
     return buildPlayerRow(row, meta, index)
   })
 })
@@ -809,14 +819,14 @@ const seasonOptions = computed<OptionItem[]>(() => {
     })
 
   const fromTeams = teamRows.value
-    .filter((row) => row.seasonValue && row.season && row.seasonValue !== "ALL")
+    .filter((row) => row.seasonValue && row.season && row.seasonValue !== "ALL" && row.seasonValue !== "NO_SEASON")
     .map((row) => ({
       value: row.seasonValue,
       label: row.season,
     }))
 
   const fromPlayers = playerRows.value
-    .filter((row) => row.seasonValue && row.season && row.seasonValue !== "ALL")
+    .filter((row) => row.seasonValue && row.season && row.seasonValue !== "ALL" && row.seasonValue !== "NO_SEASON")
     .map((row) => ({
       value: row.seasonValue,
       label: row.season,
@@ -997,7 +1007,11 @@ watch(
       selectedSeason.value !== "ALL" &&
       !options.some((option) => option.value === selectedSeason.value)
     ) {
-      selectedSeason.value = "ALL"
+      selectedSeason.value = preferredSeasonValue.value
+    }
+
+    if (!selectedSeason.value) {
+      selectedSeason.value = preferredSeasonValue.value
     }
   },
   { immediate: true }
@@ -1086,7 +1100,7 @@ function setView(next: ViewMode): void {
 
 function clearFilters(): void {
   search.value = ""
-  selectedSeason.value = "ALL"
+  selectedSeason.value = preferredSeasonValue.value
   selectedCategory.value = "ALL"
   selectedBranch.value = "ALL"
   onlyActive.value = true
@@ -1333,15 +1347,6 @@ function getSeasonDisplayLabel(seasonId: number | null, rawLabel: unknown): stri
   return clean
 }
 
-function buildSeasonValue(seasonId: number | null, seasonLabel: string): string {
-  if (typeof seasonId === "number" && seasonId > 0) return `SEASON_${seasonId}`
-
-  const cleanLabel = sanitizeSeasonLabel(seasonLabel)
-  if (cleanLabel) return `LABEL_${normalizeText(cleanLabel)}`
-
-  return defaultSeasonInfo.value.seasonValue
-}
-
 function uniqueOptions(items: OptionItem[]): OptionItem[] {
   const map = new Map<string, string>()
 
@@ -1453,15 +1458,15 @@ function resolveSeasonInfo(row: AnyRow): ResolvedSeasonInfo {
     }
 
     return {
-      seasonValue: defaultSeasonInfo.value.seasonValue,
-      season: getSeasonDisplayLabel(defaultSeasonInfo.value.seasonId, directLabel),
+      seasonValue: `LABEL_${normalizeText(directLabel)}`,
+      season: directLabel,
       priority: 2,
     }
   }
 
   return {
-    seasonValue: defaultSeasonInfo.value.seasonValue,
-    season: defaultSeasonInfo.value.season,
+    seasonValue: "NO_SEASON",
+    season: "Sin temporada",
     priority: 1,
   }
 }
@@ -1557,6 +1562,55 @@ function resolveBranchInfo(row: AnyRow): ResolvedBranchInfo {
   }
 }
 
+function resolveActiveState(row: AnyRow, fallback = false): boolean {
+  const deletedAt = pick(row, [
+    "deletedAt",
+    "deleted_at",
+    "team.deletedAt",
+    "team.deleted_at",
+  ], null)
+
+  if (deletedAt) return false
+
+  const isDeletedRaw = pick(row, [
+    "isDeleted",
+    "is_deleted",
+    "deleted",
+    "team.isDeleted",
+    "team.is_deleted",
+    "team.deleted",
+  ], null)
+
+  if (isDeletedRaw !== null && isDeletedRaw !== undefined && isDeletedRaw !== "") {
+    const normalized = normalizeText(isDeletedRaw)
+    if (["true", "1", "yes", "si", "sí"].includes(normalized)) return false
+    if (typeof isDeletedRaw === "number" && isDeletedRaw === 1) return false
+    if (isDeletedRaw === true) return false
+  }
+
+  const activeRaw = pick(row, [
+    "isActive",
+    "is_active",
+    "active",
+    "team.isActive",
+    "team.is_active",
+    "team.active",
+    "status",
+  ], null)
+
+  if (activeRaw !== null && activeRaw !== undefined && activeRaw !== "") {
+    if (typeof activeRaw === "string") {
+      const normalized = normalizeText(activeRaw)
+      if (["inactive", "inactivo", "deleted", "eliminado"].includes(normalized)) return false
+      if (["active", "activo"].includes(normalized)) return true
+    }
+
+    return toBoolean(activeRaw, false)
+  }
+
+  return fallback
+}
+
 function normalizeTeamMeta(row: AnyRow): TeamMeta {
   const seasonInfo = resolveSeasonInfo(row)
   const categoryInfo = resolveCategoryInfo(row)
@@ -1577,7 +1631,7 @@ function normalizeTeamMeta(row: AnyRow): TeamMeta {
     branchValue: branchInfo.branchValue,
     branch: branchInfo.branch,
     branchPriority: branchInfo.priority,
-    active: toBoolean(pick(row, ["isActive", "active", "status"]), true),
+    active: resolveActiveState(row, false),
     logo: (() => {
       const value = pick(row, [
         "logoUrl",
@@ -1591,6 +1645,53 @@ function normalizeTeamMeta(row: AnyRow): TeamMeta {
       return value ? String(value) : null
     })(),
   }
+}
+
+function scoreMetaCandidate(
+  meta: TeamMeta,
+  rowSeason: ResolvedSeasonInfo,
+  rowCategory: ResolvedCategoryInfo,
+  rowBranch: ResolvedBranchInfo
+): number {
+  let score = 0
+
+  if (rowSeason.priority >= 3 && meta.seasonValue && meta.seasonValue === rowSeason.seasonValue) score += 4
+  if (rowCategory.priority >= 3 && meta.categoryValue && meta.categoryValue === rowCategory.categoryValue) score += 3
+  if (rowBranch.priority >= 3 && meta.branchValue && meta.branchValue === rowBranch.branchValue) score += 2
+  if (meta.active) score += 0.25
+
+  return score
+}
+
+function resolveMetaForStatsRow(row: AnyRow): TeamMeta | undefined {
+  const rawTeamId = pick(row, ["team_id", "teamId", "team.id", "id"], "")
+  const teamIdKey = normalizeKey(rawTeamId)
+
+  if (teamIdKey) {
+    const byId = teamMetaById.value.get(teamIdKey)
+    if (byId) return byId
+  }
+
+  const rawTeamName = pick(row, ["team_name", "teamName", "team.name", "name"], "")
+  const nameKey = normalizeKey(rawTeamName)
+  if (!nameKey) return undefined
+
+  const candidates = teamMetaByNameCandidates.value.get(nameKey) || []
+  if (!candidates.length) return undefined
+  if (candidates.length === 1) return candidates[0]
+
+  const rowSeason = resolveSeasonInfo(row)
+  const rowCategory = resolveCategoryInfo(row)
+  const rowBranch = resolveBranchInfo(row)
+
+  const ranked = [...candidates]
+    .map((meta) => ({
+      meta,
+      score: scoreMetaCandidate(meta, rowSeason, rowCategory, rowBranch),
+    }))
+    .sort((a, b) => b.score - a.score)
+
+  return ranked[0]?.meta
 }
 
 function normalizePct(value: number): number {
@@ -1672,7 +1773,7 @@ function buildTeamStanding(pointRow: AnyRow, meta: TeamMeta | undefined, index: 
       0
     ),
     pct,
-    active: meta?.active ?? true,
+    active: meta ? meta.active : resolveActiveState(pointRow, false),
     logo: meta?.logo ?? null,
   }
 }
@@ -1722,7 +1823,7 @@ function buildPlayerRow(row: AnyRow, meta: TeamMeta | undefined, index: number):
     receivingYards: toNumber(pick(row, ["receivingYards", "recYards", "ydsRec", "receiving_yds"]), 0),
     interceptions: toNumber(pick(row, ["interceptions", "ints", "defInterceptions"]), 0),
     sacks: toNumber(pick(row, ["sacks", "qbSacks"]), 0),
-    active: meta?.active ?? true,
+    active: meta ? meta.active : resolveActiveState(row, false),
   }
 }
 </script>

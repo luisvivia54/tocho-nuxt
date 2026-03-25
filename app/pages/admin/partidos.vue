@@ -1,4 +1,3 @@
-consola admin:
 <!-- app/pages/admin/partidos.vue -->
 <template>
   <main class="min-h-screen bg-[#050816] text-slate-50" :class="{ 'no-blur': isScrolling }">
@@ -7,7 +6,7 @@ consola admin:
         <!-- HEADER -->
         <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Tochero5 · Consola Admin</p>
+            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">Tochero5 · Consola Admin · Liga de Domingo</p>
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Partidos</h1>
             <p class="mt-1 text-sm text-slate-400">
               Flujo: <b>Categoría</b> → <b>Local</b> y <b>Visitante</b> → <b>Fecha/Hora</b> → <b>Jornada</b> → <b>Cancha</b> → Finalizar + Stats
@@ -45,7 +44,7 @@ consola admin:
 
         <!-- ADMIN UI -->
         <div v-else class="mt-8 space-y-6">
-          <!-- CREATE / EDIT (se mantiene arriba; en la lista NO hay botón Editar) -->
+          <!-- CREATE / EDIT -->
           <section class="rounded-2xl border border-slate-700 bg-slate-900/60 shadow-lg backdrop-blur overflow-hidden">
             <div class="h-1.5 bg-gradient-to-r from-cyan-400 to-fuchsia-500"></div>
 
@@ -376,7 +375,6 @@ consola admin:
                 </div>
               </div>
 
-              <!-- mensajes globales delete -->
               <div v-if="deleteError" class="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
                 {{ deleteError }}
               </div>
@@ -442,7 +440,6 @@ consola admin:
                             {{ g.homeScore }} - {{ g.awayScore }}
                           </span>
 
-                          <!-- ✅ CORREGIR SCORE (NO SE QUITA) -->
                           <button
                             v-if="upper(g.status) === 'FINAL'"
                             type="button"
@@ -452,7 +449,6 @@ consola admin:
                             Corregir score
                           </button>
 
-                          <!-- ✅ BORRAR (SCHEDULED hard delete / FINAL revert + CANCELLED) -->
                           <button
                             v-if="upper(g.status) !== 'CANCELLED'"
                             type="button"
@@ -477,7 +473,7 @@ consola admin:
                         </div>
                       </div>
 
-                      <!-- ✅ EDIT SCORE PANEL (solo FINAL) -->
+                      <!-- EDIT SCORE PANEL -->
                       <div
                         v-if="editScorePanelId === g.id"
                         class="mt-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3"
@@ -653,7 +649,6 @@ consola admin:
                             </div>
                           </div>
 
-                          <!-- list -->
                           <div v-if="finishStats.length" class="mt-3 space-y-2">
                             <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
                               <span class="text-slate-400">Resumen:</span>
@@ -815,6 +810,7 @@ import { useAuthz } from '~/composables/useAuthz'
 const isScrolling = ref(false)
 let scrollTO: ReturnType<typeof setTimeout> | null = null
 let rafId = 0
+
 function kickNoBlur() {
   if (rafId) return
   rafId = requestAnimationFrame(() => {
@@ -824,10 +820,12 @@ function kickNoBlur() {
     scrollTO = setTimeout(() => (isScrolling.value = false), 140)
   })
 }
+
 function onKeyKick(e: KeyboardEvent) {
   const keys = ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ']
   if (keys.includes(e.key)) kickNoBlur()
 }
+
 onMounted(() => {
   window.addEventListener('wheel', kickNoBlur, { passive: true })
   window.addEventListener('pointerdown', kickNoBlur, { passive: true })
@@ -836,6 +834,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKeyKick)
   window.addEventListener('scroll', kickNoBlur, { passive: true })
 })
+
 onBeforeUnmount(() => {
   window.removeEventListener('wheel', kickNoBlur)
   window.removeEventListener('pointerdown', kickNoBlur)
@@ -864,6 +863,7 @@ const isAdmin = computed<boolean>(() => {
     kc?.tokenParsed?.realm_access?.roles ||
     kc?.tokenParsed?.resource_access?.['nuxt-app']?.roles ||
     []
+
   return roles.map((r) => String(r).toLowerCase()).includes('admin')
 })
 
@@ -877,10 +877,7 @@ async function authHeaders(): Promise<Record<string, string>> {
   const token = kc?.token as string | undefined
   const headers: Record<string, string> = {}
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
+  if (token) headers.Authorization = `Bearer ${token}`
   return headers
 }
 
@@ -888,32 +885,43 @@ async function authHeaders(): Promise<Record<string, string>> {
  *  API
  *  ========================= */
 const config = useRuntimeConfig()
-const API_BASE = (config.public as any)?.apiBase || 'https://tocho5-api.tochero5.mx/api'
-const DEFAULT_SEASON_ID = Number((config.public as any)?.seasonId ?? 2)
+const API_BASE = ((config.public as any)?.apiBase as string || 'https://tocho5-api.tochero5.mx/api')
+  .trim()
+  .replace(/\/+$/, '')
+  .replace(/\/api$/, '') + '/api'
 
-const API_GAMES = `${API_BASE}/games`
-const API_GAMES_FINAL = `${API_BASE}/gamesFinal`
-const API_TEAMS = `${API_BASE}/teams`
-const API_TEAMS_LIST = `${API_BASE}/teams/list`
-const API_CATEGORIES = `${API_BASE}/categories`
+const LEAGUE_ID = 1
+const DEFAULT_SEASON_ID = 2
+
+function withLeague(path: string, extra: Record<string, string | number | boolean | null | undefined> = {}) {
+  const qs = new URLSearchParams()
+  qs.set('leagueId', String(LEAGUE_ID))
+  for (const [k, v] of Object.entries(extra)) {
+    if (v === null || v === undefined || v === '') continue
+    qs.set(k, String(v))
+  }
+  return `${API_BASE}${path}?${qs.toString()}`
+}
+
+const API_GAMES = () => withLeague('/games')
+const API_GAMES_FINAL = () => withLeague('/gamesFinal', { all: true })
+const API_TEAMS = () => withLeague('/teams')
+const API_TEAMS_LIST = () => withLeague('/teams/list')
+const API_CATEGORIES = () => withLeague('/categories')
+
 const API_PARTIDO_UPDATE = `${API_BASE}/partido/update`
 const API_TEAM_PLAYERS = (teamId: number) => `${API_BASE}/teams/${teamId}/players`
 const PLAYER_STATS_URL = (gameId: number) => `${API_BASE}/games/${gameId}/player-stats`
 
-/** DELETE:
- * - SCHEDULED: tu Controller actual ya tiene DELETE /api/games/{id}
- * - FINAL: usa tu endpoint “revert + CANCELLED” (DELETE /api/admin/games/{id})
- */
 const API_GAME_DELETE_SCHEDULED = (gameId: number) => `${API_BASE}/games/${gameId}`
 const API_GAME_DELETE_ADMIN = (gameId: number) => `${API_BASE}/admin/games/${gameId}`
-
-/** CORREGIR SCORE: PATCH /api/admin/games/{id}/score */
 const API_GAME_EDIT_SCORE = (gameId: number) => `${API_BASE}/admin/games/${gameId}/score`
 
 /** =========================
  *  TYPES
  *  ========================= */
 type Category = { id: number; name: string; code: string; gender: string }
+
 type Team = {
   teamId: number
   name: string
@@ -923,6 +931,7 @@ type Team = {
   category?: Category | null
   _search?: string
 }
+
 type GameVM = {
   id: number
   status: string
@@ -937,15 +946,22 @@ type GameVM = {
   homeTeamId?: number
   awayTeamId?: number
   jornada?: number
-  field?: string // venue/cancha
+  field?: string
   homeScore?: number | null
   awayScore?: number | null
   _search?: string
 }
-type Player = { id: number; fullName: string; jerseyNumber: number | null; photoUrl?: string | null }
+
+type Player = {
+  id: number
+  fullName: string
+  jerseyNumber: number | null
+  photoUrl?: string | null
+}
 
 type StatKind = 'TD' | 'PASS_TD' | 'INT' | 'SACK'
 type StatSide = 'HOME' | 'AWAY'
+
 type StatEntry = {
   id: string
   kind: StatKind
@@ -959,21 +975,36 @@ type StatEntry = {
 /** =========================
  *  HELPERS
  *  ========================= */
+const dateFmt = new Intl.DateTimeFormat('es-MX', {
+  timeZone: 'America/Mexico_City',
+  year: 'numeric',
+  month: 'short',
+  day: '2-digit',
+})
+
+const timeFmt = new Intl.DateTimeFormat('es-MX', {
+  timeZone: 'America/Mexico_City',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
 function unwrapList<T>(x: any): T[] {
   if (Array.isArray(x)) return x
   if (x && Array.isArray(x.content)) return x.content
   if (x && Array.isArray(x.items)) return x.items
   return []
 }
+
 function upper(v: any) {
   return String(v ?? '').trim().toUpperCase()
 }
+
 function initials(text: string) {
   const s = String(text || '').trim()
   if (!s) return 'T5'
-  const parts = s.split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase()).join('')
+  return s.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('')
 }
+
 function toLocalDateTime(iso: string) {
   const d = new Date(ensureUtc(iso))
   const yyyy = d.getFullYear()
@@ -983,10 +1014,12 @@ function toLocalDateTime(iso: string) {
   const mi = String(d.getMinutes()).padStart(2, '0')
   return { date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${mi}` }
 }
+
 function localToUtcIso(date: string, time: string) {
   const d = new Date(`${date}T${time}:00`)
   return d.toISOString()
 }
+
 function niceGender(g: string) {
   const x = String(g || '').toUpperCase()
   if (x === 'VARONIL') return 'Varonil'
@@ -994,12 +1027,15 @@ function niceGender(g: string) {
   if (x === 'MIXTO') return 'Mixto'
   return g
 }
+
 function categoryLabel(c: Category) {
   return `${c.name} · ${niceGender(c.gender)} · ${String(c.code).toUpperCase()}`
 }
+
 function debounceLowerRef(src: any, ms: number) {
   const out = ref('')
   let t: ReturnType<typeof setTimeout> | null = null
+
   watch(
     src,
     (v) => {
@@ -1010,7 +1046,23 @@ function debounceLowerRef(src: any, ms: number) {
     },
     { immediate: true }
   )
+
   return out
+}
+
+function ensureUtc(iso: string) {
+  const s = String(iso ?? '').trim()
+  if (!s) return s
+  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
+  return `${s}Z`
+}
+
+function extractJornada(raw: any): number | undefined {
+  const s = String(raw ?? '').trim()
+  if (!s) return undefined
+  const digits = s.match(/\d+/g)?.join('') ?? ''
+  const n = digits ? Number.parseInt(digits, 10) : Number(s)
+  return Number.isFinite(n) && n > 0 ? n : undefined
 }
 
 /** =========================
@@ -1018,6 +1070,7 @@ function debounceLowerRef(src: any, ms: number) {
  *  ========================= */
 const dateEl = ref<HTMLInputElement | null>(null)
 const timeEl = ref<HTMLInputElement | null>(null)
+
 function openNativePicker(elOrRef: any) {
   const el: HTMLInputElement | null =
     elOrRef && typeof elOrRef === 'object' && 'value' in elOrRef ? elOrRef.value : elOrRef
@@ -1039,15 +1092,21 @@ const teamsByCategory = shallowRef<Map<number, Team[]>>(new Map())
 const gamesVm = shallowRef<GameVM[]>([])
 
 /** --- fetch categories --- */
-const { data: catData } = useAsyncData(
-  'admin-categories-lite-fast',
-  async () => {
+async function fetchCategoriesSmart() {
+  try {
+    return unwrapList<any>(await $fetch(API_CATEGORIES()))
+  } catch {
     try {
-      return unwrapList<any>(await $fetch(API_CATEGORIES))
+      return unwrapList<any>(await $fetch(`${API_BASE}/categories`))
     } catch {
       return []
     }
-  },
+  }
+}
+
+const { data: catData } = useAsyncData(
+  `admin-categories-lite-fast-league-${LEAGUE_ID}`,
+  fetchCategoriesSmart,
   { server: false }
 )
 
@@ -1055,6 +1114,7 @@ watch(
   catData,
   () => {
     const list = unwrapList<any>(catData.value)
+
     const arr: Category[] = list
       .map((x) => ({
         id: Number(x.id ?? x.categoryId ?? x.category_id),
@@ -1062,7 +1122,7 @@ watch(
         code: String(x.code ?? ''),
         gender: String(x.gender ?? ''),
       }))
-      .filter((c) => Number.isFinite(c.id))
+      .filter((c) => Number.isFinite(c.id) && c.id > 0)
 
     categories.value = arr
 
@@ -1076,16 +1136,31 @@ watch(
 /** --- fetch teams --- */
 async function fetchTeamsSmart() {
   try {
-    return unwrapList<any>(await $fetch(API_TEAMS_LIST))
+    return unwrapList<any>(await $fetch(API_TEAMS_LIST()))
   } catch {
-    return unwrapList<any>(await $fetch(API_TEAMS))
+    try {
+      return unwrapList<any>(await $fetch(API_TEAMS()))
+    } catch {
+      try {
+        return unwrapList<any>(await $fetch(`${API_BASE}/teams/list`))
+      } catch {
+        return unwrapList<any>(await $fetch(`${API_BASE}/teams`).catch(() => []))
+      }
+    }
   }
 }
-const { data: teamsRaw, pending: teamsPending, error: teamsErr, refresh: refreshTeams } = useAsyncData(
-  'admin-teams-lite-fast',
+
+const {
+  data: teamsRaw,
+  pending: teamsPending,
+  error: teamsErr,
+  refresh: refreshTeams,
+} = useAsyncData(
+  `admin-teams-lite-fast-league-${LEAGUE_ID}`,
   fetchTeamsSmart,
   { server: false }
 )
+
 const teamsError = computed(() => !!teamsErr.value)
 
 watch(
@@ -1125,12 +1200,13 @@ watch(
         category: mergedCat,
         _search: `${name} ${shortName}`.toLowerCase(),
       }
-    })
+    }).filter((t) => Number.isFinite(t.teamId) && t.teamId > 0)
 
     teams.value = arr
 
     const byId = new Map<number, Team>()
     const byCat = new Map<number, Team[]>()
+
     for (const t of arr) {
       byId.set(t.teamId, t)
       const c = Number(t.categoryId || 0)
@@ -1139,6 +1215,7 @@ watch(
         byCat.get(c)!.push(t)
       }
     }
+
     teamsById.value = byId
     teamsByCategory.value = byCat
   },
@@ -1146,24 +1223,41 @@ watch(
 )
 
 /** --- fetch games --- */
-const { data: gamesRaw, pending: gamesPending, error: gamesErr, refresh: refreshGames } = useAsyncData(
-  'admin-games-lite-fast',
-  async () => {
-    const [scheduled, finals] = await Promise.all([
-      $fetch<any>(API_GAMES).catch(() => []),
-      $fetch<any>(API_GAMES_FINAL).catch(() => []),
-    ])
-    const all = [...unwrapList<any>(scheduled), ...unwrapList<any>(finals)]
-    const map = new Map<number, any>()
-    for (const g of all) {
-      const id = Number(g.game_id ?? g.gameId ?? g.id)
-      if (!id) continue
-      map.set(id, g)
-    }
-    return Array.from(map.values())
-  },
+async function fetchGamesSmart() {
+  const [scheduled, finals] = await Promise.all([
+    $fetch<any>(API_GAMES()).catch(async () => await $fetch<any>(`${API_BASE}/games`).catch(() => [])),
+    $fetch<any>(API_GAMES_FINAL()).catch(async () => {
+      try {
+        return await $fetch<any>(`${API_BASE}/gamesFinal?all=true`)
+      } catch {
+        return await $fetch<any>(`${API_BASE}/gamesFinal`).catch(() => [])
+      }
+    }),
+  ])
+
+  const all = [...unwrapList<any>(scheduled), ...unwrapList<any>(finals)]
+  const map = new Map<number, any>()
+
+  for (const g of all) {
+    const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
+    if (!id) continue
+    map.set(id, g)
+  }
+
+  return Array.from(map.values())
+}
+
+const {
+  data: gamesRaw,
+  pending: gamesPending,
+  error: gamesErr,
+  refresh: refreshGames,
+} = useAsyncData(
+  `admin-games-lite-fast-league-${LEAGUE_ID}`,
+  fetchGamesSmart,
   { server: false }
 )
+
 const gamesError = computed(() => !!gamesErr.value)
 
 watch(
@@ -1173,13 +1267,21 @@ watch(
     const catMap = categoryById.value
 
     const arr: GameVM[] = list.map((g: any) => {
-      const id = Number(g.game_id ?? g.gameId ?? g.id)
+      const id = Number(g.game_id ?? g.gameId ?? g.id ?? 0)
       const iso = ensureUtc(String(g.match_date_utc ?? g.matchDateUtc ?? g.match_date ?? ''))
-      const status = String(g.status ?? 'SCHEDULED')
+
+      const hasScore =
+        g?.homeScore != null ||
+        g?.awayScore != null ||
+        g?.home_score != null ||
+        g?.away_score != null
+
+      const rawStatus = String(g.status ?? '').trim()
+      const status = upper(rawStatus) || (hasScore ? 'FINAL' : 'SCHEDULED')
 
       const d = iso ? new Date(iso) : new Date()
-      const dateLabel = d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: '2-digit' })
-      const timeLabel = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+      const dateLabel = dateFmt.format(d)
+      const timeLabel = timeFmt.format(d)
 
       const homeName = String(g.home_team ?? g.homeTeam?.name ?? 'Local')
       const awayName = String(g.away_team ?? g.awayTeam?.name ?? 'Visitante')
@@ -1197,9 +1299,8 @@ watch(
       const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? 0) || undefined
       const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined
 
-      const venue = String(g.venue ?? g.field ?? g.location ?? '') // 👈 aquí se muestra la cancha
-
-      const jornada = Number(g.jornada ?? g.matchday ?? g.round ?? g.week ?? 0) || undefined
+      const venue = String(g.venue ?? g.field ?? g.location ?? '')
+      const jornada = extractJornada(g.jornada ?? g.matchday ?? g.round ?? g.week ?? g.roundLabel ?? g.round_label ?? g.round_la)
 
       return {
         id,
@@ -1220,7 +1321,7 @@ watch(
         awayScore: g.awayScore ?? g.away_score ?? null,
         _search: `${homeName} ${awayName}`.toLowerCase(),
       }
-    })
+    }).filter((g) => Number.isFinite(g.id) && g.id > 0)
 
     arr.sort((a, b) => {
       const da = a.match_date_utc ? new Date(a.match_date_utc).getTime() : 0
@@ -1274,13 +1375,6 @@ function clearForm() {
   formOk.value = ''
 }
 
-function ensureUtc(iso: string) {
-  const s = String(iso ?? '').trim()
-  if (!s) return s
-  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return s
-  return `${s}Z`
-}
-
 function validateForm() {
   if (!form.value.categoryId || form.value.categoryId < 1) return 'Selecciona categoría del partido.'
   if (!homeTeamId.value) return 'Selecciona equipo Local.'
@@ -1295,16 +1389,23 @@ function validateForm() {
 async function saveGame() {
   formError.value = ''
   formOk.value = ''
+
   const msg = validateForm()
-  if (msg) return (formError.value = msg)
+  if (msg) {
+    formError.value = msg
+    return
+  }
 
   saving.value = true
+
   try {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
     const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
     const isEdit = !!editingId.value
 
     const payloadCreate: any = {
+      league_id: LEAGUE_ID,
+      leagueId: LEAGUE_ID,
       season_id: seasonId,
       seasonId,
       category_id: form.value.categoryId,
@@ -1317,8 +1418,6 @@ async function saveGame() {
       matchDateUtc: isoUtc,
       round_label: `J${Number(form.value.jornada)}`,
       roundLabel: `J${Number(form.value.jornada)}`,
-
-      // cancha (si backend lo soporta; si no, lo ignora por @JsonIgnoreProperties)
       venue: form.value.field,
       field: form.value.field,
       location: form.value.field,
@@ -1328,6 +1427,8 @@ async function saveGame() {
       game_id: editingId.value,
       gameId: editingId.value,
       id: editingId.value,
+      league_id: LEAGUE_ID,
+      leagueId: LEAGUE_ID,
       season_id: seasonId,
       seasonId,
       category_id: form.value.categoryId,
@@ -1335,12 +1436,12 @@ async function saveGame() {
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
       status: 'SCHEDULED',
-
       venue: form.value.field,
       field: form.value.field,
       location: form.value.field,
-
       jornada: Number(form.value.jornada),
+      round_label: `J${Number(form.value.jornada)}`,
+      roundLabel: `J${Number(form.value.jornada)}`,
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
       away_team_id: awayTeamId.value,
@@ -1348,7 +1449,7 @@ async function saveGame() {
     }
 
     if (!isEdit) {
-      const resp: any = await $fetch(API_GAMES, { method: 'POST', body: payloadCreate })
+      const resp: any = await $fetch(API_GAMES(), { method: 'POST', body: payloadCreate })
       const newId = Number(resp?.gameId ?? resp?.game_id ?? resp?.id ?? 0) || null
       formOk.value = newId ? `Partido creado (ID ${newId}).` : 'Partido creado.'
     } else {
@@ -1373,6 +1474,7 @@ function swapTeams() {
   const a = homeTeamId.value
   homeTeamId.value = awayTeamId.value
   awayTeamId.value = a
+
   const tmp = homeInput.value
   homeInput.value = awayInput.value
   awayInput.value = tmp
@@ -1417,6 +1519,7 @@ function suggest(q: string, excludeId: number | null) {
     if ((t._search || '').includes(query)) out.push(t)
     if (out.length >= LIMIT) break
   }
+
   return out
 }
 
@@ -1428,22 +1531,27 @@ function pickHome(t: Team) {
   homeInput.value = t.name
   homeOpen.value = false
 }
+
 function pickAway(t: Team) {
   awayTeamId.value = t.teamId
   awayInput.value = t.name
   awayOpen.value = false
 }
+
 function clearHome() {
   homeTeamId.value = null
   homeInput.value = ''
 }
+
 function clearAway() {
   awayTeamId.value = null
   awayInput.value = ''
 }
+
 function closeHomeLater() {
   setTimeout(() => (homeOpen.value = false), 80)
 }
+
 function closeAwayLater() {
   setTimeout(() => (awayOpen.value = false), 80)
 }
@@ -1451,7 +1559,7 @@ function closeAwayLater() {
 /** =========================
  *  GAMES FILTERS + PAGINACIÓN
  *  ========================= */
-const gameStatusPick = ref<'ALL' | 'SCHEDULED' | 'FINAL'>('SCHEDULED')
+const gameStatusPick = ref<'ALL' | 'SCHEDULED' | 'FINAL'>('ALL')
 const gameQuery = ref('')
 const gameQ = debounceLowerRef(gameQuery, 100)
 
@@ -1510,7 +1618,7 @@ const pageTabs = computed(() => {
 })
 
 /** =========================
- *  ✅ DELETE
+ *  DELETE
  *  ========================= */
 const deletingId = ref<number | null>(null)
 const deleteError = ref('')
@@ -1521,7 +1629,10 @@ async function deleteGame(g: GameVM) {
   deleteOk.value = ''
 
   const gid = Number(g?.id || 0)
-  if (!gid) return (deleteError.value = 'No hay gameId válido.')
+  if (!gid) {
+    deleteError.value = 'No hay gameId válido.'
+    return
+  }
 
   const st = upper(g.status)
 
@@ -1533,38 +1644,34 @@ async function deleteGame(g: GameVM) {
   if (!window.confirm(msg)) return
 
   deletingId.value = gid
+
   try {
     const headers = await authHeaders()
 
     if (st === 'FINAL') {
-      // requiere endpoint DELETE /api/admin/games/{id} -> gameservice.deleteGameAndRevert(id)
       await $fetch(API_GAME_DELETE_ADMIN(gid), { method: 'DELETE', headers })
       deleteOk.value = `Partido #${gid} eliminado y revertido (CANCELLED).`
     } else {
-      // endpoint que ya tienes: DELETE /api/games/{id}
       await $fetch(API_GAME_DELETE_SCHEDULED(gid), { method: 'DELETE', headers })
       deleteOk.value = `Partido #${gid} borrado.`
     }
 
-    // UI optimista
     gamesVm.value = gamesVm.value.filter((x) => x.id !== gid)
+
     if (finishPanelId.value === gid) closeFinish()
     if (editScorePanelId.value === gid) closeEditScore()
 
     await refreshGames()
     setTimeout(() => (deleteOk.value = ''), 2200)
   } catch (e: any) {
-    deleteError.value =
-      e?.data?.message ||
-      e?.message ||
-      'No se pudo borrar. Revisa endpoints/rol admin.'
+    deleteError.value = e?.data?.message || e?.message || 'No se pudo borrar. Revisa endpoints/rol admin.'
   } finally {
     deletingId.value = null
   }
 }
 
 /** =========================
- *  ✅ EDIT SCORE (FINAL)
+ *  EDIT SCORE (FINAL)
  *  ========================= */
 const editScorePanelId = ref<number | null>(null)
 const editHomeScore = ref<number>(0)
@@ -1574,7 +1681,6 @@ const editScoreError = ref('')
 const editScoreOk = ref('')
 
 function openEditScore(g: GameVM) {
-  // solo 1 panel a la vez
   finishPanelId.value = null
   finishError.value = ''
   finishOk.value = ''
@@ -1597,17 +1703,26 @@ async function saveEditedScore(g: GameVM) {
   editScoreOk.value = ''
 
   const gid = Number(g?.id || 0)
-  if (!gid) return (editScoreError.value = 'No hay gameId válido.')
+  if (!gid) {
+    editScoreError.value = 'No hay gameId válido.'
+    return
+  }
 
-  if (upper(g.status) !== 'FINAL') return (editScoreError.value = 'Solo puedes corregir score si está FINAL.')
+  if (upper(g.status) !== 'FINAL') {
+    editScoreError.value = 'Solo puedes corregir score si está FINAL.'
+    return
+  }
 
   const hs = Number(editHomeScore.value ?? 0)
   const as = Number(editAwayScore.value ?? 0)
+
   if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
-    return (editScoreError.value = 'Scores inválidos.')
+    editScoreError.value = 'Scores inválidos.'
+    return
   }
 
   editingScore.value = true
+
   try {
     const headers = await authHeaders()
     await $fetch(API_GAME_EDIT_SCORE(gid), {
@@ -1620,10 +1735,7 @@ async function saveEditedScore(g: GameVM) {
     await refreshGames()
     setTimeout(() => (editScoreOk.value = ''), 1800)
   } catch (e: any) {
-    editScoreError.value =
-      e?.data?.message ||
-      e?.message ||
-      'No se pudo actualizar el score. (¿Token/rol admin? ¿endpoint?)'
+    editScoreError.value = e?.data?.message || e?.message || 'No se pudo actualizar el score. (¿Token/rol admin? ¿endpoint?)'
   } finally {
     editingScore.value = false
   }
@@ -1647,10 +1759,12 @@ const rosterHint = ref('')
 /** --- stats cache --- */
 const statsMap = shallowRef<Map<number, StatEntry[]>>(new Map())
 const statsTick = ref(0)
+
 function getStats(gameId: number) {
   statsTick.value
   return statsMap.value.get(gameId) || []
 }
+
 function setStats(gameId: number, entries: StatEntry[]) {
   statsMap.value.set(gameId, entries)
   statsTick.value++
@@ -1672,9 +1786,11 @@ async function ensureRoster(teamId: number) {
   if (rosterLoading.value.has(teamId)) return
 
   rosterLoading.value.add(teamId)
+
   try {
     const players = await $fetch<any>(API_TEAM_PLAYERS(teamId))
     const arr = Array.isArray(players) ? players : []
+
     rosterMap.value.set(
       teamId,
       arr.map((p: any) => ({
@@ -1731,6 +1847,7 @@ watch([finishPanelId, () => statDraft.value.side], async () => {
 
   const g = currentGame.value
   if (!g) return
+
   const teamId = currentSideTeamId.value
   if (teamId) await ensureRoster(teamId)
 
@@ -1748,7 +1865,9 @@ const finishStats = computed<StatEntry[]>(() => {
 
 function countKind(kind: StatKind) {
   let total = 0
-  for (const s of finishStats.value) if (s.kind === kind) total += Number(s.qty || 0)
+  for (const s of finishStats.value) {
+    if (s.kind === kind) total += Number(s.qty || 0)
+  }
   return total
 }
 
@@ -1774,7 +1893,10 @@ function addStatForGame(g: GameVM) {
   const roster = currentRosterOptions.value
   const p = roster.find((x) => Number(x.id) === pid)
 
-  if (!p) return (statsWarn.value = 'Selecciona un jugador válido del roster.')
+  if (!p) {
+    statsWarn.value = 'Selecciona un jugador válido del roster.'
+    return
+  }
 
   const entry: StatEntry = {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -1805,7 +1927,6 @@ function clearStats(gameId: number) {
 }
 
 async function openFinish(g: GameVM) {
-  // solo 1 panel a la vez
   editScorePanelId.value = null
   editScoreError.value = ''
   editScoreOk.value = ''
@@ -1822,7 +1943,10 @@ async function openFinish(g: GameVM) {
 
   const h = g.homeTeamId || 0
   const a = g.awayTeamId || 0
-  await Promise.all([h ? ensureRoster(h) : Promise.resolve(), a ? ensureRoster(a) : Promise.resolve()])
+  await Promise.all([
+    h ? ensureRoster(h) : Promise.resolve(),
+    a ? ensureRoster(a) : Promise.resolve(),
+  ])
 
   statDraft.value.side = 'HOME'
   statDraft.value.playerId = 0
@@ -1843,9 +1967,16 @@ async function tryPostPlayerStats(gameId: number) {
   if (!entries.length) return
 
   try {
-    const payload = entries.map((e) => ({ kind: e.kind, side: e.side, playerId: e.playerId, qty: e.qty }))
+    const payload = entries.map((e) => ({
+      kind: e.kind,
+      side: e.side,
+      playerId: e.playerId,
+      qty: e.qty,
+    }))
+
     const headers = await authHeaders()
     await $fetch(PLAYER_STATS_URL(gameId), { method: 'PUT', body: payload, headers })
+
     statsOk.value = 'Stats individuales guardadas.'
     statsWarn.value = ''
   } catch {
@@ -1853,13 +1984,13 @@ async function tryPostPlayerStats(gameId: number) {
   }
 }
 
-/** FINALIZAR: body mínimo EXACTO a /partido/update */
 async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: number) {
   const body = {
     game_id: String(gameId),
     home_score: Number(homeScore),
     away_score: Number(awayScore),
   }
+
   const headers = await authHeaders()
   return await $fetch<any>(API_PARTIDO_UPDATE, { method: 'POST', body, headers })
 }
@@ -1870,15 +2001,21 @@ async function finishGame(g: GameVM) {
   statsWarn.value = ''
   statsOk.value = ''
 
-  if (!g?.id) return (finishError.value = 'No hay game_id válido.')
+  if (!g?.id) {
+    finishError.value = 'No hay game_id válido.'
+    return
+  }
 
   const hs = Number(finishHomeScore.value ?? 0)
   const as = Number(finishAwayScore.value ?? 0)
+
   if (!Number.isFinite(hs) || !Number.isFinite(as) || hs < 0 || as < 0) {
-    return (finishError.value = 'Scores inválidos.')
+    finishError.value = 'Scores inválidos.'
+    return
   }
 
   finishing.value = true
+
   try {
     await postFinalizeOnly(g.id, hs, as)
     finishOk.value = `Partido ${g.id} finalizado (${hs} - ${as}).`
@@ -1907,6 +2044,7 @@ async function hardRefresh() {
   statsWarn.value = ''
   statsOk.value = ''
   rosterHint.value = ''
+
   await Promise.all([refreshTeams(), refreshGames()])
 }
 </script>
@@ -1915,15 +2053,16 @@ async function hardRefresh() {
 .date-time {
   color-scheme: dark;
 }
+
 .date-time::-webkit-calendar-picker-indicator {
   filter: invert(1);
   opacity: 0.95;
 }
+
 .date-time::-webkit-datetime-edit {
   color: rgba(226, 232, 240, 0.95);
 }
 
-/* PERF: backdrop-filter es carísimo al scroll; lo apagamos mientras scroll */
 .no-blur .backdrop-blur,
 .no-blur .backdrop-blur-sm,
 .no-blur .backdrop-blur-md,
@@ -1934,4 +2073,3 @@ async function hardRefresh() {
   backdrop-filter: none !important;
 }
 </style>
-

@@ -26,19 +26,20 @@
             <button
               type="button"
               class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
-              :disabled="submitting || uploading"
-              @click="saveProgress"
-            >
-              Guardar progreso
-            </button>
-
-            <button
-              type="button"
-              class="rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-500/15"
-              :disabled="submitting || uploading"
+              :disabled="submitting || uploading || deletingTeam"
               @click="clearProgress"
             >
               Borrar progreso
+            </button>
+
+            <button
+              v-if="editingTeamId"
+              type="button"
+              class="rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-100 hover:bg-rose-500/15 disabled:opacity-50"
+              :disabled="submitting || uploading || deletingTeam"
+              @click="openDeleteConfirm"
+            >
+              {{ deletingTeam ? "Desactivando…" : "Borrar equipo" }}
             </button>
           </div>
         </header>
@@ -47,7 +48,7 @@
           {{ statusMsg }}
         </div>
 
-        <div v-if="errorMsg" class="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+        <div v-if="errorMsg" class="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100 whitespace-pre-line">
           {{ errorMsg }}
         </div>
 
@@ -122,7 +123,7 @@
                   :disabled="categoriesLoading"
                   class="w-full rounded-2xl border border-white/10 bg-[#0B1020] px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-orange-400/60 disabled:opacity-50"
                 >
-                  <option :value="0">{{ categoriesLoading ? 'Cargando…' : 'Selecciona categoría' }}</option>
+                  <option :value="0">{{ categoriesLoading ? "Cargando…" : "Selecciona categoría" }}</option>
                   <option v-for="c in categories" :key="c.id" :value="c.id">
                     {{ c.name }} · {{ niceGender(c.gender) }}
                   </option>
@@ -166,7 +167,7 @@
                   <button
                     type="button"
                     class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-50"
-                    :disabled="uploading"
+                    :disabled="uploading || deletingTeam"
                     @click="pickLogo"
                   >
                     {{ uploading ? "Subiendo…" : "Elegir archivo" }}
@@ -239,7 +240,6 @@
                       <input v-model.trim="player.jerseyNumber" type="text" placeholder="Opcional" class="w-full rounded-2xl border border-white/10 bg-[#08101E] px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-orange-400/60" />
                     </div>
 
-                    <!-- FOTO: input file + preview (reemplaza el campo de URL) -->
                     <div class="md:col-span-8">
                       <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">Foto del jugador</label>
                       <p class="mb-2 text-xs text-slate-500">Sin foto, este integrante no se enviará.</p>
@@ -273,13 +273,31 @@
             </div>
 
             <div class="mt-8 flex flex-wrap items-center justify-end gap-3 border-t border-white/10 pt-5">
-              <button type="button" class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10" :disabled="submitting || uploading" @click="saveProgress">
-                Guardar progreso
-              </button>
-              <button type="button" class="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-100 hover:bg-rose-500/15" :disabled="submitting || uploading" @click="clearProgress">
+              <button
+                type="button"
+                class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10"
+                :disabled="submitting || uploading || deletingTeam"
+                @click="clearProgress"
+              >
                 Borrar progreso
               </button>
-              <button type="button" class="rounded-2xl bg-gradient-to-r from-orange-500 to-orange-400 px-6 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(249,115,22,0.28)] hover:brightness-110 disabled:opacity-50" :disabled="submitting || uploading" @click="submitTeam">
+
+              <button
+                v-if="editingTeamId"
+                type="button"
+                class="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-100 hover:bg-rose-500/15 disabled:opacity-50"
+                :disabled="submitting || uploading || deletingTeam"
+                @click="openDeleteConfirm"
+              >
+                {{ deletingTeam ? "Desactivando…" : "Borrar equipo" }}
+              </button>
+
+              <button
+                type="button"
+                class="rounded-2xl bg-gradient-to-r from-orange-500 to-orange-400 px-6 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(249,115,22,0.28)] hover:brightness-110 disabled:opacity-50"
+                :disabled="submitting || uploading || deletingTeam"
+                @click="submitTeam"
+              >
                 {{ submitting ? "Guardando…" : submitLabel }}
               </button>
             </div>
@@ -350,21 +368,73 @@
       </div>
     </section>
 
+    <!-- MODAL BORRAR EQUIPO -->
+    <div v-if="showDeleteConfirm" class="fixed inset-0 z-50">
+      <div class="absolute inset-0 bg-black/60" @click="closeDeleteConfirm" />
+
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="w-full max-w-lg overflow-hidden rounded-3xl border border-rose-400/20 bg-[#0B1020] shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+          <div class="border-b border-white/10 px-5 py-4">
+            <p class="text-[11px] uppercase tracking-[0.22em] text-rose-300/80">Confirmación</p>
+            <h3 class="mt-2 text-2xl font-extrabold text-white">Borrar equipo</h3>
+            <p class="mt-3 text-sm text-slate-300">
+              Estás a punto de desactivar el equipo
+              <span class="font-extrabold text-white">{{ team.name || "actual" }}</span>.
+            </p>
+          </div>
+
+          <div class="p-5">
+            <div class="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+              Esta acción hará un <span class="font-extrabold">soft delete</span> del equipo.
+            </div>
+
+            <label class="mt-5 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+              <input
+                v-model="deleteAgreement"
+                type="checkbox"
+                class="mt-1 h-4 w-4 rounded border-white/20 bg-[#08101E] text-orange-500 focus:ring-orange-400"
+              />
+              <span class="text-sm text-slate-200">
+                Confirmo que estoy de acuerdo en desactivar este equipo.
+              </span>
+            </label>
+
+            <div class="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                class="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10"
+                :disabled="deletingTeam"
+                @click="closeDeleteConfirm"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                class="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-5 py-3 text-sm font-extrabold text-rose-100 hover:bg-rose-500/15 disabled:opacity-50"
+                :disabled="!deleteAgreement || deletingTeam"
+                @click="deleteTeam"
+              >
+                {{ deletingTeam ? "Desactivando…" : "Sí, borrar equipo" }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <input ref="logoInput" type="file" accept="image/*" class="hidden" @change="onLogoChange" />
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 import { useNuxtApp, useRoute, useRouter, useRuntimeConfig, useState } from "#imports"
 import { useAuthz } from "~/composables/useAuthz"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
-/* =========================
-   CONSTANTES — solo cambia aquí
-========================= */
-const LEAGUE_ID    = 2
-const SEASON_ID    = 3
+const LEAGUE_ID = 2
+const SEASON_ID = 3
 const LEAGUE_LABEL = "Liga de Jueves"
 const SEASON_LABEL = "Nocturna"
 
@@ -382,8 +452,8 @@ type PlayerDraft = {
   fullName: string
   curp: string
   jerseyNumber: string
-  photoFile: File | null      // ← archivo real
-  photoPreview: string | null // ← URL temporal para mostrar
+  photoFile: File | null
+  photoPreview: string | null
 }
 
 type TeamDraft = {
@@ -420,11 +490,27 @@ function niceGender(g: string) {
 }
 
 function createEmptyPlayer(): PlayerDraft {
-  return { id: uid("pl"), fullName: "", curp: "", jerseyNumber: "", photoFile: null, photoPreview: null }
+  return {
+    id: uid("pl"),
+    fullName: "",
+    curp: "",
+    jerseyNumber: "",
+    photoFile: null,
+    photoPreview: null,
+  }
 }
 
 function createEmptyTeam(): TeamDraft {
-  return { id: null, name: "", shortName: "", categoryId: 0, primaryColor: "#F97316", secondaryColor: "#FFFFFF", logoUrl: "", players: [] }
+  return {
+    id: null,
+    name: "",
+    shortName: "",
+    categoryId: 0,
+    primaryColor: "#F97316",
+    secondaryColor: "#FFFFFF",
+    logoUrl: "",
+    players: [],
+  }
 }
 
 /* =========================
@@ -451,14 +537,27 @@ function login() {
 async function getAccessToken(): Promise<string | null> {
   const app: any = nuxtApp as any
   const kc: any = app.$kc
-  try { await kc?.updateToken?.(30) } catch {}
+
+  try {
+    await kc?.updateToken?.(30)
+  } catch {}
+
   if (typeof kc?.token === "string" && kc.token.length > 20) return kc.token
+
   if (typeof app.$kcGetToken === "function") {
-    try { const t = await app.$kcGetToken(); if (typeof t === "string" && t.length > 20) return t } catch {}
+    try {
+      const t = await app.$kcGetToken()
+      if (typeof t === "string" && t.length > 20) return t
+    } catch {}
   }
+
   if (typeof app.$getToken === "function") {
-    try { const t = await app.$getToken(); if (typeof t === "string" && t.length > 20) return t } catch {}
+    try {
+      const t = await app.$getToken()
+      if (typeof t === "string" && t.length > 20) return t
+    } catch {}
   }
+
   return null
 }
 
@@ -477,8 +576,13 @@ const API_BASE = normalizeApiBase(((runtime.public as any)?.apiBase as string) |
 const ASSET_UPLOAD_ENDPOINT = `${API_BASE}/assets/upload`
 const TEAM_CREATE_URL = `${API_BASE}/teams/mine`
 
-function TEAM_UPDATE_URL(id: number) { return `${API_BASE}/teams/${id}` }
-function TEAM_FETCH_URL(id: number) { return `${API_BASE}/teams/${id}` }
+function TEAM_UPDATE_URL(id: number) {
+  return `${API_BASE}/teams/${id}`
+}
+
+function TEAM_FETCH_URL(id: number) {
+  return `${API_BASE}/teams/${id}`
+}
 
 /* =========================
    CATEGORÍAS
@@ -493,10 +597,16 @@ async function fetchCategories() {
     const res = await fetch(url)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const raw = await res.json()
-    const arr = Array.isArray(raw) ? raw
-      : Array.isArray(raw?.content) ? raw.content
-      : Array.isArray(raw?.items) ? raw.items
-      : Array.isArray(raw?.data) ? raw.data : []
+    const arr = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.content)
+        ? raw.content
+        : Array.isArray(raw?.items)
+          ? raw.items
+          : Array.isArray(raw?.data)
+            ? raw.data
+            : []
+
     categories.value = arr
       .map((c: any) => ({
         id: Number(c?.id ?? c?.categoryId ?? 0) || 0,
@@ -535,41 +645,37 @@ const statusMsg = ref("")
 const errorMsg = ref("")
 const submitting = ref(false)
 const uploading = ref(false)
+const deletingTeam = ref(false)
+const showDeleteConfirm = ref(false)
+const deleteAgreement = ref(false)
 const logoInput = ref<HTMLInputElement | null>(null)
 
-// validPlayers: necesitan nombre + curp + foto
 const validPlayers = computed(() =>
   team.value.players.filter((p) => p.fullName.trim() && p.curp.trim() && p.photoFile)
 )
 
 const submitLabel = computed(() => editingTeamId.value ? "Guardar cambios" : "Registrar equipo")
 
-function saveProgress() {
-  if (!import.meta.client) return
-  // No guardamos photoFile en localStorage (no serializable), solo los campos de texto
-  const toSave = {
-    ...team.value,
-    players: team.value.players.map(p => ({
-      id: p.id, fullName: p.fullName, curp: p.curp, jerseyNumber: p.jerseyNumber
-    }))
+function revokeAllPlayerPreviews() {
+  for (const p of team.value.players) {
+    if (p.photoPreview) {
+      URL.revokeObjectURL(p.photoPreview)
+      p.photoPreview = null
+    }
   }
-  localStorage.setItem(storageKey.value, JSON.stringify(toSave))
-  errorMsg.value = ""
-  statusMsg.value = "Progreso guardado localmente."
 }
 
 function clearProgress() {
   if (import.meta.client) localStorage.removeItem(storageKey.value)
-  // revocar object URLs antes de limpiar
-  for (const p of team.value.players) {
-    if (p.photoPreview) URL.revokeObjectURL(p.photoPreview)
-  }
+  revokeAllPlayerPreviews()
   team.value = editingTeamId.value ? clone(serverSnapshot.value) : createEmptyTeam()
   errorMsg.value = ""
   statusMsg.value = "Progreso local borrado."
 }
 
-function addPlayer() { team.value.players.push(createEmptyPlayer()) }
+function addPlayer() {
+  team.value.players.push(createEmptyPlayer())
+}
 
 function removePlayer(index: number) {
   const p = team.value.players[index]
@@ -577,9 +683,10 @@ function removePlayer(index: number) {
   team.value.players.splice(index, 1)
 }
 
-function pickLogo() { logoInput.value?.click() }
+function pickLogo() {
+  logoInput.value?.click()
+}
 
-// Manejo de foto de jugador con input file
 function onPlayerPhotoChange(index: number, event: Event) {
   const player = team.value.players[index]
   if (!player) return
@@ -593,17 +700,23 @@ function onPlayerPhotoChange(index: number, event: Event) {
 async function uploadAsset(folder: string, file: File) {
   const token = await getAccessToken()
   if (!token) throw new Error("No hay sesión activa.")
+
   const fd = new FormData()
   fd.append("folder", folder)
   fd.append("file", file)
+
   const res = await fetch(ASSET_UPLOAD_ENDPOINT, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: fd,
   })
+
   const text = await res.text()
   let json: any = null
-  try { json = text ? JSON.parse(text) : null } catch {}
+  try {
+    json = text ? JSON.parse(text) : null
+  } catch {}
+
   if (!res.ok) throw new Error((json?.message || json?.error) || `${res.status} ${res.statusText}`)
   return json
 }
@@ -613,9 +726,11 @@ async function onLogoChange(e: Event) {
   const file = input.files?.[0]
   input.value = ""
   if (!file) return
+
   uploading.value = true
   errorMsg.value = ""
   statusMsg.value = "Subiendo logo…"
+
   try {
     const res = await uploadAsset("site/jueves/teams/logos", file)
     const publicUrl = String(res?.publicUrl || "")
@@ -634,6 +749,7 @@ function normalizeTeamFromApi(raw: any): TeamDraft {
     Array.isArray(raw?.players) ? raw.players :
     Array.isArray(raw?.members) ? raw.members :
     Array.isArray(raw?.roster) ? raw.roster : []
+
   return {
     id: Number(raw?.id ?? raw?.teamId ?? raw?.team_id ?? 0) || null,
     name: String(raw?.name ?? raw?.teamName ?? ""),
@@ -703,25 +819,38 @@ function validateTeam() {
 async function submitTeam() {
   errorMsg.value = ""
   statusMsg.value = ""
+
   const validation = validateTeam()
-  if (validation) { errorMsg.value = validation; return }
+  if (validation) {
+    errorMsg.value = validation
+    return
+  }
 
   submitting.value = true
   try {
     const headers = await authHeaders(true)
     if (!headers.Authorization) throw new Error("No hay sesión activa.")
-    const token = headers.Authorization.replace("Bearer ", "")
 
+    const token = headers.Authorization.replace("Bearer ", "")
     let res: any = null
 
     if (editingTeamId.value) {
       const url = TEAM_UPDATE_URL(editingTeamId.value)
+
       try {
         const r = await fetch(url, { method: "PUT", headers, body: JSON.stringify(buildTeamPayload()) })
-        res = await r.json()
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}))
+          throw new Error(err?.message || `Error ${r.status}`)
+        }
+        res = await r.json().catch(() => ({}))
       } catch {
         const r = await fetch(url, { method: "PATCH", headers, body: JSON.stringify(buildTeamPayload()) })
-        res = await r.json()
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}))
+          throw new Error(err?.message || `Error ${r.status}`)
+        }
+        res = await r.json().catch(() => ({}))
       }
     } else {
       const r = await fetch(TEAM_CREATE_URL, { method: "POST", headers, body: JSON.stringify(buildTeamPayload()) })
@@ -735,7 +864,6 @@ async function submitTeam() {
     const newId = Number(res?.id ?? res?.teamId ?? res?.team_id ?? editingTeamId.value ?? 0) || null
     if (newId) team.value.id = newId
 
-    // Subir jugadores válidos (con foto) uno por uno como multipart
     if (newId && validPlayers.value.length > 0) {
       for (const p of validPlayers.value) {
         try {
@@ -760,6 +888,7 @@ async function submitTeam() {
     if (import.meta.client) localStorage.removeItem(storageKey.value)
 
     statusMsg.value = editingTeamId.value ? "Equipo actualizado correctamente." : "Equipo registrado correctamente."
+
     setTimeout(() => {
       router.push(`/jueves/mi-equipo${newId ? `?highlight=${newId}` : ""}`)
     }, 600)
@@ -770,13 +899,151 @@ async function submitTeam() {
   }
 }
 
+/* =========================
+   SOFT DELETE
+========================= */
+function openDeleteConfirm() {
+  if (!editingTeamId.value) return
+  deleteAgreement.value = false
+  showDeleteConfirm.value = true
+}
+
+function closeDeleteConfirm() {
+  if (deletingTeam.value) return
+  showDeleteConfirm.value = false
+  deleteAgreement.value = false
+}
+
+function getStatusCode(err: any): number | undefined {
+  return err?.statusCode ?? err?.status ?? err?.response?.status ?? err?.response?._data?.status
+}
+
+async function readResponseMessage(res: Response) {
+  const text = await res.text().catch(() => "")
+  if (!text) return `${res.status} ${res.statusText}`
+  try {
+    const json = JSON.parse(text)
+    return json?.message || json?.error || text
+  } catch {
+    return text
+  }
+}
+
+async function patchSoftDelete(url: string, token: string) {
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ isActive: false }),
+  })
+
+  if (!res.ok) {
+    const message = await readResponseMessage(res)
+    const err: any = new Error(message)
+    err.status = res.status
+    throw err
+  }
+
+  return true
+}
+
+function buildSoftDeleteUrls(id: number | string) {
+  const safeId = encodeURIComponent(String(id))
+  return [
+    `${API_BASE}/teams/${safeId}/active`,
+    `${API_BASE}/teams/${safeId}`,
+  ]
+}
+
+async function deleteTeam() {
+  if (!editingTeamId.value || deletingTeam.value) return
+  if (!deleteAgreement.value) {
+    errorMsg.value = "Debes confirmar que estás de acuerdo en borrar el equipo."
+    return
+  }
+
+  deletingTeam.value = true
+  errorMsg.value = ""
+  statusMsg.value = ""
+
+  try {
+    const token = await getAccessToken()
+    if (!token) throw new Error("No hay sesión activa. Vuelve a iniciar sesión.")
+
+    const urls = buildSoftDeleteUrls(editingTeamId.value)
+    let lastError: any = null
+    let ok = false
+
+    for (const url of urls) {
+      try {
+        await patchSoftDelete(url, token)
+        ok = true
+        break
+      } catch (e: any) {
+        lastError = e
+        const status = getStatusCode(e)
+        if (status !== 404) {
+          throw e
+        }
+      }
+    }
+
+    if (!ok && lastError) throw lastError
+
+    if (import.meta.client) {
+      localStorage.removeItem(storageKey.value)
+    }
+
+    revokeAllPlayerPreviews()
+    team.value = createEmptyTeam()
+    serverSnapshot.value = createEmptyTeam()
+
+    statusMsg.value = "Equipo desactivado correctamente."
+    showDeleteConfirm.value = false
+    deleteAgreement.value = false
+
+    setTimeout(() => {
+      if (import.meta.client) {
+        window.location.href = `/jueves/mi-equipo?t=${Date.now()}`
+      } else {
+        router.push(`/jueves/mi-equipo?t=${Date.now()}`)
+      }
+    }, 350)
+  } catch (e: any) {
+    const status = getStatusCode(e)
+    const msg = e?.message || "No se pudo borrar el equipo."
+
+    showDeleteConfirm.value = false
+    deleteAgreement.value = false
+
+    if (status === 404) {
+      errorMsg.value = "No se encontró ni /teams/{id}/active ni /teams/{id} para hacer el soft delete."
+    } else if (status === 401) {
+      errorMsg.value = "Tu sesión expiró. Vuelve a iniciar sesión."
+    } else if (status === 403) {
+      errorMsg.value = "No autorizado para desactivar este equipo."
+    } else if (status === 409) {
+      errorMsg.value = "No se pudo desactivar el equipo porque tiene relaciones activas."
+    } else {
+      errorMsg.value = msg
+    }
+  } finally {
+    deletingTeam.value = false
+  }
+}
+
 onMounted(async () => {
   errorMsg.value = ""
   statusMsg.value = ""
 
   await fetchCategories()
 
-  if (editingTeamId.value) await fetchExistingTeam(editingTeamId.value)
+  if (editingTeamId.value) {
+    await fetchExistingTeam(editingTeamId.value)
+  }
 
   if (import.meta.client) {
     const saved = localStorage.getItem(storageKey.value)
@@ -797,9 +1064,16 @@ onMounted(async () => {
               }))
             : [],
         }
-        statusMsg.value = editingTeamId.value ? "Se restauró tu progreso local para esta edición." : "Se restauró tu progreso local."
+
+        statusMsg.value = editingTeamId.value
+          ? "Se restauró tu progreso local para esta edición."
+          : "Se restauró tu progreso local."
       } catch {}
     }
   }
+})
+
+onBeforeUnmount(() => {
+  revokeAllPlayerPreviews()
 })
 </script>
