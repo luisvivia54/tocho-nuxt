@@ -4,12 +4,12 @@
       <div class="flex h-20 items-center justify-between gap-6">
         <!-- Left -->
         <NuxtLink to="/jueves" class="flex items-center gap-3">
-          <span class="text-[2rem] font-black tracking-tight text-orange-400 leading-none">T5</span>
+          <span class="text-[2rem] leading-none font-black tracking-tight text-orange-400">T5</span>
           <span class="text-[1.1rem] font-medium text-slate-300">Liga de Jueves</span>
         </NuxtLink>
 
         <!-- Center -->
-        <nav class="hidden md:flex items-center gap-10">
+        <nav class="hidden items-center gap-10 md:flex">
           <NuxtLink
             v-for="item in visibleNav"
             :key="item.to"
@@ -26,7 +26,7 @@
         </nav>
 
         <!-- Right -->
-        <div class="hidden md:flex items-center gap-4">
+        <div class="hidden items-center gap-4 md:flex">
           <template v-if="kcReady && isAuthenticated && isAdmin">
             <span
               class="inline-flex items-center rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-orange-200"
@@ -87,14 +87,14 @@
         <!-- Mobile -->
         <button
           type="button"
-          class="md:hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200"
+          class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 md:hidden"
           @click="open = !open"
         >
           Menú
         </button>
       </div>
 
-      <div v-if="open" class="md:hidden pb-4">
+      <div v-if="open" class="pb-4 md:hidden">
         <div class="flex flex-col gap-2">
           <NuxtLink
             v-for="item in visibleNav"
@@ -194,6 +194,12 @@ const baseNav: NavItem[] = [
   { label: "Estadísticas", to: "/jueves/estadisticas" },
 ]
 
+const privateNav = computed<NavItem[]>(() => {
+  return kcReady.value && isAuthenticated.value
+    ? [{ label: "Mi equipo", to: "/jueves/mi-equipo" }]
+    : []
+})
+
 const adminNav: NavItem[] = [
   { label: "Admin", to: "/jueves/admin" },
   { label: "Equipos Admin", to: "/jueves/admin/equipos" },
@@ -201,7 +207,8 @@ const adminNav: NavItem[] = [
 ]
 
 const visibleNav = computed<NavItem[]>(() => {
-  return isAdmin.value ? [...baseNav, ...adminNav] : baseNav
+  const common = [...baseNav, ...privateNav.value]
+  return isAdmin.value ? [...common, ...adminNav] : common
 })
 
 watch(

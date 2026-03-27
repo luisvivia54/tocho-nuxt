@@ -53,14 +53,6 @@
             </NuxtLink>
 
             <NuxtLink
-              v-if="showRegistro"
-              to="/registro"
-              :class="publicLinkClass('/registro')"
-            >
-              Registro
-            </NuxtLink>
-
-            <NuxtLink
               v-if="showMiEquipo"
               to="/mi-equipo"
               :class="publicLinkClass('/mi-equipo')"
@@ -359,15 +351,6 @@
                   </NuxtLink>
 
                   <NuxtLink
-                    v-if="showRegistro"
-                    to="/registro"
-                    class="rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8"
-                    @click="closeMobile"
-                  >
-                    Registro
-                  </NuxtLink>
-
-                  <NuxtLink
                     v-if="showMiEquipo"
                     to="/mi-equipo"
                     class="rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8"
@@ -583,7 +566,6 @@ const nuxtApp = useNuxtApp()
 const kcReady = useState<boolean>('kcReady', () => false)
 const { isAuthenticated } = useAuthz() as any
 
-const showRegistro = computed(() => kcReady.value && !!isAuthenticated.value)
 const showMiEquipo = computed(() => kcReady.value && !!isAuthenticated.value)
 
 const isAdmin = computed<boolean>(() => {
