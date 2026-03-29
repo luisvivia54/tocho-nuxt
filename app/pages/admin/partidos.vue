@@ -289,11 +289,9 @@
                   <div class="relative">
                     <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-300 text-sm">🏁</span>
                     <input
-                      v-model.number="form.jornada"
-                      type="number"
-                      min="1"
-                      inputmode="numeric"
-                      placeholder="Ej. 1"
+                      v-model.trim="form.jornada"
+                      type="text"
+                      placeholder="Ej. 1 / Semifinal / Final"
                       class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 pl-9 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
@@ -945,7 +943,7 @@ type GameVM = {
   categoryId?: number
   homeTeamId?: number
   awayTeamId?: number
-  jornada?: number
+  jornada?: string | number
   field?: string
   homeScore?: number | null
   awayScore?: number | null
@@ -1057,12 +1055,12 @@ function ensureUtc(iso: string) {
   return `${s}Z`
 }
 
-function extractJornada(raw: any): number | undefined {
+function extractJornada(raw: any): string | number | undefined {
+  if (raw === null || raw === undefined) return undefined
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw
   const s = String(raw ?? '').trim()
   if (!s) return undefined
-  const digits = s.match(/\d+/g)?.join('') ?? ''
-  const n = digits ? Number.parseInt(digits, 10) : Number(s)
-  return Number.isFinite(n) && n > 0 ? n : undefined
+  return s
 }
 
 /** =========================
@@ -1349,7 +1347,7 @@ const form = ref({
   categoryId: 0,
   date: '',
   time: '',
-  jornada: 0,
+  jornada: '',
   field: '',
 })
 
@@ -1370,7 +1368,7 @@ function clearForm() {
   awayInput.value = ''
   homeOpen.value = false
   awayOpen.value = false
-  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: '', time: '', jornada: 0, field: '' }
+  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: '', time: '', jornada: '', field: '' }
   formError.value = ''
   formOk.value = ''
 }
@@ -1382,7 +1380,7 @@ function validateForm() {
   if (homeTeamId.value === awayTeamId.value) return 'Local y Visitante no pueden ser el mismo equipo.'
   if (!form.value.date) return 'Falta la fecha.'
   if (!form.value.time) return 'Falta la hora.'
-  if (!form.value.jornada || Number(form.value.jornada) < 1) return 'Falta la jornada.'
+  if (!String(form.value.jornada ?? '').trim()) return 'Falta la jornada.'
   return ''
 }
 
@@ -1402,6 +1400,8 @@ async function saveGame() {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
     const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
     const isEdit = !!editingId.value
+    const jornadaText = String(form.value.jornada ?? '').trim()
+    const jornadaNumber = /^\d+$/.test(jornadaText) ? Number(jornadaText) : null
 
     const payloadCreate: any = {
       league_id: LEAGUE_ID,
@@ -1416,8 +1416,12 @@ async function saveGame() {
       awayTeamId: awayTeamId.value,
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
-      round_label: `J${Number(form.value.jornada)}`,
-      roundLabel: `J${Number(form.value.jornada)}`,
+      ...(jornadaNumber !== null ? { jornada: jornadaNumber } : {}),
+      round_label: jornadaText,
+      roundLabel: jornadaText,
+      round: jornadaText,
+      matchday: jornadaText,
+      week: jornadaText,
       venue: form.value.field,
       field: form.value.field,
       location: form.value.field,
@@ -1439,9 +1443,12 @@ async function saveGame() {
       venue: form.value.field,
       field: form.value.field,
       location: form.value.field,
-      jornada: Number(form.value.jornada),
-      round_label: `J${Number(form.value.jornada)}`,
-      roundLabel: `J${Number(form.value.jornada)}`,
+      ...(jornadaNumber !== null ? { jornada: jornadaNumber } : {}),
+      round_label: jornadaText,
+      roundLabel: jornadaText,
+      round: jornadaText,
+      matchday: jornadaText,
+      week: jornadaText,
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
       away_team_id: awayTeamId.value,

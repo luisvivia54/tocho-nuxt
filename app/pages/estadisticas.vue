@@ -216,7 +216,7 @@
               v-if="view === 'equipos' && searchQuery.trim()"
               class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
             >
-              Búsqueda: <strong class="text-slate-100">“{{ searchQuery.trim() }}”</strong>
+              Búsqueda: <strong class="text-slate-100">"{{ searchQuery.trim() }}"</strong>
               <button type="button" class="text-slate-300 hover:text-white" @click="clearSearch">✕</button>
             </span>
 
@@ -224,7 +224,7 @@
               v-if="view === 'jugadores' && playerNameQuery.trim()"
               class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
             >
-              Jugador: <strong class="text-slate-100">“{{ playerNameQuery.trim() }}”</strong>
+              Jugador: <strong class="text-slate-100">"{{ playerNameQuery.trim() }}"</strong>
               <button type="button" class="text-slate-300 hover:text-white" @click="clearPlayerName">✕</button>
             </span>
 
@@ -959,8 +959,13 @@ function standingBelongsToSunday(row: ApiStanding): boolean {
   return true
 }
 
+// ── ÚNICO CAMBIO respecto al original ────────────────────────────────────────
+// Se agregó un paso de deduplicación después del .map() para que cada equipo
+// aparezca una sola vez, quedándonos con la fila de mayor tablePoints cuando
+// la API devuelve varias entradas para el mismo equipo (distintas temporadas,
+// stages, etc.).
 const allRows = computed<TeamRowVM[]>(() => {
-  return standingsList.value
+  const mapped = standingsList.value
     .filter((row) => standingBelongsToSunday(row))
     .map((row) => {
       const teamId = toNullableNumber(row.teamId)
@@ -1003,19 +1008,35 @@ const allRows = computed<TeamRowVM[]>(() => {
         winRate,
       }
     })
-    .sort((a, b) => {
-      const byPts = b.tablePoints - a.tablePoints
-      if (byPts !== 0) return byPts
 
-      const byDiff = b.diff - a.diff
-      if (byDiff !== 0) return byDiff
+  // Deduplicación: una sola fila por equipo, la de mayor tablePoints
+  const seen = new Map<string, TeamRowVM>()
+  for (const row of mapped) {
+    const dedupeKey =
+      row.teamId !== null
+        ? `id:${row.teamId}`
+        : `name:${row.teamName.toLowerCase()}|${row.categoryCode}|${row.gender}`
 
-      const byPF = b.pointsFor - a.pointsFor
-      if (byPF !== 0) return byPF
+    const existing = seen.get(dedupeKey)
+    if (!existing || row.tablePoints > existing.tablePoints) {
+      seen.set(dedupeKey, row)
+    }
+  }
 
-      return a.teamName.localeCompare(b.teamName, 'es')
-    })
+  return Array.from(seen.values()).sort((a, b) => {
+    const byPts = b.tablePoints - a.tablePoints
+    if (byPts !== 0) return byPts
+
+    const byDiff = b.diff - a.diff
+    if (byDiff !== 0) return byDiff
+
+    const byPF = b.pointsFor - a.pointsFor
+    if (byPF !== 0) return byPF
+
+    return a.teamName.localeCompare(b.teamName, 'es')
+  })
 })
+// ─────────────────────────────────────────────────────────────────────────────
 
 const filteredRows = computed<TeamRowVM[]>(() => {
   const q = searchQuery.value.trim().toLowerCase()
