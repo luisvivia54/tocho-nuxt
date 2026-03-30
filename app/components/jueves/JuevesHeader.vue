@@ -435,12 +435,6 @@ const publicNav: NavItem[] = [
 
 const privateNav: NavItem[] = [
   {
-    label: "Registro",
-    to: "/jueves/registro",
-    help: "Inscripción y pago",
-    icon: Ticket,
-  },
-  {
     label: "Mi equipo",
     to: "/jueves/mi-equipo",
     help: "Gestiona tu roster",
