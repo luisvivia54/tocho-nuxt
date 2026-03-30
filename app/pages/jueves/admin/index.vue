@@ -149,7 +149,7 @@
                       v-model="model.hero.backgroundImage"
                       class="in"
                       type="text"
-                      placeholder="/img/jueves/hero-bg.jpg o URL https://..."
+                      placeholder="/img/hero-stadium.jpg o URL https://..."
                     />
                     <button
                       class="btn-ghost"
@@ -740,7 +740,7 @@ const DEFAULTS: JuevesHomeConfig = {
     titleLine2: "alcance de tu mano",
     sponsorPrefix: "Patrocinado por",
     sponsorName: "Dicass",
-    backgroundImage: "/img/jueves/hero-bg.jpg",
+    backgroundImage: "/img/hero-stadium.jpg",
     primaryButton: {
       label: "VER PARTIDOS",
       to: "/jueves/partidos",
