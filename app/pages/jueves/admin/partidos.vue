@@ -223,9 +223,10 @@
                 <button
                   type="button"
                   class="h-12 flex-1 rounded-2xl bg-[linear-gradient(90deg,#38bdf8_0%,#d946ef_100%)] px-5 text-sm font-extrabold text-slate-950 shadow-[0_12px_30px_rgba(56,189,248,0.28)] transition hover:brightness-110"
+                  :disabled="creating"
                   @click="handleCreateMatch"
                 >
-                  Crear partido
+                  {{ creating ? "Creando..." : "Crear partido" }}
                 </button>
 
                 <button
@@ -360,19 +361,68 @@
                     <button
                       type="button"
                       class="rounded-full border border-rose-400/25 bg-rose-400/10 px-5 py-2.5 text-sm font-bold text-rose-100 transition hover:bg-rose-400/15"
+                      :disabled="!match.rawId || deletingId === match.rawId"
                       @click="handleDeleteMatch(match)"
                     >
-                      Borrar
+                      {{ deletingId === match.rawId ? "Borrando..." : "Borrar" }}
                     </button>
 
                     <button
                       type="button"
                       class="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-900 transition hover:brightness-95 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-                      :disabled="match.status === 'FINAL'"
-                      @click="handleFinalizeMatch(match)"
+                      :disabled="match.status === 'FINAL' || !match.rawId"
+                      @click="toggleFinalizePanel(match)"
                     >
-                      Finalizar
+                      {{ finalizePanelId === match.mergeKey ? "Cancelar FINAL" : "Finalizar" }}
                     </button>
+                  </div>
+                </div>
+
+                <div
+                  v-if="finalizePanelId === match.mergeKey"
+                  class="mt-4 rounded-[24px] border border-white/10 bg-[#0b1730] p-4"
+                >
+                  <p class="text-sm font-semibold text-slate-200">
+                    Captura el score final para cerrar el partido.
+                  </p>
+
+                  <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                    <div>
+                      <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        {{ match.home }}
+                      </label>
+                      <input
+                        v-model.trim="finalizeDraft.homeScore"
+                        type="number"
+                        min="0"
+                        inputmode="numeric"
+                        class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                      />
+                    </div>
+
+                    <div>
+                      <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        {{ match.away }}
+                      </label>
+                      <input
+                        v-model.trim="finalizeDraft.awayScore"
+                        type="number"
+                        min="0"
+                        inputmode="numeric"
+                        class="h-12 w-full rounded-2xl border border-white/12 bg-[#020817] px-4 text-sm text-white outline-none transition focus:border-sky-400/40 focus:bg-[#061024]"
+                      />
+                    </div>
+
+                    <div class="flex items-end gap-3">
+                      <button
+                        type="button"
+                        class="h-12 rounded-2xl bg-[linear-gradient(90deg,#facc15_0%,#22d3ee_100%)] px-5 text-sm font-extrabold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                        :disabled="finalizingId === match.rawId"
+                        @click="confirmFinalizeMatch(match)"
+                      >
+                        {{ finalizingId === match.rawId ? "Guardando..." : "Guardar FINAL" }}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </article>
@@ -437,10 +487,20 @@ type AdminMatchRow = {
 
 const JUEVES_LEAGUE_ID = 2
 const UNKNOWN_TIMESTAMP = Number.MAX_SAFE_INTEGER
+const nuxtApp = useNuxtApp() as any
 
 const feedback = ref<FeedbackState>({
   type: "info",
   text: "",
+})
+const creating = ref(false)
+const deletingId = ref("")
+const finalizePanelId = ref("")
+const finalizingId = ref("")
+const resolvedSeasonId = ref<number | null>(null)
+const finalizeDraft = reactive({
+  homeScore: "0",
+  awayScore: "0",
 })
 
 const statusFilter = ref<"ALL" | "SCHEDULED" | "FINAL" | "CANCELLED">("ALL")
@@ -475,13 +535,13 @@ const { data: categoriesData } = await useAsyncData<CategoryOption[]>(
 const { data: teamsData } = await useAsyncData<TeamOption[]>(
   "admin-jueves-partidos-teams-ui-fixed-v2",
   async () => {
-    const byList = await $fetch<any>("/api/teams/list", {
+    const byList = await $fetch<any>("/api/t5/teams/list", {
       query: { leagueId: JUEVES_LEAGUE_ID },
     }).catch(() => null)
 
     const byDefault = byList
       ? null
-      : await $fetch<any>("/api/teams", {
+      : await $fetch<any>("/api/t5/teams", {
           query: { leagueId: JUEVES_LEAGUE_ID },
         }).catch(() => [])
 
@@ -685,39 +745,193 @@ async function handleCreateMatch() {
     return
   }
 
-  const payload = {
-    leagueId: JUEVES_LEAGUE_ID,
-    categoryId: Number(form.categoryId),
-    homeTeamId: Number(homeTeam.id),
-    awayTeamId: Number(awayTeam.id),
-    matchDateUtc: `${form.date}T${form.time}:00`,
-    roundLabel: form.round ? String(form.round).trim() : undefined,
-    venue: form.venue ? form.venue.trim() : undefined,
+  const matchDateUtc = localDateTimeToUtcIso(form.date, form.time)
+  if (!matchDateUtc) {
+    feedback.value = { type: "error", text: "Fecha u hora inválidas." }
+    return
   }
 
-  console.log("CREATE_MATCH_PAYLOAD", payload)
+  creating.value = true
 
-  feedback.value = {
-    type: "info",
-    text: "La UI quedó lista. Aquí conecta tu endpoint real para crear el partido con este payload.",
+  try {
+    const seasonId = await ensureSeasonId()
+    const headers = await authHeaders()
+    const roundLabel = form.round ? String(form.round).trim() : undefined
+    const venue = form.venue ? form.venue.trim() : undefined
+    const payload = {
+      league_id: JUEVES_LEAGUE_ID,
+      leagueId: JUEVES_LEAGUE_ID,
+      ...(seasonId ? { season_id: seasonId, seasonId } : {}),
+      category_id: Number(form.categoryId),
+      categoryId: Number(form.categoryId),
+      home_team_id: Number(homeTeam.id),
+      homeTeamId: Number(homeTeam.id),
+      away_team_id: Number(awayTeam.id),
+      awayTeamId: Number(awayTeam.id),
+      match_date_utc: matchDateUtc,
+      matchDateUtc: matchDateUtc,
+      ...(roundLabel ? { round_label: roundLabel, roundLabel, round: roundLabel, matchday: roundLabel, week: roundLabel } : {}),
+      ...(venue ? { venue, field: venue, location: venue } : {}),
+    }
+
+    const response = await $fetch<any>("/api/t5/games", {
+      method: "POST",
+      headers,
+      body: payload,
+    })
+
+    const newId = String(firstValue(response, ["game_id", "gameId", "id"]) || "").trim()
+    feedback.value = {
+      type: "success",
+      text: newId ? `Partido creado correctamente (ID ${newId}).` : "Partido creado correctamente.",
+    }
+    resetCreateForm()
+    await refreshMatches()
+  } catch (error: any) {
+    feedback.value = {
+      type: "error",
+      text: extractApiError(error, "No se pudo crear el partido. Verifica tu sesión de admin."),
+    }
+  } finally {
+    creating.value = false
   }
 }
 
-async function handleFinalizeMatch(match: AdminMatchRow) {
-  console.log("FINALIZE_MATCH", match)
+function toggleFinalizePanel(match: AdminMatchRow) {
+  feedback.value = { type: "info", text: "" }
 
-  feedback.value = {
-    type: "info",
-    text: `Aquí conecta tu lógica real para finalizar el partido ${match.home} vs ${match.away}.`,
+  if (!match.rawId) {
+    feedback.value = {
+      type: "error",
+      text: `No se puede finalizar ${match.home} vs ${match.away} porque no tiene ID de partido.`,
+    }
+    return
   }
+
+  if (finalizePanelId.value === match.mergeKey) {
+    closeFinalizePanel()
+    return
+  }
+
+  finalizePanelId.value = match.mergeKey
+  finalizeDraft.homeScore = String(match.homeScore ?? 0)
+  finalizeDraft.awayScore = String(match.awayScore ?? 0)
 }
 
 async function handleDeleteMatch(match: AdminMatchRow) {
-  console.log("DELETE_MATCH", match)
+  feedback.value = { type: "info", text: "" }
 
-  feedback.value = {
-    type: "info",
-    text: `Aquí conecta tu lógica real para borrar o cancelar el partido ${match.home} vs ${match.away}.`,
+  const gameId = Number(match.rawId || 0)
+  if (!gameId) {
+    feedback.value = {
+      type: "error",
+      text: `No se puede borrar ${match.home} vs ${match.away} porque no tiene ID de partido.`,
+    }
+    return
+  }
+
+  if (import.meta.client) {
+    const msg =
+      match.status === "FINAL"
+        ? `¿Eliminar el partido ${match.home} vs ${match.away}? Esto lo revierte y lo marca como CANCELLED.`
+        : `¿Borrar el partido ${match.home} vs ${match.away}? Esta acción elimina el registro.`
+
+    if (!window.confirm(msg)) return
+  }
+
+  deletingId.value = match.rawId
+
+  try {
+    const headers = await authHeaders()
+    const endpoint =
+      match.status === "FINAL"
+        ? `/api/t5/admin/games/${gameId}`
+        : `/api/t5/games/${gameId}`
+
+    await $fetch(endpoint, {
+      method: "DELETE",
+      headers,
+    })
+
+    feedback.value = {
+      type: "success",
+      text:
+        match.status === "FINAL"
+          ? `Partido ${match.home} vs ${match.away} revertido correctamente.`
+          : `Partido ${match.home} vs ${match.away} borrado correctamente.`,
+    }
+    if (finalizePanelId.value === match.mergeKey) closeFinalizePanel()
+    await refreshMatches()
+  } catch (error: any) {
+    feedback.value = {
+      type: "error",
+      text: extractApiError(error, "No se pudo borrar el partido. Verifica tu sesión de admin."),
+    }
+  } finally {
+    deletingId.value = ""
+  }
+}
+
+function closeFinalizePanel() {
+  finalizePanelId.value = ""
+  finalizeDraft.homeScore = "0"
+  finalizeDraft.awayScore = "0"
+}
+
+async function confirmFinalizeMatch(match: AdminMatchRow) {
+  feedback.value = { type: "info", text: "" }
+
+  const gameId = Number(match.rawId || 0)
+  if (!gameId) {
+    feedback.value = {
+      type: "error",
+      text: `No se puede finalizar ${match.home} vs ${match.away} porque no tiene ID de partido.`,
+    }
+    return
+  }
+
+  const homeScore = Number(finalizeDraft.homeScore)
+  const awayScore = Number(finalizeDraft.awayScore)
+
+  if (!Number.isFinite(homeScore) || !Number.isFinite(awayScore) || homeScore < 0 || awayScore < 0) {
+    feedback.value = {
+      type: "error",
+      text: "Captura scores válidos para finalizar el partido.",
+    }
+    return
+  }
+
+  finalizingId.value = match.rawId
+
+  try {
+    const headers = await authHeaders()
+    await $fetch("/api/t5/partido/update", {
+      method: "POST",
+      headers,
+      body: {
+        game_id: String(gameId),
+        gameId,
+        id: gameId,
+        home_score: homeScore,
+        homeScore,
+        away_score: awayScore,
+        awayScore,
+      },
+    })
+
+    feedback.value = {
+      type: "success",
+      text: `Partido ${match.home} vs ${match.away} finalizado con score ${homeScore} - ${awayScore}.`,
+    }
+    closeFinalizePanel()
+    await refreshMatches()
+  } catch (error: any) {
+    feedback.value = {
+      type: "error",
+      text: extractApiError(error, "No se pudo finalizar el partido. Verifica tu sesión de admin."),
+    }
+  } finally {
+    finalizingId.value = ""
   }
 }
 
@@ -1097,6 +1311,13 @@ function normalizeCodeValue(value: unknown) {
   return String(value || "").trim().toUpperCase()
 }
 
+function toBoolean(value: unknown) {
+  if (typeof value === "boolean") return value
+
+  const normalized = String(value || "").trim().toLowerCase()
+  return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "active" || normalized === "current"
+}
+
 function formatRoundLabel(raw: unknown) {
   const clean = String(raw || "").trim()
 
@@ -1121,6 +1342,57 @@ function normalizeText(value: string) {
     .replace(/\s+/g, " ")
     .toLowerCase()
     .trim()
+}
+
+function localDateTimeToUtcIso(date: string, time: string) {
+  const parsed = new Date(`${date}T${time}:00`)
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : ""
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const kc = nuxtApp.$kc
+
+  try {
+    await kc?.updateToken?.(30)
+  } catch {}
+
+  const token = kc?.token as string | undefined
+  if (!token) {
+    throw new Error("No hay sesión activa. Inicia sesión como admin para continuar.")
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  }
+}
+
+function extractApiError(error: any, fallback: string) {
+  return String(error?.data?.message || error?.message || fallback)
+}
+
+async function ensureSeasonId() {
+  if (resolvedSeasonId.value) return resolvedSeasonId.value
+
+  const raw = await $fetch<any>("/api/t5/seasons/list").catch(() => [])
+  const seasons = toList(raw)
+    .map((row: any) => {
+      const id = firstNumber(row, ["season_id", "seasonId", "id"])
+      const status = String(firstValue(row, ["status", "seasonStatus"]) || "").trim().toUpperCase()
+      const current =
+        toBoolean(firstValue(row, ["current", "isCurrent", "active", "isActive", "enabled"])) ||
+        status === "CURRENT" ||
+        status === "ACTIVE"
+
+      return {
+        id: id ?? 0,
+        current,
+      }
+    })
+    .filter((row) => Number.isFinite(row.id) && row.id > 0)
+    .sort((a, b) => b.id - a.id)
+
+  resolvedSeasonId.value = seasons.find((row) => row.current)?.id ?? seasons[0]?.id ?? null
+  return resolvedSeasonId.value
 }
 
 function firstValue(obj: any, paths: string[]) {
