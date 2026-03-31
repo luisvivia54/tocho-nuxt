@@ -569,7 +569,7 @@ const brandLogo = "/img/sponsors/Tochero5.JPG";
 const logoBg = "/img/sponsors/Tochero5.JPG";
 
 const domingoBg = "/img/liga-domingo.png";
-const juevesBg = "/img/liga-jueves.png";
+const juevesBg = "/img/liga-jueves2.png";
 
 const mobileOpen = ref(false);
 
