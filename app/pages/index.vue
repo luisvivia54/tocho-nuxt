@@ -210,14 +210,10 @@
             </NuxtLink>
           </div>
 
-          <div class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs text-slate-300">
-            <div><span class="font-bold text-white">{{ teamsTotal }}</span> <span class="opacity-75">Equipos</span></div>
-            <div><span class="font-bold text-white">{{ gamesSeason }}</span> <span class="opacity-75">Partidos</span></div>
-            <div><span class="font-bold text-white">{{ season }}</span> <span class="opacity-75">Temporada</span></div>
-          </div>
+          
 
           <div class="mt-14 flex flex-col items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-slate-400">
-            <span>SCROLL</span>
+            
             <div class="relative h-10 w-[2px] rounded-full bg-white/15">
               <div class="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/40" />
             </div>
@@ -251,10 +247,7 @@
             </div>
 
             <div class="relative p-8 md:p-10">
-              <div class="inline-flex items-center gap-2 rounded-full border border-sky-400/25 bg-sky-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-sky-200">
-                <span class="h-2 w-2 rounded-full bg-sky-300" />
-                PROFESIONAL
-              </div>
+              
 
               <h3 class="mt-4 text-3xl font-extrabold text-white">Liga Dominical</h3>
               <p class="mt-3 max-w-md text-sm text-slate-300">
@@ -283,10 +276,7 @@
             </div>
 
             <div class="relative p-8 md:p-10">
-              <div class="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-orange-200">
-                <span class="h-2 w-2 rounded-full bg-orange-300" />
-                DESARROLLO
-              </div>
+              
 
               <h3 class="mt-4 text-3xl font-extrabold text-white">Liga Nocturna (Jueves)</h3>
               <p class="mt-3 max-w-md text-sm text-slate-300">
@@ -474,9 +464,72 @@
         </div>
       </div>
     </section>
+        <!-- CONTACTO -->
+    <section id="contacto" class="py-14 md:py-16">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="flex items-center gap-4">
+          <div class="h-[2px] w-10 rounded-full bg-emerald-300/70" />
+          <p class="text-xs uppercase tracking-[0.22em] text-slate-400">CONTACTO</p>
+        </div>
 
-    <!-- FOOTER -->
-    <footer id="contacto" class="border-t border-white/5 py-10">
+        <div class="mt-8 overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+          <div class="grid grid-cols-1 gap-0 md:grid-cols-2">
+            <!-- Teléfono -->
+            <div class="border-b border-white/5 p-8 md:border-b-0 md:border-r md:border-white/5 md:p-10">
+              <div class="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.22em] text-emerald-200">
+                <span class="h-2 w-2 rounded-full bg-emerald-300" />
+                WhatsApp / Teléfono
+              </div>
+
+              <h3 class="mt-5 text-2xl font-extrabold text-white md:text-3xl">
+                Contáctanos directo
+              </h3>
+
+              <p class="mt-3 max-w-md text-sm text-slate-300">
+                Escríbenos para informes, inscripción de equipos, dudas sobre partidos o detalles de la liga.
+              </p>
+
+              <a
+                href="tel:5541427772"
+                class="mt-8 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-5 py-4 text-base font-bold text-white transition hover:border-emerald-300/30 hover:bg-black/35"
+              >
+                <span class="text-emerald-300">📞</span>
+                55 4142 7772
+              </a>
+            </div>
+
+            <!-- Instagram -->
+            <div class="p-8 md:p-10">
+              <div class="inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-300/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.22em] text-fuchsia-200">
+                <span class="h-2 w-2 rounded-full bg-fuchsia-300" />
+                Instagram
+              </div>
+
+              <h3 class="mt-5 text-2xl font-extrabold text-white md:text-3xl">
+                Síguenos en redes
+              </h3>
+
+              <p class="mt-3 max-w-md text-sm text-slate-300">
+                Mantente al tanto de noticias, partidos, contenido y actualizaciones de Tochero5.
+              </p>
+
+              <a
+                href="https://www.instagram.com/tochero5liga"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-8 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 px-5 py-4 text-base font-bold text-white transition hover:border-fuchsia-300/30 hover:bg-black/35"
+              >
+                <span class="text-fuchsia-300">📷</span>
+                @tochero5liga
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+        <!-- FOOTER -->
+    <footer class="border-t border-white/5 py-10">
       <div class="mx-auto max-w-6xl px-4 sm:px-6">
         <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-3">
@@ -488,15 +541,6 @@
               <div class="text-xs text-slate-500">Portal central</div>
             </div>
           </div>
-
-          <a
-            href="https://www.instagram.com/tochero5liga"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-xs font-extrabold uppercase tracking-[0.22em] text-slate-300 hover:text-white"
-          >
-            INSTAGRAM @TOCHERO5LIGA
-          </a>
 
           <div class="text-xs text-slate-500">
             © {{ season }} Tochero5Liga. Todos los derechos reservados.
@@ -588,15 +632,22 @@ const fallbackMatches: Match[] = [
 ];
 
 function fmtDateMX(dt: any) {
-  const parsed = dt ? new Date(dt) : new Date();
-  const safeDate = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  if (!dt) {
+    return { date: "Por definir", time: "Por definir" };
+  }
+
+  const parsed = new Date(dt);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return { date: "Por definir", time: "Por definir" };
+  }
 
   const date = new Intl.DateTimeFormat("es-MX", {
     timeZone: "America/Mexico_City",
     day: "2-digit",
     month: "short",
   })
-    .format(safeDate)
+    .format(parsed)
     .replace(".", "");
 
   const time = new Intl.DateTimeFormat("es-MX", {
@@ -604,7 +655,7 @@ function fmtDateMX(dt: any) {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(safeDate);
+  }).format(parsed);
 
   return { date, time };
 }
@@ -628,16 +679,31 @@ function toList(raw: any): any[] {
 function getTimestamp(raw: any) {
   const dt =
     pick(raw, [
+      "matchDateUtc",
+      "match_date_utc",
+      "gameStatus.matchDateUtc",
+      "gameStatus.match_date_utc",
+      "status.matchDateUtc",
+      "status.match_date_utc",
       "startTime",
+      "start_time",
       "dateTime",
+      "date_time",
       "kickoff",
       "gameDate",
+      "game_date",
       "date",
       "scheduledAt",
-    ]) || new Date().toISOString();
+      "scheduled_at",
+      "fecha",
+      "fechaHora",
+      "fecha_hora",
+    ]);
+
+  if (!dt) return Number.MAX_SAFE_INTEGER;
 
   const parsed = new Date(String(dt)).getTime();
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
 }
 
 function toUiMatch(g: any, league: "domingo" | "jueves"): Match {
@@ -649,6 +715,7 @@ function toUiMatch(g: any, league: "domingo" | "jueves"): Match {
       "localTeam.name",
       "teamHome.name",
       "home.name",
+      "home_team",
     ]) || "Local";
 
   const away =
@@ -659,17 +726,31 @@ function toUiMatch(g: any, league: "domingo" | "jueves"): Match {
       "visitorTeam.name",
       "teamAway.name",
       "away.name",
+      "away_team",
     ]) || "Visitante";
 
   const dt =
     pick(g, [
+      "matchDateUtc",
+      "match_date_utc",
+      "gameStatus.matchDateUtc",
+      "gameStatus.match_date_utc",
+      "status.matchDateUtc",
+      "status.match_date_utc",
       "startTime",
+      "start_time",
       "dateTime",
+      "date_time",
       "kickoff",
       "gameDate",
+      "game_date",
       "date",
       "scheduledAt",
-    ]) || new Date().toISOString();
+      "scheduled_at",
+      "fecha",
+      "fechaHora",
+      "fecha_hora",
+    ]);
 
   const { date, time } = fmtDateMX(dt);
 
