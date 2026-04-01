@@ -10,8 +10,8 @@
             Redirigiendo…
           </h1>
           <p class="mt-3 text-sm text-slate-400">
-            El registro y la edición del equipo ahora viven dentro de la pestaña
-            <span class="font-extrabold text-white">Mi equipo</span>.
+            El registro sigue viviendo dentro de
+            <span class="font-extrabold text-white">Mi equipo</span>, pero la edición ahora abre pantallas separadas.
           </p>
 
           <div class="mt-6">
@@ -44,32 +44,19 @@ const isEditMode = computed(() => {
 })
 
 const targetRoute = computed(() => {
+  const editTeamId = Number(route.query.teamId ?? 0) || 0
+
+  if (isEditMode.value && editTeamId > 0) {
+    return {
+      path: `/jueves/equipos/${editTeamId}/editar`,
+    }
+  }
+
   const query: Record<string, string> = {}
+  query.view = "register"
 
-  if (isEditMode.value) {
-    query.view = "edit"
-
-    if (route.query.teamId != null) {
-      query.teamId = String(route.query.teamId)
-    }
-
-    if (route.query.edit != null) {
-      query.edit = String(route.query.edit)
-    }
-
-    if (route.query.mode != null) {
-      query.mode = String(route.query.mode)
-    }
-
-    if (route.query.from != null) {
-      query.from = String(route.query.from)
-    }
-  } else {
-    query.view = "register"
-
-    if (route.query.from != null) {
-      query.from = String(route.query.from)
-    }
+  if (route.query.from != null) {
+    query.from = String(route.query.from)
   }
 
   return {

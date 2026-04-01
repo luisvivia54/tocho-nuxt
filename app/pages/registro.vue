@@ -10,7 +10,7 @@
           Redirigiendo…
         </h1>
         <p class="mt-3 text-sm text-slate-600">
-          El registro de equipo ahora vive dentro de la pestaña <strong>Mi equipo</strong>.
+          El registro sigue viviendo dentro de <strong>Mi equipo</strong>, pero la edición ahora abre pantallas separadas.
         </p>
 
         <div class="mt-6">
@@ -42,40 +42,20 @@ const isEditMode = computed(() => {
 })
 
 const targetRoute = computed(() => {
+  const editTeamId = Number(route.query.teamId ?? route.query.editTeamId ?? 0) || 0
+
+  if (isEditMode.value && editTeamId > 0) {
+    return {
+      path: `/teams/${editTeamId}/editar`,
+    }
+  }
+
   const query: Record<string, string> = {}
 
-  if (isEditMode.value) {
-    query.view = 'edit'
+  query.view = 'register'
 
-    if (route.query.teamId != null) {
-      query.teamId = String(route.query.teamId)
-    }
-
-    if (route.query.editTeamId != null) {
-      query.editTeamId = String(route.query.editTeamId)
-    }
-
-    if (route.query.leagueId != null) {
-      query.leagueId = String(route.query.leagueId)
-    }
-
-    if (route.query.from != null) {
-      query.from = String(route.query.from)
-    }
-
-    if (route.query.mode != null) {
-      query.mode = String(route.query.mode)
-    }
-
-    if (route.query.edit != null) {
-      query.edit = String(route.query.edit)
-    }
-  } else {
-    query.view = 'register'
-
-    if (route.query.from != null) {
-      query.from = String(route.query.from)
-    }
+  if (route.query.from != null) {
+    query.from = String(route.query.from)
   }
 
   return {

@@ -9,7 +9,7 @@
             <p class="text-[11px] uppercase tracking-[0.22em] text-orange-300/80">Liga de Jueves · Mi equipo</p>
             <h1 class="mt-2 text-3xl font-extrabold text-white md:text-4xl">Mi equipo</h1>
             <p class="mt-2 max-w-2xl text-sm text-slate-400">
-              Aquí verás tus equipos como capitán o admin, y podrás registrar, editar o desactivar tus equipos.
+              Aquí verás tus equipos como capitán o admin, podrás registrar equipos y abrir accesos separados para editar equipo o roster.
             </p>
           </div>
 
@@ -161,7 +161,7 @@
                   v-if="panelMode === 'edit' && editingTeamCard"
                   class="rounded-xl border border-orange-400/20 bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-100"
                 >
-                  Editando: {{ editingTeamCard.name }}
+                  Redirigiendo edición: {{ editingTeamCard.name }}
                 </span>
               </div>
 
@@ -252,21 +252,19 @@
                     Ver equipo
                   </NuxtLink>
 
-                  <button
-                    type="button"
+                  <NuxtLink
+                    :to="buildEditLink(teamCard, 'equipo')"
                     class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
-                    @click="openEditPanel(teamCard)"
                   >
-                    Editar datos
-                  </button>
+                    Editar equipo
+                  </NuxtLink>
 
-                  <button
-                    type="button"
-                    class="rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-100 hover:bg-rose-500/15"
-                    @click="openDeleteConfirm(teamCard)"
+                  <NuxtLink
+                    :to="buildEditLink(teamCard, 'roster')"
+                    class="rounded-xl border border-orange-400/20 bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-500/15"
                   >
-                    Borrar equipo
-                  </button>
+                    Editar roster
+                  </NuxtLink>
                 </div>
               </article>
             </div>
@@ -1051,6 +1049,10 @@ function replaceRouteQuery(query: Record<string, string>) {
   router.replace({ path: "/jueves/mi-equipo", query }).catch(() => {})
 }
 
+function buildEditLink(teamCard: TeamCard, section: "equipo" | "roster") {
+  return `/jueves/equipos/${teamCard.id}/editar/${section}`
+}
+
 function revokeAllPlayerPreviews() {
   for (const p of team.value.players) {
     if (p.photoPreview) {
@@ -1094,10 +1096,9 @@ function openRegisterPanel() {
 }
 
 async function openEditPanel(teamCard: TeamCard) {
-  panelMode.value = "edit"
-  activeEditTeamId.value = teamCard.id
-  replaceRouteQuery({ view: "edit", teamId: String(teamCard.id) })
-  await fetchExistingTeam(teamCard.id)
+  panelMode.value = "list"
+  activeEditTeamId.value = null
+  await router.push(`/jueves/equipos/${teamCard.id}/editar`)
 }
 
 function addPlayer() {
@@ -1516,13 +1517,8 @@ async function syncPanelFromRoute() {
   }
 
   if (view === "edit" && teamId > 0) {
-    const exists = visibleTeams.value.some((t) => t.id === teamId)
-    if (exists) {
-      if (panelMode.value !== "edit" || activeEditTeamId.value !== teamId) {
-        await openEditPanel(
-          visibleTeams.value.find((t) => t.id === teamId) as TeamCard
-        )
-      }
+    if (visibleTeams.value.some((t) => t.id === teamId)) {
+      await router.replace(`/jueves/equipos/${teamId}/editar`)
       return
     }
   }

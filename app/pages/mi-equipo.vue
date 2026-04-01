@@ -8,7 +8,7 @@
             Mi equipo
           </h1>
           <p class="mt-2 text-base text-slate-600">
-            Aquí verás tus equipos como capitán, tus permisos en la liga y el registro o edición de tu equipo.
+            Aquí verás tus equipos como capitán, tus permisos en la liga, el registro y los accesos rápidos para editar cada equipo.
           </p>
         </div>
 
@@ -124,23 +124,10 @@
                   {{ normalizedTeams.length > 0 ? '+ Registrar equipo' : 'Registrar equipo' }}
                 </button>
 
-                <button
-                  v-if="panelMode === 'edit' && editingTeam"
-                  type="button"
-                  class="inline-flex items-center justify-center rounded-xl bg-amber-100 px-4 py-2.5 text-sm font-semibold text-amber-900"
-                  @click="openEditPanel(editingTeam)"
-                >
-                  Editando: {{ editingTeam.name }}
-                </button>
               </div>
 
               <p class="text-xs text-slate-500">
-                <span v-if="panelMode === 'edit' && editingTeam">
-                  Estás editando el equipo <span class="font-semibold">{{ editingTeam.name }}</span>.
-                </span>
-                <span v-else>
-                  Registro, edición y borrado suave ahora viven dentro de esta misma pestaña.
-                </span>
+                El registro sigue aquí. La edición del equipo y del roster ahora se abre en pantallas separadas.
               </p>
             </div>
 
@@ -602,7 +589,7 @@
                           class="inline-flex items-center justify-center rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-200"
                           @click="toggleEditMenu(team.teamId)"
                         >
-                          {{ editMenuTeamId === team.teamId ? 'Cerrar edición' : 'Editar equipo' }}
+                          {{ editMenuTeamId === team.teamId ? 'Cerrar opciones' : 'Editar' }}
                         </button>
 
                         <p class="text-xs text-slate-500">
@@ -626,40 +613,31 @@
                         <div class="flex flex-col gap-3">
                           <div>
                             <p class="text-sm font-semibold text-slate-900">
-                              Editar equipo: {{ team.name }}
+                              Elegir edición: {{ team.name }}
                             </p>
                             <p class="mt-1 text-xs text-slate-500">
-                              Desde aquí puedes abrir la edición o el borrado suave.
+                              Selecciona una sola tarea por pantalla para mantener la edición simple.
                             </p>
                           </div>
 
-                          <div class="grid gap-2 sm:grid-cols-3">
-                            <button
-                              type="button"
+                          <div class="grid gap-2 sm:grid-cols-2">
+                            <NuxtLink
+                              :to="buildTeamEditLink(team, 'equipo')"
                               class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500"
-                              @click="openEditPanel(team)"
                             >
-                              Abrir editor
-                            </button>
-
-                            <button
-                              type="button"
-                              class="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
-                              @click="openDeleteDialog(team)"
-                            >
-                              Borrar equipo
-                            </button>
+                              Editar equipo
+                            </NuxtLink>
 
                             <NuxtLink
-                              :to="buildViewLink(team)"
+                              :to="buildTeamEditLink(team, 'roster')"
                               class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                             >
-                              Ver detalle
+                              Editar roster
                             </NuxtLink>
                           </div>
 
-                          <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                            El borrado ya abre confirmación con casilla de aceptación antes de continuar.
+                          <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                            Si necesitas dar de baja el equipo, esa acción vive dentro de la pantalla “Editar equipo”.
                           </div>
                         </div>
                       </div>
@@ -994,6 +972,10 @@ function buildViewLink(team: { teamId: number }) {
   return `/teams/${team.teamId}`
 }
 
+function buildTeamEditLink(team: { teamId: number }, section: 'equipo' | 'roster') {
+  return `/teams/${team.teamId}/editar/${section}`
+}
+
 function replaceRouteQuery(query: Record<string, string>) {
   router.replace({ path: '/mi-equipo', query }).catch(() => {})
 }
@@ -1020,13 +1002,6 @@ function resetFormFields() {
   players.value = []
 }
 
-function preloadEditForm(team: TeamCard) {
-  resetFormFields()
-  teamName.value = team.name
-  selectedLeagueId.value = team.leagueId ?? DEFAULT_LEAGUE_ID
-  selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
-}
-
 function openListPanel() {
   panelMode.value = 'list'
   editingTeamId.value = null
@@ -1039,21 +1014,6 @@ function openRegisterPanel() {
   editingTeamId.value = null
   editMenuTeamId.value = null
   replaceRouteQuery({ view: 'register' })
-}
-
-function openEditPanel(team: TeamCard) {
-  panelMode.value = 'edit'
-  editingTeamId.value = team.teamId
-  editMenuTeamId.value = null
-  preloadEditForm(team)
-
-  replaceRouteQuery({
-    view: 'edit',
-    teamId: String(team.teamId),
-    editTeamId: String(team.teamId),
-    leagueId: String(team.leagueId ?? DEFAULT_LEAGUE_ID),
-    from: 'mi-equipo',
-  })
 }
 
 function toggleEditMenu(teamId: number) {
@@ -1607,20 +1567,14 @@ function syncPanelFromRoute() {
   }
 
   if (view === 'edit') {
-    const team = normalizedTeams.value.find((item) => item.teamId === teamId) ?? null
-
-    if (team) {
-      panelMode.value = 'edit'
-      editingTeamId.value = team.teamId
-      preloadEditForm(team)
-      return
-    }
-
-    if (!loading.value && teamId > 0) {
-      panelMode.value = 'list'
-      editingTeamId.value = null
+    if (teamId > 0) {
+      router.replace(`/teams/${teamId}/editar`).catch(() => {})
+    } else if (!loading.value) {
       errorMessage.value = 'No se encontró el equipo para editar.'
     }
+
+    panelMode.value = 'list'
+    editingTeamId.value = null
     return
   }
 

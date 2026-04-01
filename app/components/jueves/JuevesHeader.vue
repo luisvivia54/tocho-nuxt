@@ -435,9 +435,9 @@ const publicNav: NavItem[] = [
 
 const privateNav: NavItem[] = [
   {
-    label: "Mi equipo",
+    label: "Registro",
     to: "/jueves/mi-equipo",
-    help: "Gestiona tu roster",
+    help: "Equipo y Roster",
     icon: UserRound,
   },
 ]

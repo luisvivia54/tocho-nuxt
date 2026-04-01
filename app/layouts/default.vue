@@ -57,7 +57,7 @@
               to="/mi-equipo"
               :class="publicLinkClass('/mi-equipo')"
             >
-              Mi equipo
+              Registro
             </NuxtLink>
 
             <!-- Admin dropdown -->
@@ -341,14 +341,7 @@
                     Estadísticas
                   </NuxtLink>
 
-                  <NuxtLink
-                    to="/"
-                    class="flex items-center gap-3 rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8"
-                    @click="closeMobile"
-                  >
-                    <Home class="h-4 w-4" />
-                    Home
-                  </NuxtLink>
+                  
 
                   <NuxtLink
                     v-if="showMiEquipo"
@@ -356,7 +349,15 @@
                     class="rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8"
                     @click="closeMobile"
                   >
-                    Mi equipo
+                    Registro
+                  </NuxtLink>
+                  <NuxtLink
+                    to="/"
+                    class="flex items-center gap-3 rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8"
+                    @click="closeMobile"
+                  >
+                    <Home class="h-4 w-4" />
+                    Home
                   </NuxtLink>
                 </div>
 
