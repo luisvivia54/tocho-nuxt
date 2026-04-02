@@ -328,7 +328,7 @@
                       <template v-if="match.categoryLabel"> · {{ match.categoryLabel }}</template>
                       <template v-if="match.branchLabel"> · {{ match.branchLabel }}</template>
                       <template v-if="match.roundLabel"> · Jornada: {{ match.roundLabel }}</template>
-                      <template v-if="match.venue"> · Cancha: {{ match.venue }}</template>
+                      · Cancha: {{ match.venue || "-" }}
                       <template v-if="match.rawId"> · ID: {{ match.rawId }}</template>
                     </p>
 
@@ -757,7 +757,7 @@ async function handleCreateMatch() {
     const seasonId = await ensureSeasonId()
     const headers = await authHeaders()
     const roundLabel = form.round ? String(form.round).trim() : undefined
-    const venue = form.venue ? form.venue.trim() : undefined
+    const venue = String(form.venue ?? "").trim()
     const payload = {
       league_id: JUEVES_LEAGUE_ID,
       leagueId: JUEVES_LEAGUE_ID,
@@ -1171,7 +1171,7 @@ function normalizeMatch(row: any, sourceStatus: "SCHEDULED" | "FINAL"): AdminMat
     awayTeamId,
     homeScore,
     awayScore,
-    venue: firstValue(row, ["venue", "field", "location", "court", "stadium"]),
+    venue: String(firstValue(row, ["venue", "field", "location", "court", "stadium"]) || "").trim(),
     roundValue,
     roundLabel: formatRoundLabel(rawRound),
     categoryLabel: categoryValue ? formatGenderLabel(categoryValue) : "Sin categoría",

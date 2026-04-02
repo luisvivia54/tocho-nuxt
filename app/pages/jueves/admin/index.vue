@@ -360,7 +360,7 @@
             <div class="card-h">
               <p class="step">4 · Sede / mapa</p>
               <h2 class="h2">Ubicación del torneo</h2>
-              <p class="p">Controla el bloque del mapa y el enlace a Google Maps.</p>
+              <p class="p">Controla el bloque del mapa y el enlace de ubicación.</p>
             </div>
 
             <div class="card-b space-y-3">
@@ -385,22 +385,22 @@
               </div>
 
               <div>
-                <label class="lbl">Google Maps Embed URL</label>
+                <label class="lbl">URL de mapa embebido</label>
                 <textarea
                   v-model="model.venue.embedUrl"
                   class="in"
                   rows="3"
-                  placeholder="https://www.google.com/maps/embed?pb=..."
+                  placeholder="https://www.google.com/maps?q=..."
                 />
               </div>
 
               <div>
-                <label class="lbl">Google Maps URL</label>
+                <label class="lbl">URL de ubicación</label>
                 <input
                   v-model="model.venue.mapsUrl"
                   class="in"
                   type="text"
-                  placeholder="https://maps.app.goo.gl/..."
+                  placeholder="https://maps.apple/..."
                 />
               </div>
 
@@ -729,8 +729,28 @@ function uid(prefix: string) {
   return `${prefix}-${Math.random().toString(16).slice(2, 8)}-${Date.now().toString(16).slice(2)}`
 }
 
+const JUEVES_APPLE_MAPS_URL = "https://maps.apple/p/sY5VihqTvutxjP"
+const JUEVES_EMBED_URL = "https://www.google.com/maps?q=19.49095,-99.13663&z=17&output=embed"
+const LEGACY_JUEVES_MAP_URLS = new Set([
+  "https://maps.app.goo.gl/FLdwnEMaoJvpMuEDA",
+  "https://maps.app.goo.gl/zKNYRashoqHAMJwP9",
+])
+
 function clone<T>(x: T): T {
   return JSON.parse(JSON.stringify(x))
+}
+
+function normalizeVenueMapsUrl(value: string) {
+  const url = String(value || "").trim()
+  if (!url || LEGACY_JUEVES_MAP_URLS.has(url)) return JUEVES_APPLE_MAPS_URL
+  return url
+}
+
+function normalizeVenueEmbedUrl(value: string) {
+  const url = String(value || "").trim()
+  if (!url) return JUEVES_EMBED_URL
+  if (url.includes("3732.6!2d-103.4!3d20.65")) return JUEVES_EMBED_URL
+  return url
 }
 
 const DEFAULTS: JuevesHomeConfig = {
@@ -790,9 +810,9 @@ const DEFAULTS: JuevesHomeConfig = {
   venue: {
     title: "Sede del Torneo",
     subtitle: "Encuentra la ubicación del torneo aquí",
-    embedUrl: "",
-    mapsUrl: "https://maps.app.goo.gl/zKNYRashoqHAMJwP9",
-    mapsLabel: "📍 ABRIR EN GOOGLE MAPS",
+    embedUrl: JUEVES_EMBED_URL,
+    mapsUrl: JUEVES_APPLE_MAPS_URL,
+    mapsLabel: "📍 ABRIR UBICACIÓN",
   },
 }
 
@@ -876,11 +896,12 @@ function safeApplyParsed(parsed: any): JuevesHomeConfig {
     if (raw.venue && typeof raw.venue === "object") {
       merged.venue.title = String(raw.venue.title ?? merged.venue.title)
       merged.venue.subtitle = String(raw.venue.subtitle ?? merged.venue.subtitle)
-      merged.venue.embedUrl = String(raw.venue.embedUrl ?? merged.venue.embedUrl)
-      merged.venue.mapsUrl = String(raw.venue.mapsUrl ?? merged.venue.mapsUrl)
+      merged.venue.embedUrl = normalizeVenueEmbedUrl(String(raw.venue.embedUrl ?? merged.venue.embedUrl))
+      merged.venue.mapsUrl = normalizeVenueMapsUrl(String(raw.venue.mapsUrl ?? merged.venue.mapsUrl))
       merged.venue.mapsLabel = String(raw.venue.mapsLabel ?? merged.venue.mapsLabel)
     } else if (raw.location && typeof raw.location === "object") {
-      merged.venue.mapsUrl = String(raw.location.mapsUrl ?? merged.venue.mapsUrl)
+      merged.venue.embedUrl = normalizeVenueEmbedUrl(String(raw.location.embedUrl ?? merged.venue.embedUrl))
+      merged.venue.mapsUrl = normalizeVenueMapsUrl(String(raw.location.mapsUrl ?? merged.venue.mapsUrl))
     }
   }
 

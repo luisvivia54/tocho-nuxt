@@ -358,6 +358,9 @@
                   <span class="text-slate-200 font-semibold">
                     {{ g.seasonName || (g.seasonId ? `Temporada #${g.seasonId}` : '—') }}
                   </span>
+                  <span class="text-slate-600">·</span>
+                  Cancha:
+                  <span class="text-slate-200 font-semibold">{{ g.venue || '-' }}</span>
                 </p>
                 <span class="text-slate-500">{{ g.isFinal ? 'Final' : 'Programado' }}</span>
               </div>
@@ -440,6 +443,7 @@ type VMGame = {
   categoryName: string
   homeName: string
   awayName: string
+  venue: string
   homeShort: string
   awayShort: string
   homeLogo: string | null
@@ -658,6 +662,7 @@ watch([data, seasonsMap, seasonNameToId], ([raw]) => {
       categoryName: String(g.category?.name ?? `Categoría ${g.category?.id ?? ''}`).trim(),
       homeName,
       awayName,
+      venue: String(g?.venue ?? g?.field ?? g?.location ?? g?.court ?? g?.stadium ?? '').trim(),
       homeShort: String(g.homeTeam?.shortName ?? '').trim(),
       awayShort: String(g.awayTeam?.shortName ?? '').trim(),
       homeLogo: g.homeTeam?.logoUrl ?? null,

@@ -215,8 +215,8 @@
                     </span>
                   </template>
 
-                  <div v-if="m.venue" class="mt-3 text-[11px] font-medium text-slate-400 md:text-xs">
-                    {{ m.venue }}
+                  <div class="mt-3 text-[11px] font-medium text-slate-400 md:text-xs">
+                    Cancha: {{ m.venue || "-" }}
                   </div>
                 </div>
 
@@ -862,7 +862,7 @@ function normalizePublicMatch(row: any, sourceStatus: "SCHEDULED" | "FINAL"): Ui
     timestamp,
     date,
     time,
-    venue: firstValue(row, ["venue", "field", "location", "court", "stadium"]),
+    venue: String(firstValue(row, ["venue", "field", "location", "court", "stadium"]) || "").trim(),
     home,
     away,
     homeLogo: firstValue(row, [

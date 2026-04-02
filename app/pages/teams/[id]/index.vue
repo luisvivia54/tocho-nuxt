@@ -306,6 +306,7 @@
                       <tr class="text-slate-400 border-b border-slate-800">
                         <th class="py-2 pr-3 text-left font-medium">Fecha</th>
                         <th class="py-2 px-3 text-left font-medium">Rival</th>
+                        <th class="py-2 px-3 text-left font-medium">Cancha</th>
                         <th class="py-2 px-3 text-center font-medium">Marcador</th>
                         <th class="py-2 pl-3 text-right font-medium">Estado</th>
                       </tr>
@@ -321,6 +322,9 @@
                         </td>
                         <td class="py-2 px-3 text-slate-200">
                           {{ game.opponentName }}
+                        </td>
+                        <td class="py-2 px-3 text-slate-200">
+                          {{ game.venue || '-' }}
                         </td>
                         <td class="py-2 px-3 text-center text-slate-100 font-semibold tabular-nums">
                           {{ game.scoreFor ?? '—' }} - {{ game.scoreAgainst ?? '—' }}
@@ -463,6 +467,7 @@ interface LastGame {
   gameId: number
   opponentName: string
   date: string
+  venue: string
   scoreFor: number | null
   scoreAgainst: number | null
   result: 'G' | 'P' | 'E' | 'S' | 'F' | string // S=Programado, F=Final (sin cálculo)
@@ -475,6 +480,9 @@ type GameApi = {
   season_id: number
   status: string
   match_date_utc: string
+  venue?: string | null
+  field?: string | null
+  location?: string | null
   homeTeam?: TeamLite | null
   awayTeam?: TeamLite | null
   homeScore?: number | null
@@ -575,6 +583,7 @@ const lastGames = computed<LastGame[]>(() => {
       gameId: g.game_id,
       opponentName: String(opp || 'Rival'),
       date: g.match_date_utc,
+      venue: String(g.venue ?? g.field ?? g.location ?? '').trim(),
       scoreFor,
       scoreAgainst,
       result

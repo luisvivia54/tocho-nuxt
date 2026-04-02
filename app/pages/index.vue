@@ -360,6 +360,9 @@
                 <div class="text-sm text-slate-300">
                   <div class="font-semibold text-white">{{ m.date }}</div>
                   <div class="text-xs text-slate-400">{{ m.time }}</div>
+                  <div class="text-xs text-slate-500">
+                    Cancha: <span class="text-slate-300">{{ m.venue || "-" }}</span>
+                  </div>
                 </div>
               </div>
 
@@ -613,6 +616,7 @@ type Match = {
   leagueLabel: string;
   date: string;
   time: string;
+  venue: string;
   home: string;
   away: string;
   timestamp: number;
@@ -622,13 +626,13 @@ const selectedLeague = ref<null | "domingo" | "jueves">(null);
 const matchPage = ref(1);
 
 const fallbackMatches: Match[] = [
-  { id: "m1", league: "domingo", leagueLabel: "DOMINGO", date: "20 Mar", time: "19:00", home: "Águilas Doradas", away: "Tigres del Norte", timestamp: 1 },
-  { id: "m2", league: "jueves", leagueLabel: "JUEVES", date: "20 Mar", time: "16:00", home: "Guerreros Unidos", away: "Titanes del Sur", timestamp: 2 },
-  { id: "m3", league: "domingo", leagueLabel: "DOMINGO", date: "21 Mar", time: "20:30", home: "Leones Salvajes", away: "Halcones Negros", timestamp: 3 },
-  { id: "m4", league: "jueves", leagueLabel: "JUEVES", date: "21 Mar", time: "17:30", home: "Vikingos Azules", away: "Espartanos Rojos", timestamp: 4 },
-  { id: "m5", league: "domingo", leagueLabel: "DOMINGO", date: "22 Mar", time: "10:00", home: "Lobos FC", away: "Panteras Elite", timestamp: 5 },
-  { id: "m6", league: "jueves", leagueLabel: "JUEVES", date: "22 Mar", time: "20:30", home: "Búhos Negros", away: "Dragones", timestamp: 6 },
-  { id: "m7", league: "domingo", leagueLabel: "DOMINGO", date: "23 Mar", time: "11:30", home: "Raptors", away: "Titanes", timestamp: 7 },
+  { id: "m1", league: "domingo", leagueLabel: "DOMINGO", date: "20 Mar", time: "19:00", venue: "", home: "Águilas Doradas", away: "Tigres del Norte", timestamp: 1 },
+  { id: "m2", league: "jueves", leagueLabel: "JUEVES", date: "20 Mar", time: "16:00", venue: "", home: "Guerreros Unidos", away: "Titanes del Sur", timestamp: 2 },
+  { id: "m3", league: "domingo", leagueLabel: "DOMINGO", date: "21 Mar", time: "20:30", venue: "", home: "Leones Salvajes", away: "Halcones Negros", timestamp: 3 },
+  { id: "m4", league: "jueves", leagueLabel: "JUEVES", date: "21 Mar", time: "17:30", venue: "", home: "Vikingos Azules", away: "Espartanos Rojos", timestamp: 4 },
+  { id: "m5", league: "domingo", leagueLabel: "DOMINGO", date: "22 Mar", time: "10:00", venue: "", home: "Lobos FC", away: "Panteras Elite", timestamp: 5 },
+  { id: "m6", league: "jueves", leagueLabel: "JUEVES", date: "22 Mar", time: "20:30", venue: "", home: "Búhos Negros", away: "Dragones", timestamp: 6 },
+  { id: "m7", league: "domingo", leagueLabel: "DOMINGO", date: "23 Mar", time: "11:30", venue: "", home: "Raptors", away: "Titanes", timestamp: 7 },
 ];
 
 function fmtDateMX(dt: any) {
@@ -760,6 +764,7 @@ function toUiMatch(g: any, league: "domingo" | "jueves"): Match {
     leagueLabel: league.toUpperCase(),
     date,
     time,
+    venue: String(pick(g, ["venue", "field", "location", "court", "stadium"]) ?? "").trim(),
     home,
     away,
     timestamp: getTimestamp(g),

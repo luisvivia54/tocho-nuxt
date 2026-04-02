@@ -186,6 +186,9 @@
                               <p class="mt-1 text-[11px] font-semibold text-slate-500 whitespace-nowrap">
                                 {{ String(activeUpcoming.status).toUpperCase() === 'LIVE' ? 'EN JUEGO' : 'PROGRAMADO' }}
                               </p>
+                              <p class="mt-1 text-[11px] text-slate-500 whitespace-nowrap">
+                                Cancha: <span class="font-semibold text-slate-700">{{ activeUpcoming.venue || '-' }}</span>
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -1590,6 +1593,7 @@ const upcomingGames = computed(() => {
       categoryName,
       homeName,
       awayName,
+      venue: String(g?.venue ?? g?.field ?? g?.location ?? g?.court ?? g?.stadium ?? '').trim(),
       homeLogo: pickLogo(homeTeam),
       awayLogo: pickLogo(awayTeam)
     })

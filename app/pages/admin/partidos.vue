@@ -1297,7 +1297,7 @@ watch(
       const homeTeamId = Number(g.home_team_id ?? g.homeTeamId ?? g.homeTeam?.teamId ?? 0) || undefined
       const awayTeamId = Number(g.away_team_id ?? g.awayTeamId ?? g.awayTeam?.teamId ?? 0) || undefined
 
-      const venue = String(g.venue ?? g.field ?? g.location ?? '')
+      const venue = String(g.venue ?? g.field ?? g.location ?? g.court ?? g.stadium ?? '')
       const jornada = extractJornada(g.jornada ?? g.matchday ?? g.round ?? g.week ?? g.roundLabel ?? g.round_label ?? g.round_la)
 
       return {
@@ -1402,6 +1402,7 @@ async function saveGame() {
     const isEdit = !!editingId.value
     const jornadaText = String(form.value.jornada ?? '').trim()
     const jornadaNumber = /^\d+$/.test(jornadaText) ? Number(jornadaText) : null
+    const venue = String(form.value.field ?? '').trim()
 
     const payloadCreate: any = {
       league_id: LEAGUE_ID,
@@ -1422,9 +1423,9 @@ async function saveGame() {
       round: jornadaText,
       matchday: jornadaText,
       week: jornadaText,
-      venue: form.value.field,
-      field: form.value.field,
-      location: form.value.field,
+      venue,
+      field: venue,
+      location: venue,
     }
 
     const payloadEdit: any = {
@@ -1440,9 +1441,9 @@ async function saveGame() {
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
       status: 'SCHEDULED',
-      venue: form.value.field,
-      field: form.value.field,
-      location: form.value.field,
+      venue,
+      field: venue,
+      location: venue,
       ...(jornadaNumber !== null ? { jornada: jornadaNumber } : {}),
       round_label: jornadaText,
       roundLabel: jornadaText,

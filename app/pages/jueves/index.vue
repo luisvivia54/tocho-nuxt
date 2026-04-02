@@ -128,6 +128,10 @@
                 <span class="flex items-center gap-1">📅 {{ match.date }}</span>
                 <span class="flex items-center gap-1">🕒 {{ match.time }}</span>
               </div>
+
+              <div class="mt-2 text-[11px] text-muted-foreground sm:mt-0 sm:text-right">
+                Cancha: <span class="text-slate-200">{{ match.venue || "-" }}</span>
+              </div>
             </div>
           </ScrollReveal>
         </div>
@@ -142,18 +146,25 @@
         </ScrollReveal>
 
         <ScrollReveal :delay="150">
-          <div class="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-white/12" style="aspect-ratio: 16/9">
+          <div
+            class="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-white/12 bg-black/30"
+            style="aspect-ratio: 16/9"
+          >
             <div
               class="flex h-full transition-transform duration-500 ease-out"
               :style="{ transform: `translateX(-${currentPhoto * 100}%)` }"
             >
-              <img
+              <div
                 v-for="(photo, i) in photos"
                 :key="`${photo}-${i}`"
-                :src="photo"
-                :alt="`Torneo foto ${i + 1}`"
-                class="h-full w-full flex-shrink-0 object-cover"
-              />
+                class="flex h-full w-full flex-shrink-0 items-center justify-center bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_70%)] p-2 sm:p-3"
+              >
+                <img
+                  :src="photo"
+                  :alt="`Torneo foto ${i + 1}`"
+                  class="h-full w-full rounded-2xl object-contain"
+                />
+              </div>
             </div>
 
             <button
@@ -323,6 +334,12 @@ type JuevesHomeConfig = {
 }
 
 const JUEVES_LEAGUE_ID = 2
+const JUEVES_APPLE_MAPS_URL = "https://maps.apple/p/sY5VihqTvutxjP"
+const JUEVES_EMBED_URL = "https://www.google.com/maps?q=19.49095,-99.13663&z=17&output=embed"
+const LEGACY_JUEVES_MAP_URLS = new Set([
+  "https://maps.app.goo.gl/FLdwnEMaoJvpMuEDA",
+  "https://maps.app.goo.gl/zKNYRashoqHAMJwP9",
+])
 
 function normalizeApiBase(v: string) {
   const s = String(v || "").trim().replace(/\/+$/, "")
@@ -334,9 +351,22 @@ function clone<T>(x: T): T {
   return JSON.parse(JSON.stringify(x))
 }
 
+function normalizeVenueMapsUrl(value: string) {
+  const url = String(value || "").trim()
+  if (!url || LEGACY_JUEVES_MAP_URLS.has(url)) return JUEVES_APPLE_MAPS_URL
+  return url
+}
+
+function normalizeVenueEmbedUrl(value: string) {
+  const url = String(value || "").trim()
+  if (!url) return JUEVES_EMBED_URL
+  if (url.includes("3732.6!2d-103.4!3d20.65")) return JUEVES_EMBED_URL
+  return url
+}
+
 const DEFAULT_HOME: JuevesHomeConfig = {
   hero: {
-    badge: "LIGA DE JUEVES · DESARROLLO",
+    badge: "LIGA DE JUEVES",
     titleLine1: "Toda la liga al",
     titleLine2: "alcance de tu mano",
     sponsorPrefix: "Patrocinado por",
@@ -363,19 +393,18 @@ const DEFAULT_HOME: JuevesHomeConfig = {
   gallery: {
     title: "FOTOS DEL TORNEO",
     images: [
-      { id: "gal-1", src: "/img/carrusel1.jpg" },
-      { id: "gal-2", src: "/img/carrusel2.jpg" },
-      { id: "gal-3", src: "/img/carrusel3.jpg" },
-      { id: "gal-4", src: "/img/liga-jueves.png" },
+      { id: "gal-1", src: "/img/carrusel4.jpg" },
+      { id: "gal-2", src: "/img/carrusel5.jpg" },
+      { id: "gal-3", src: "/img/carrusel6.jpg" },
+      { id: "gal-4", src: "/img/liga-jueves2.png" },
     ],
   },
   venue: {
     title: "Sede del Torneo",
     subtitle: "Encuentra la ubicación del torneo aquí",
-    embedUrl:
-      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3732.6!2d-103.4!3d20.65!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjDCsDM5JzAwLjAiTiAxMDPCsDI0JzAwLjAiVw!5e0!3m2!1ses!2smx!4v1700000000000",
-    mapsUrl: "https://maps.app.goo.gl/FLdwnEMaoJvpMuEDA",
-    mapsLabel: "📍 ABRIR EN GOOGLE MAPS",
+    embedUrl: JUEVES_EMBED_URL,
+    mapsUrl: JUEVES_APPLE_MAPS_URL,
+    mapsLabel: "📍 ABRIR UBICACIÓN",
   },
 }
 
@@ -448,11 +477,12 @@ function safeApplyParsed(parsed: any): JuevesHomeConfig {
     if (raw.venue && typeof raw.venue === "object") {
       merged.venue.title = String(raw.venue.title ?? merged.venue.title)
       merged.venue.subtitle = String(raw.venue.subtitle ?? merged.venue.subtitle)
-      merged.venue.embedUrl = String(raw.venue.embedUrl ?? merged.venue.embedUrl)
-      merged.venue.mapsUrl = String(raw.venue.mapsUrl ?? merged.venue.mapsUrl)
+      merged.venue.embedUrl = normalizeVenueEmbedUrl(String(raw.venue.embedUrl ?? merged.venue.embedUrl))
+      merged.venue.mapsUrl = normalizeVenueMapsUrl(String(raw.venue.mapsUrl ?? merged.venue.mapsUrl))
       merged.venue.mapsLabel = String(raw.venue.mapsLabel ?? merged.venue.mapsLabel)
     } else if (raw.location && typeof raw.location === "object") {
-      merged.venue.mapsUrl = String(raw.location.mapsUrl ?? merged.venue.mapsUrl)
+      merged.venue.embedUrl = normalizeVenueEmbedUrl(String(raw.location.embedUrl ?? merged.venue.embedUrl))
+      merged.venue.mapsUrl = normalizeVenueMapsUrl(String(raw.location.mapsUrl ?? merged.venue.mapsUrl))
     }
   }
 
@@ -705,13 +735,13 @@ function toUiMatchCard(game: any): UiMatchCard {
     timestamp,
     date,
     time,
-    venue: firstValue(game, [
+    venue: String(firstValue(game, [
       "venue",
       "field",
       "location",
       "court",
       "stadium",
-    ]),
+    ]) || "").trim(),
     home,
     away,
     homeLogo: firstValue(game, [
