@@ -335,7 +335,7 @@ type JuevesHomeConfig = {
 
 const JUEVES_LEAGUE_ID = 2
 const JUEVES_APPLE_MAPS_URL = "https://maps.apple/p/sY5VihqTvutxjP"
-const JUEVES_EMBED_URL = "https://www.google.com/maps?q=19.49095,-99.13663&z=17&output=embed"
+const JUEVES_EMBED_URL = "https://www.google.com/maps?q=19.502404014796983,-99.1401616313347&z=17&output=embed"
 const LEGACY_JUEVES_MAP_URLS = new Set([
   "https://maps.app.goo.gl/FLdwnEMaoJvpMuEDA",
   "https://maps.app.goo.gl/zKNYRashoqHAMJwP9",
