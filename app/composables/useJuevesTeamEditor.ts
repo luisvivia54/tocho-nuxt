@@ -1,5 +1,6 @@
 import { computed, ref, type Ref, unref } from 'vue'
 import { useAuthz } from '~/composables/useAuthz'
+import { useAuthedFetch } from '~/composables/useAuthedFetch'
 import { useNuxtApp, useState } from '#imports'
 
 type HeadersMap = Record<string, string>
@@ -119,6 +120,7 @@ function niceGender(g: string) {
 
 export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
   const nuxtApp = useNuxtApp()
+  const { authedFetch } = useAuthedFetch()
   const kcReady = useState<boolean>('kcReady', () => false)
   const authz = useAuthz() as { isAuthenticated?: boolean | Ref<boolean> }
 
@@ -446,6 +448,25 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
     return ''
   }
 
+  function validateRoster() {
+    const activePlayers = team.value.players.filter((player) => !player.markedForDeletion)
+
+    for (const [index, player] of activePlayers.entries()) {
+      const missing: string[] = []
+
+      if (!player.fullName.trim()) missing.push('nombre')
+      if (!player.curp.trim()) missing.push('CURP')
+      if (!player.photoFile && !player.photoPreview) missing.push('foto')
+
+      if (!missing.length) continue
+
+      const label = player.fullName.trim() ? `El jugador "${player.fullName.trim()}"` : `El jugador #${index + 1}`
+      return `${label} debe tener ${missing.join(', ')} antes de guardar el roster.`
+    }
+
+    return ''
+  }
+
   async function saveTeamDetails() {
     errorMessage.value = ''
     successMessage.value = ''
@@ -499,48 +520,44 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
   async function saveRoster() {
     errorMessage.value = ''
     successMessage.value = ''
+
+    const validation = validateRoster()
+    if (validation) {
+      errorMessage.value = validation
+      return false
+    }
+
     saving.value = true
 
     try {
-      const token = await getAccessToken()
-      if (!token) throw new Error('No hay sesión activa.')
-
       for (const player of team.value.players) {
         if (!player.playerId || !player.markedForDeletion) continue
 
-        await fetch(`${API_BASE}/teams/${teamId.value}/players/${player.playerId}`, {
+        await authedFetch(`${API_BASE}/teams/${teamId.value}/players/${player.playerId}`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch((err) => {
-          console.error('Error eliminando jugador:', err)
         })
       }
 
       for (const player of team.value.players) {
         if (player.markedForDeletion) continue
-        if (!player.fullName.trim() || !player.curp.trim()) continue
 
         const formData = new FormData()
         formData.append('fullName', player.fullName.trim())
         formData.append('curp', player.curp.trim().toUpperCase())
         if (player.jerseyNumber.trim()) formData.append('jerseyNumber', player.jerseyNumber.trim())
-        if (player.photoFile) formData.append('photo', player.photoFile)
+        if (player.photoFile) {
+          formData.append('photo', player.photoFile)
+        }
 
         if (player.playerId && !player.isNew) {
-          await fetch(`${API_BASE}/teams/${teamId.value}/players/${player.playerId}`, {
+          await authedFetch(`${API_BASE}/teams/${teamId.value}/players/${player.playerId}`, {
             method: 'PUT',
-            headers: { Authorization: `Bearer ${token}` },
             body: formData,
-          }).catch((err) => {
-            console.error('Error actualizando jugador:', err)
           })
         } else {
-          await fetch(`${API_BASE}/teams/${teamId.value}/players`, {
+          await authedFetch(`${API_BASE}/teams/${teamId.value}/players`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
             body: formData,
-          }).catch((err) => {
-            console.error('Error creando jugador:', err)
           })
         }
       }

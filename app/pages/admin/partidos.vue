@@ -850,6 +850,7 @@ onBeforeUnmount(() => {
 const nuxtApp = useNuxtApp()
 const kcReady = useState<boolean>('kcReady', () => false)
 const authz: any = useAuthz()
+const { authedFetch } = useAuthedFetch()
 
 const isAdmin = computed<boolean>(() => {
   const v = authz?.isAdmin
@@ -864,20 +865,6 @@ const isAdmin = computed<boolean>(() => {
 
   return roles.map((r) => String(r).toLowerCase()).includes('admin')
 })
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const kc = (nuxtApp as any).$kc
-
-  try {
-    await kc?.updateToken?.(30)
-  } catch {}
-
-  const token = kc?.token as string | undefined
-  const headers: Record<string, string> = {}
-
-  if (token) headers.Authorization = `Bearer ${token}`
-  return headers
-}
 
 /** =========================
  *  API
@@ -1400,7 +1387,6 @@ async function saveGame() {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
     const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
     const isEdit = !!editingId.value
-    const headers = await authHeaders()
     const jornadaText = String(form.value.jornada ?? '').trim()
     const jornadaNumber = /^\d+$/.test(jornadaText) ? Number(jornadaText) : null
     const venue = String(form.value.field ?? '').trim()
@@ -1458,11 +1444,11 @@ async function saveGame() {
     }
 
     if (!isEdit) {
-      const resp: any = await $fetch(API_GAMES(), { method: 'POST', headers, body: payloadCreate })
+      const resp: any = await authedFetch(API_GAMES(), { method: 'POST', body: payloadCreate })
       const newId = Number(resp?.gameId ?? resp?.game_id ?? resp?.id ?? 0) || null
       formOk.value = newId ? `Partido creado (ID ${newId}).` : 'Partido creado.'
     } else {
-      await $fetch(API_PARTIDO_UPDATE, { method: 'POST', headers, body: payloadEdit })
+      await authedFetch(API_PARTIDO_UPDATE, { method: 'POST', body: payloadEdit })
       formOk.value = `Partido actualizado (ID ${editingId.value}).`
     }
 
@@ -1655,13 +1641,11 @@ async function deleteGame(g: GameVM) {
   deletingId.value = gid
 
   try {
-    const headers = await authHeaders()
-
     if (st === 'FINAL') {
-      await $fetch(API_GAME_DELETE_ADMIN(gid), { method: 'DELETE', headers })
+      await authedFetch(API_GAME_DELETE_ADMIN(gid), { method: 'DELETE' })
       deleteOk.value = `Partido #${gid} eliminado y revertido (CANCELLED).`
     } else {
-      await $fetch(API_GAME_DELETE_SCHEDULED(gid), { method: 'DELETE', headers })
+      await authedFetch(API_GAME_DELETE_SCHEDULED(gid), { method: 'DELETE' })
       deleteOk.value = `Partido #${gid} borrado.`
     }
 
@@ -1733,10 +1717,8 @@ async function saveEditedScore(g: GameVM) {
   editingScore.value = true
 
   try {
-    const headers = await authHeaders()
-    await $fetch(API_GAME_EDIT_SCORE(gid), {
+    await authedFetch(API_GAME_EDIT_SCORE(gid), {
       method: 'PATCH',
-      headers,
       body: { homeScore: hs, awayScore: as },
     })
 
@@ -1983,8 +1965,7 @@ async function tryPostPlayerStats(gameId: number) {
       qty: e.qty,
     }))
 
-    const headers = await authHeaders()
-    await $fetch(PLAYER_STATS_URL(gameId), { method: 'PUT', body: payload, headers })
+    await authedFetch(PLAYER_STATS_URL(gameId), { method: 'PUT', body: payload })
 
     statsOk.value = 'Stats individuales guardadas.'
     statsWarn.value = ''
@@ -2000,8 +1981,7 @@ async function postFinalizeOnly(gameId: number, homeScore: number, awayScore: nu
     away_score: Number(awayScore),
   }
 
-  const headers = await authHeaders()
-  return await $fetch<any>(API_PARTIDO_UPDATE, { method: 'POST', body, headers })
+  return await authedFetch<any>(API_PARTIDO_UPDATE, { method: 'POST', body })
 }
 
 async function finishGame(g: GameVM) {

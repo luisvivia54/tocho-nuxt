@@ -171,56 +171,7 @@
     </header>
 
     <!-- HERO -->
-    <section id="inicio" class="relative pt-24 md:pt-28">
-      <div class="mx-auto max-w-6xl px-4 sm:px-6">
-        <div class="min-h-[72vh] py-10 md:py-14 flex flex-col items-center justify-center text-center">
-          <div
-            class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-200"
-          >
-            <span class="h-2 w-2 rounded-full bg-emerald-300" />
-            <span>TEMPORADA {{ season }} ACTIVA</span>
-          </div>
-
-          <h1 class="mt-6 font-extrabold leading-[0.95] tracking-tight">
-            <span class="block text-4xl sm:text-5xl md:text-7xl text-white">Donde se vive la liga</span>
-            <span class="mt-2 block text-4xl sm:text-5xl md:text-7xl text-emerald-300">Tochero5</span>
-          </h1>
-
-          <p class="mt-6 max-w-2xl text-sm sm:text-base text-slate-300">
-            Elige cuál liga quieres ver: la Liga de Dominical o la Liga nocturna (jueves)
-          </p>
-
-          <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <NuxtLink
-              to="/domingo"
-              class="group inline-flex items-center justify-center gap-3 rounded-full bg-emerald-300 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-slate-900 shadow-[0_18px_60px_rgba(16,185,129,0.25)] hover:brightness-105 transition"
-            >
-              <span class="h-2 w-2 rounded-full bg-slate-900/80" />
-              LIGA DOMINICAL
-              <span class="transition-transform group-hover:translate-x-0.5">→</span>
-            </NuxtLink>
-
-            <NuxtLink
-              to="/jueves"
-              class="group inline-flex items-center justify-center gap-3 rounded-full border border-white/12 bg-black/25 px-7 py-3.5 text-[12px] font-extrabold uppercase tracking-[0.20em] text-white hover:bg-black/35 transition"
-            >
-              <span class="h-2 w-2 rounded-full bg-amber-300" />
-              LIGA NOCTURNA (JUEVES)
-              <span class="transition-transform group-hover:translate-x-0.5">→</span>
-            </NuxtLink>
-          </div>
-
-          
-
-          <div class="mt-14 flex flex-col items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-slate-400">
-            
-            <div class="relative h-10 w-[2px] rounded-full bg-white/15">
-              <div class="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/40" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <HeroAnimation :season="season" />
 
     <!-- NUESTRAS LIGAS -->
     <section id="ligas" class="py-14 md:py-16">
