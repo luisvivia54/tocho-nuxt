@@ -1400,6 +1400,7 @@ async function saveGame() {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
     const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
     const isEdit = !!editingId.value
+    const headers = await authHeaders()
     const jornadaText = String(form.value.jornada ?? '').trim()
     const jornadaNumber = /^\d+$/.test(jornadaText) ? Number(jornadaText) : null
     const venue = String(form.value.field ?? '').trim()
@@ -1457,11 +1458,11 @@ async function saveGame() {
     }
 
     if (!isEdit) {
-      const resp: any = await $fetch(API_GAMES(), { method: 'POST', body: payloadCreate })
+      const resp: any = await $fetch(API_GAMES(), { method: 'POST', headers, body: payloadCreate })
       const newId = Number(resp?.gameId ?? resp?.game_id ?? resp?.id ?? 0) || null
       formOk.value = newId ? `Partido creado (ID ${newId}).` : 'Partido creado.'
     } else {
-      await $fetch(API_PARTIDO_UPDATE, { method: 'POST', body: payloadEdit })
+      await $fetch(API_PARTIDO_UPDATE, { method: 'POST', headers, body: payloadEdit })
       formOk.value = `Partido actualizado (ID ${editingId.value}).`
     }
 
