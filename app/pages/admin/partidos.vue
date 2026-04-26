@@ -876,7 +876,7 @@ const API_BASE = ((config.public as any)?.apiBase as string || 'https://tocho5-a
   .replace(/\/api$/, '') + '/api'
 
 const LEAGUE_ID = 1
-const DEFAULT_SEASON_ID = 2
+const DEFAULT_SEASON_ID = 6
 
 function withLeague(path: string, extra: Record<string, string | number | boolean | null | undefined> = {}) {
   const qs = new URLSearchParams()

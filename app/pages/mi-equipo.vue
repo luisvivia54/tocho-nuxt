@@ -753,7 +753,7 @@ import { useMyTeam } from '@/composables/useMyTeam'
 
 const DEFAULT_LEAGUE_ID = 1
 const CURRENT_SEASON_TAG = 'WT'
-const FALLBACK_SEASON_ID = 2
+const FALLBACK_SEASON_ID = 6
 const DRAFT_KEY = 'miEquipoRegistroDraft'
 
 interface CategoryDto {

@@ -1071,7 +1071,7 @@ const pctToLabel = (pct) => `${(clamp01(pct) * 100).toFixed(1)}%`
 const pctWidth = (pct) => `${Math.round(clamp01(pct) * 100)}%`
 
 /* ===================== SEASONS DINÁMICAS ===================== */
-const DEFAULT_SEASON_ID = 2
+const DEFAULT_SEASON_ID = 6
 const selectedSeasonId = ref(DEFAULT_SEASON_ID)
 
 const { data: seasonsRaw } = useAsyncData(
@@ -1089,7 +1089,8 @@ const seasonOptions = computed(() => {
   const raw = seasonsRaw.value
   if (!Array.isArray(raw) || raw.length === 0) {
     return [
-      { label: 'Temporada 2 (Actual)', value: 2 },
+      { label: 'Temporada 6 (Actual)', value: 6 },
+      { label: 'Temporada 2', value: 2 },
       { label: 'Temporada 1', value: 1 }
     ]
   }
