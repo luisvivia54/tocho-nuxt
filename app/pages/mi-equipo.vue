@@ -752,7 +752,7 @@ import { useAuthz } from '@/composables/useAuthz'
 import { useMyTeam } from '@/composables/useMyTeam'
 
 const DEFAULT_LEAGUE_ID = 1
-const CURRENT_SEASON_TAG = 'WT'
+const CURRENT_SEASON_TAG = 'ST'
 const FALLBACK_SEASON_ID = 6
 const DRAFT_KEY = 'miEquipoRegistroDraft'
 
@@ -847,7 +847,7 @@ function prettyGender(g: string) {
   return g
 }
 
-function pickCurrentWT(list: SeasonOption[]): SeasonOption | null {
+function pickCurrentSeason(list: SeasonOption[]): SeasonOption | null {
   const tag = seasonKey(CURRENT_SEASON_TAG)
   const matches = list.filter((s) => seasonKey(s.name).includes(tag))
 
@@ -1161,7 +1161,7 @@ const sendablePlayers = computed(() =>
   players.value.filter((p) => !!p.fullName.trim() && !!p.curp.trim() && !!p.photoFile)
 )
 
-const currentSeasonLabel = computed(() => currentSeason.value?.name || 'WT')
+const currentSeasonLabel = computed(() => currentSeason.value?.name || CURRENT_SEASON_TAG)
 
 watch(selectedCategory, (c) => {
   selectedCategoryId.value = c?.id ?? 0
@@ -1218,21 +1218,21 @@ async function fetchSeasons() {
       })
       .filter((s) => s.id > 0 && !!s.name)
 
-    const wt = pickCurrentWT(mapped)
+    const current = pickCurrentSeason(mapped)
 
-    if (wt) {
-      currentSeason.value = wt
-      seasons.value = [wt]
-      selectedSeasonId.value = wt.id
+    if (current) {
+      currentSeason.value = current
+      seasons.value = [current]
+      selectedSeasonId.value = current.id
       return
     }
 
-    currentSeason.value = { id: FALLBACK_SEASON_ID, name: 'WT', leagueId: 1 }
+    currentSeason.value = { id: FALLBACK_SEASON_ID, name: CURRENT_SEASON_TAG, leagueId: 1 }
     seasons.value = [currentSeason.value]
     selectedSeasonId.value = FALLBACK_SEASON_ID
   } catch (e) {
     console.error('Error cargando seasons', e)
-    currentSeason.value = { id: FALLBACK_SEASON_ID, name: 'WT', leagueId: 1 }
+    currentSeason.value = { id: FALLBACK_SEASON_ID, name: CURRENT_SEASON_TAG, leagueId: 1 }
     seasons.value = [currentSeason.value]
     selectedSeasonId.value = FALLBACK_SEASON_ID
   }

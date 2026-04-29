@@ -50,14 +50,14 @@
 
         <!-- Pills ligas -->
         <div class="leagues">
-          <div class="league-pill pill-green">
+          <NuxtLink to="/domingo" class="league-pill pill-green" aria-label="Ir a Liga Dominical">
             <span class="pill-dot g" />
             Liga Dominical
-          </div>
-          <div class="league-pill pill-amber">
+          </NuxtLink>
+          <NuxtLink to="/jueves" class="league-pill pill-amber" aria-label="Ir a Liga Nocturna · Jueves">
             <span class="pill-dot a" />
             Liga Nocturna · Jueves
-          </div>
+          </NuxtLink>
         </div>
 
         <!-- CTA Zone -->
@@ -238,9 +238,18 @@ onMounted(() => {
   display: inline-flex; align-items: center; gap: 7px;
   border-radius: 100px; padding: 7px 16px;
   font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+  cursor: pointer; text-decoration: none;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
+.league-pill:hover { transform: translateY(-2px); }
+.league-pill:active { transform: translateY(0) scale(0.98); }
+.league-pill:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,255,255,0.18); }
+
 .pill-green { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.20); color: #6ee7b7; }
+.pill-green:hover { background: rgba(52,211,153,0.18); border-color: rgba(52,211,153,0.45); box-shadow: 0 8px 24px rgba(16,185,129,0.25); }
+
 .pill-amber { background: rgba(251,191,36,0.08);  border: 1px solid rgba(251,191,36,0.20);  color: #fbbf24; }
+.pill-amber:hover { background: rgba(251,191,36,0.18); border-color: rgba(251,191,36,0.50); box-shadow: 0 8px 24px rgba(251,146,60,0.25); }
 .pill-dot   { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
 .pill-dot.g { background: #34d399; }
 .pill-dot.a { background: #fbbf24; }
