@@ -144,6 +144,40 @@
                     </NuxtLink>
 
                     <NuxtLink
+                      to="/domingo/admin/temporadas"
+                      class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-100 transition hover:bg-white/8"
+                      :class="isActive('/domingo/admin/temporadas') ? 'bg-white/10 ring-1 ring-white/10' : ''"
+                      @click="adminOpen = false"
+                    >
+                      <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/10 bg-[#0D1930]">
+                        <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M8 2v4M16 2v4M4 9h16"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                          />
+                          <path
+                            d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M12 13v5M9.5 15.5h5"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </span>
+                      <div class="min-w-0">
+                        <p class="truncate font-semibold text-white">Temporadas</p>
+                        <p class="text-[11px] text-slate-400">Crear temporada</p>
+                      </div>
+                    </NuxtLink>
+
+                    <NuxtLink
                       to="/admin/partidos"
                       class="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-slate-100 transition hover:bg-white/8"
                       :class="isActive('/admin/partidos') ? 'bg-white/10 ring-1 ring-white/10' : ''"
@@ -341,8 +375,6 @@
                     Estadísticas
                   </NuxtLink>
 
-                  
-
                   <NuxtLink
                     v-if="showMiEquipo"
                     to="/mi-equipo"
@@ -351,6 +383,16 @@
                   >
                     Registro
                   </NuxtLink>
+
+                  <NuxtLink
+                    v-if="isAdmin"
+                    to="/domingo/admin/temporadas"
+                    class="rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8"
+                    @click="closeMobile"
+                  >
+                    Temporadas
+                  </NuxtLink>
+
                   <NuxtLink
                     to="/"
                     class="flex items-center gap-3 rounded-2xl px-3 py-2 text-slate-100 hover:bg-white/8"
@@ -400,10 +442,10 @@
     <div v-if="isAdmin" class="fixed bottom-0 inset-x-0 z-30 sm:hidden" aria-label="Admin dock">
       <div class="mx-auto max-w-6xl px-4 pb-3">
         <div class="rounded-2xl border border-white/10 bg-[#07101F] px-2 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.45)]">
-          <div class="grid grid-cols-5 gap-2">
+          <div class="grid grid-cols-6 gap-1">
             <NuxtLink
               to="/admin/inicio"
-              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
+              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition"
               :class="isActive('/admin/inicio') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="h-5 w-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -424,8 +466,36 @@
             </NuxtLink>
 
             <NuxtLink
+              to="/domingo/admin/temporadas"
+              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition"
+              :class="isActive('/domingo/admin/temporadas') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
+            >
+              <svg class="h-5 w-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M8 2v4M16 2v4M4 9h16"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M12 13v5M9.5 15.5h5"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Temp.
+            </NuxtLink>
+
+            <NuxtLink
               to="/admin/partidos"
-              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
+              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition"
               :class="isActive('/admin/partidos') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="h-5 w-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -438,7 +508,7 @@
 
             <NuxtLink
               to="/admin/usuarios"
-              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
+              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition"
               :class="isActive('/admin/usuarios') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="h-5 w-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -467,19 +537,19 @@
 
             <NuxtLink
               to="/admin/jugadores"
-              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
+              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition"
               :class="isActive('/admin/jugadores') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="h-5 w-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5z" stroke="currentColor" stroke-width="1.6" />
                 <path d="M3 21a9 9 0 0 1 18 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
               </svg>
-              Jugadores
+              Jug.
             </NuxtLink>
 
             <NuxtLink
               to="/admin/equipos"
-              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition"
+              class="group flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition"
               :class="isActive('/admin/equipos') ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/8 hover:text-white'"
             >
               <svg class="h-5 w-5 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -531,7 +601,8 @@ const isDomingoSite = computed(() => {
     route.path.startsWith('/equipos') ||
     route.path.startsWith('/estadisticas') ||
     route.path.startsWith('/registro') ||
-    route.path.startsWith('/mi-equipo')
+    route.path.startsWith('/mi-equipo') ||
+    route.path.startsWith('/domingo/admin')
   )
 })
 

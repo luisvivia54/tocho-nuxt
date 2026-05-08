@@ -1,4 +1,4 @@
-<!-- app/pages/admin/home.vue -->
+<!-- app/pages/admin/inicio.vue -->
 <template>
   <main class="min-h-screen bg-white text-slate-900">
     <!-- Topbar -->
@@ -16,7 +16,7 @@
           </div>
 
           <div class="flex flex-wrap gap-2 items-center">
-            <!-- ✅ MENU ADMIN (dentro de la vista) -->
+            <!-- MENU ADMIN (dentro de la vista) -->
             <div class="relative hidden sm:block" ref="menuWrap">
               <button
                 type="button"
@@ -53,7 +53,6 @@
                   </div>
 
                   <div class="p-2 grid gap-1">
-                    <!-- ⚠️ Si tu ruta real es /admin/home, cambia aquí a /admin/home -->
                     <NuxtLink
                       to="/admin/inicio"
                       class="menu-item"
@@ -75,6 +74,40 @@
                       <div class="min-w-0">
                         <p class="font-extrabold text-slate-900 truncate">Inicio</p>
                         <p class="text-[11px] text-slate-500 truncate">Editar Home</p>
+                      </div>
+                    </NuxtLink>
+
+                    <NuxtLink
+                      to="/domingo/admin/temporadas"
+                      class="menu-item"
+                      :class="isActive('/domingo/admin/temporadas') ? 'menu-item--active' : ''"
+                      @click="menuOpen = false"
+                    >
+                      <span class="menu-ic">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M8 2v4M16 2v4M4 9h16"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                          />
+                          <path
+                            d="M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linejoin="round"
+                          />
+                          <path
+                            d="M12 13v5M9.5 15.5h5"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </span>
+                      <div class="min-w-0">
+                        <p class="font-extrabold text-slate-900 truncate">Temporadas</p>
+                        <p class="text-[11px] text-slate-500 truncate">Crear temporada</p>
                       </div>
                     </NuxtLink>
 
@@ -511,9 +544,6 @@ import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRuntimeConfig, useNuxtApp, useState, useRoute } from '#imports'
 import { useAuthz } from '~/composables/useAuthz'
 
-/* =========================
-   MENU (dentro de la vista)
-   ========================= */
 const route = useRoute()
 const menuOpen = ref(false)
 const menuWrap = ref<HTMLElement | null>(null)
@@ -521,31 +551,35 @@ const menuWrap = ref<HTMLElement | null>(null)
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
 }
+
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
 }
+
 function onDocClick(e: MouseEvent) {
   if (!menuOpen.value) return
   const wrap = menuWrap.value
   const t = e.target as Node | null
   if (wrap && t && !wrap.contains(t)) menuOpen.value = false
 }
+
 watch(
   () => route.fullPath,
-  () => { menuOpen.value = false }
+  () => {
+    menuOpen.value = false
+  }
 )
+
 onMounted(() => {
   if (typeof window === 'undefined') return
   document.addEventListener('click', onDocClick, { capture: true })
 })
+
 onBeforeUnmount(() => {
   if (typeof window === 'undefined') return
   document.removeEventListener('click', onDocClick, { capture: true } as any)
 })
 
-/* =========================
-   AUTH
-   ========================= */
 const nuxtApp = useNuxtApp()
 const kcReady = useState<boolean>('kcReady', () => false)
 const authz: any = useAuthz()
@@ -576,9 +610,6 @@ function login() {
   kc.login({ redirectUri: window.location.href })
 }
 
-/* =========================
-   API
-   ========================= */
 const runtime = useRuntimeConfig()
 const API_BASE = ((runtime.public as any)?.apiBase as string) || 'https://tocho5-api.tochero5.mx/api'
 const ENDPOINT = `${API_BASE}/site-configs/home`
@@ -652,12 +683,9 @@ async function uploadAsset(folder: string, file: File) {
     throw err
   }
 
-  return json // { id, publicUrl, r2Key, contentType, sizeBytes }
+  return json
 }
 
-/* =========================
-   Types + Model
-   ========================= */
 type HeroImage = { id: string; src: string }
 type Sponsor = { id: string; name: string; logo: string; url: string; tagline: string; description: string; label: string }
 type HomeConfig = {
@@ -670,6 +698,7 @@ type HomeConfig = {
 function uid(prefix: string) {
   return `${prefix}-${Math.random().toString(16).slice(2, 8)}-${Date.now().toString(16).slice(2)}`
 }
+
 function clone<T>(x: T): T {
   return JSON.parse(JSON.stringify(x))
 }
@@ -771,7 +800,6 @@ function safeApplyParsed(parsed: any): HomeConfig {
   return merged
 }
 
-/* Load / Save */
 async function loadFromServer() {
   if (!import.meta.client) return
   loading.value = true
@@ -822,15 +850,16 @@ function resetDefaults() {
   statusMsg.value = 'Restaurado (no olvides guardar)'
 }
 
-/* HERO */
 function addHeroImage() {
   if (model.hero.images.length >= 6) return
   model.hero.images.push({ id: uid('carrusel'), src: '' })
 }
+
 function removeHeroImage(i: number) {
   model.hero.images.splice(i, 1)
   if (previewHeroIndex.value >= model.hero.images.length) previewHeroIndex.value = 0
 }
+
 function moveHeroImage(i: number, dir: -1 | 1) {
   const j = i + dir
   const arr = model.hero.images
@@ -842,13 +871,14 @@ function moveHeroImage(i: number, dir: -1 | 1) {
   arr[j] = a
 }
 
-/* SPONSORS */
 function addSponsor() {
   model.sponsors.push({ id: uid('sp'), name: '', logo: '', url: '', tagline: '', description: '', label: '' })
 }
+
 function removeSponsor(i: number) {
   model.sponsors.splice(i, 1)
 }
+
 function moveSponsor(i: number, dir: -1 | 1) {
   const j = i + dir
   const arr = model.sponsors
@@ -860,7 +890,6 @@ function moveSponsor(i: number, dir: -1 | 1) {
   arr[j] = a
 }
 
-/* PREVIEW */
 const previewHeroIndex = ref(0)
 const heroCount = computed(() => model.hero.images.length)
 const heroPreview = computed(() => {
@@ -876,11 +905,13 @@ function nextPreview() {
   if (n <= 1) return
   previewHeroIndex.value = (previewHeroIndex.value + 1) % n
 }
+
 function prevPreview() {
   const n = heroCount.value
   if (n <= 1) return
   previewHeroIndex.value = (previewHeroIndex.value - 1 + n) % n
 }
+
 watch(
   heroCount,
   (n) => {
@@ -890,7 +921,6 @@ watch(
   { immediate: true }
 )
 
-/* FILE PICKER + UPLOAD */
 type PickTarget = { kind: 'hero' | 'sponsor'; index: number } | null
 const fileInput = ref<HTMLInputElement | null>(null)
 const pickTarget = ref<PickTarget>(null)
@@ -915,10 +945,8 @@ async function onFileChange(e: Event) {
   const { kind, index } = pickTarget.value
   pickTarget.value = null
 
-  // preview inmediato
   const previewUrl = URL.createObjectURL(file)
 
-  // guarda valor anterior por si falla
   const prev =
     kind === 'hero'
       ? (model.hero.images[index]?.src ?? '')
@@ -984,31 +1012,35 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* ---- menu ---- */
-.menu-item{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  border-radius:14px;
-  padding:10px 10px;
-  color: rgb(15,23,42);
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 14px;
+  padding: 10px 10px;
+  color: rgb(15, 23, 42);
   background: transparent;
 }
-.menu-item:hover{ background: rgb(248,250,252); }
-.menu-item--active{ background: rgb(241,245,249); }
 
-.menu-ic{
+.menu-item:hover {
+  background: rgb(248, 250, 252);
+}
+
+.menu-item--active {
+  background: rgb(241, 245, 249);
+}
+
+.menu-ic {
   height: 38px;
   width: 38px;
   border-radius: 14px;
-  border: 1px solid rgb(226,232,240);
-  background: rgb(248,250,252);
-  display:grid;
-  place-items:center;
-  flex-shrink:0;
+  border: 1px solid rgb(226, 232, 240);
+  background: rgb(248, 250, 252);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
 }
 
-/* Minimal + friendly */
 .card {
   background: #ffffff;
   border: 1px solid rgb(226, 232, 240);
@@ -1016,12 +1048,16 @@ onMounted(async () => {
   overflow: hidden;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
+
 .card-h {
   padding: 14px;
   border-bottom: 1px solid rgb(226, 232, 240);
   background: #ffffff;
 }
-.card-b { padding: 14px; }
+
+.card-b {
+  padding: 14px;
+}
 
 .step {
   font-size: 11px;
@@ -1030,12 +1066,14 @@ onMounted(async () => {
   color: rgb(100, 116, 139);
   font-weight: 800;
 }
+
 .h2 {
   margin-top: 6px;
   font-size: 16px;
   font-weight: 900;
   color: rgb(15, 23, 42);
 }
+
 .p {
   margin-top: 6px;
   font-size: 13px;
@@ -1051,6 +1089,7 @@ onMounted(async () => {
   color: rgb(100, 116, 139);
   font-weight: 800;
 }
+
 .in {
   width: 100%;
   border-radius: 12px;
@@ -1061,12 +1100,16 @@ onMounted(async () => {
   font-size: 14px;
   outline: none;
 }
+
 .in:focus {
   border-color: rgba(59, 130, 246, 0.85);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
-.divider { height: 1px; background: rgb(226, 232, 240); }
+.divider {
+  height: 1px;
+  background: rgb(226, 232, 240);
+}
 
 .row {
   border: 1px solid rgb(226, 232, 240);
@@ -1084,8 +1127,15 @@ onMounted(async () => {
   padding: 10px 14px;
   border: 1px solid rgb(37, 99, 235);
 }
-.btn-primary:hover { background: rgb(29, 78, 216); }
-.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+.btn-primary:hover {
+  background: rgb(29, 78, 216);
+}
+
+.btn-primary:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
 
 .btn-ghost {
   border-radius: 12px;
@@ -1096,8 +1146,15 @@ onMounted(async () => {
   font-size: 12px;
   padding: 10px 12px;
 }
-.btn-ghost:hover { background: rgb(248, 250, 252); }
-.btn-ghost:disabled { opacity: .6; cursor: not-allowed; }
+
+.btn-ghost:hover {
+  background: rgb(248, 250, 252);
+}
+
+.btn-ghost:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
 
 .icon {
   width: 34px;
@@ -1111,15 +1168,25 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
 }
-.icon:hover { background: rgb(241, 245, 249); }
-.icon:disabled { opacity: .45; cursor: not-allowed; }
+
+.icon:hover {
+  background: rgb(241, 245, 249);
+}
+
+.icon:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
 
 .icon.danger {
   border-color: rgb(254, 202, 202);
   background: rgb(254, 242, 242);
   color: rgb(185, 28, 28);
 }
-.icon.danger:hover { background: rgb(254, 226, 226); }
+
+.icon.danger:hover {
+  background: rgb(254, 226, 226);
+}
 
 .empty {
   border: 1px dashed rgb(203, 213, 225);
