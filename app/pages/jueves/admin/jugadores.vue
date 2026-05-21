@@ -54,6 +54,19 @@
                 {{ filteredCurps.length }}
               </span>
             </button>
+
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/20 disabled:opacity-40"
+              :disabled="pendingAny || filteredCurps.length === 0"
+              @click="downloadCurpExcel"
+              title="Descarga las CURP en CSV listo para abrir en Excel (UTF-8 + separador ;)"
+            >
+              ⬇ CURP (Excel)
+              <span class="ml-2 inline-flex items-center rounded-full bg-emerald-400/20 px-2 py-0.5 text-[11px] font-bold text-emerald-50">
+                {{ filteredCurps.length }}
+              </span>
+            </button>
           </div>
         </header>
 
@@ -1003,10 +1016,29 @@ const teamsVm = computed<TeamVM[]>(() => {
       (x['season'] as Record<string, unknown> | undefined)?.['id']
     )
 
+    // Filtro solo por leagueId. Si el backend no devuelve liga, lo dejamos pasar.
     const leagueOk = leagueId === null || leagueId === JUEVES_LEAGUE_ID
-    const seasonOk = seasonId === null || seasonId === JUEVES_SEASON_ID
+    if (!leagueOk) continue
 
-    if (!leagueOk || !seasonOk) continue
+    // Solo equipos activos: respeta soft-delete (isActive:false) hecho en /admin/equipos
+    const activeRaw = x['isActive'] ?? x['is_active'] ?? x['active'] ?? x['enabled']
+    const statusStr = String(x['status'] ?? '').toUpperCase()
+
+    let isActive = true
+    if (typeof activeRaw === 'boolean') {
+      isActive = activeRaw
+    } else if (typeof activeRaw === 'string') {
+      const a = activeRaw.toUpperCase()
+      if (a === 'FALSE' || a === '0' || a === 'NO' || a === 'INACTIVE' || a === 'DISABLED') isActive = false
+      else if (a === 'TRUE' || a === '1' || a === 'YES' || a === 'ACTIVE' || a === 'ENABLED') isActive = true
+    } else if (typeof activeRaw === 'number') {
+      isActive = activeRaw !== 0
+    } else if (statusStr) {
+      if (statusStr === 'INACTIVE' || statusStr === 'DISABLED' || statusStr === 'DELETED') isActive = false
+      else if (statusStr === 'ACTIVE' || statusStr === 'ENABLED') isActive = true
+    }
+
+    if (!isActive) continue
 
     out.set(teamId, {
       teamId,
@@ -1398,6 +1430,68 @@ async function downloadCurpPdf() {
   } catch (e) {
     console.error(e)
     setNotice('err', 'No se pudo generar el PDF. Revisa consola.')
+  }
+}
+
+/* =========================
+   CSV CURP (importable a Excel)
+========================= */
+function csvEscape(v: unknown) {
+  const s = v == null ? '' : String(v)
+  // Excel: si el valor contiene ; , " salto de línea, lo entrecomillamos
+  // y duplicamos comillas internas.
+  if (/[;,"\r\n]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`
+  }
+  return s
+}
+
+function downloadCurpExcel() {
+  try {
+    if (typeof window === 'undefined') return
+
+    const rows = filteredCurps.value
+    if (!rows.length) {
+      setNotice('err', 'No hay CURP en los resultados actuales.')
+      return
+    }
+
+    const dateStr = ymdLocal(new Date())
+    const sep = ';' // separador estándar para Excel en español
+
+    // Encabezados
+    const header = ['#', 'Nombre', 'CURP', 'Equipo'].map(csvEscape).join(sep)
+
+    // Filas
+    const body = rows.map((r, idx) =>
+      [String(idx + 1), r.fullName || '', r.curp || '', r.teamName || '']
+        .map(csvEscape)
+        .join(sep)
+    )
+
+    // BOM UTF-8 para que Excel reconozca acentos al abrir directo
+    const csv = '﻿' + [header, ...body].join('\r\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const namePart = sanitizeFileName(teamPick.value !== 'ALL' ? teamPickLabel.value : 'Todos')
+    const fileName = `CURP_Jueves_L${JUEVES_LEAGUE_ID}_S${JUEVES_SEASON_ID}_${namePart}_${dateStr}.csv`
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+
+    // Liberar memoria del blob
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500)
+
+    setNotice('ok', `CSV generado: ${rows.length} CURP (listo para Excel)`)
+  } catch (e) {
+    console.error(e)
+    setNotice('err', 'No se pudo generar el CSV. Revisa consola.')
   }
 }
 

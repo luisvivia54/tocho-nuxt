@@ -47,6 +47,19 @@
                 {{ filteredCurps.length }}
               </span>
             </button>
+
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40"
+              :disabled="pendingAny || filteredCurps.length === 0"
+              @click="downloadCurpExcel"
+              title="Descarga las CURP en CSV listo para abrir en Excel (UTF-8 + separador ;)"
+            >
+              ⬇ CURP (Excel)
+              <span class="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                {{ filteredCurps.length }}
+              </span>
+            </button>
           </div>
         </header>
 
@@ -819,9 +832,29 @@ const { data: teamsData, pending: teamsPending, error: teamsErr, refresh: refres
   { default: () => [], server: false }
 )
 
+function isTeamActive(x: any): boolean {
+  // Respeta soft-delete (isActive:false) hecho en /admin/equipos.
+  const activeRaw = x?.isActive ?? x?.is_active ?? x?.active ?? x?.enabled
+  const statusStr = String(x?.status ?? '').toUpperCase()
+
+  if (typeof activeRaw === 'boolean') return activeRaw
+  if (typeof activeRaw === 'string') {
+    const a = activeRaw.toUpperCase()
+    if (a === 'FALSE' || a === '0' || a === 'NO' || a === 'INACTIVE' || a === 'DISABLED') return false
+    if (a === 'TRUE' || a === '1' || a === 'YES' || a === 'ACTIVE' || a === 'ENABLED') return true
+  }
+  if (typeof activeRaw === 'number') return activeRaw !== 0
+  if (statusStr === 'INACTIVE' || statusStr === 'DISABLED' || statusStr === 'DELETED') return false
+  if (statusStr === 'ACTIVE' || statusStr === 'ENABLED') return true
+
+  // Default: si el backend no devuelve estado, asumimos activo.
+  return true
+}
+
 const teamsVm = computed<TeamVM[]>(() => {
   const list = unwrapList<any>(teamsData.value)
   return list
+    .filter((x) => isTeamActive(x))
     .map((x) => {
       const teamId = Number(x.teamId ?? x.team_id ?? x.id)
       const name = String(x.name ?? x.teamName ?? 'Equipo')
@@ -850,6 +883,10 @@ const teamsVm = computed<TeamVM[]>(() => {
     .filter((t) => Number.isFinite(t.teamId))
     .sort((a, b) => a.name.localeCompare(b.name))
 })
+
+// Sólo equipos activos que existen — usado para descartar jugadores de equipos
+// desactivados aunque el endpoint /teams/{id}/players siga devolviendo registros.
+const validTeamIds = computed(() => new Set(teamsVm.value.map((t) => t.teamId)))
 
 const teamById = computed(() => {
   const m = new Map<number, TeamVM>()
@@ -967,6 +1004,7 @@ const playersVm = computed<PlayerVM[]>(() => {
       } satisfies PlayerVM
     })
     .filter((p) => Number.isFinite(p.id))
+    .filter((p) => p.teamId == null || validTeamIds.value.has(p.teamId))
 })
 
 const q = ref('')
@@ -1162,6 +1200,64 @@ async function downloadCurpPdf() {
   } catch (e) {
     console.error(e)
     setNotice('err', 'No se pudo generar el PDF. Revisa consola.')
+  }
+}
+
+/* =========================
+   CSV CURP (importable a Excel)
+========================= */
+function csvEscape(v: any) {
+  const s = v == null ? '' : String(v)
+  // Excel: si el valor contiene ; , " o salto de línea, lo entrecomillamos.
+  if (/[;,"\r\n]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`
+  }
+  return s
+}
+
+function downloadCurpExcel() {
+  try {
+    if (typeof window === 'undefined') return
+
+    const rows = filteredCurps.value
+    if (!rows.length) {
+      setNotice('err', 'No hay CURP en los resultados actuales.')
+      return
+    }
+
+    const dateStr = ymdLocal(new Date())
+    const sep = ';' // separador estándar para Excel en español
+
+    const header = ['#', 'Nombre', 'CURP', 'Equipo'].map(csvEscape).join(sep)
+
+    const body = rows.map((r, idx) =>
+      [String(idx + 1), r.fullName || '', r.curp || '', r.teamName || '']
+        .map(csvEscape)
+        .join(sep)
+    )
+
+    // BOM UTF-8 para que Excel reconozca acentos al abrir directo
+    const csv = '﻿' + [header, ...body].join('\r\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const namePart = sanitizeFileName(teamPick.value !== 'ALL' ? teamPickLabel.value : 'Todos')
+    const fileName = `CURP_${namePart}_${dateStr}.csv`
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500)
+
+    setNotice('ok', `CSV generado: ${rows.length} CURP (listo para Excel)`)
+  } catch (e) {
+    console.error(e)
+    setNotice('err', 'No se pudo generar el CSV. Revisa consola.')
   }
 }
 
