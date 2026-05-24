@@ -1,5 +1,5 @@
 import { computed, ref, unref, type Ref } from 'vue'
-import { useNuxtApp, useRuntimeConfig } from '#imports'
+import { useNuxtApp } from '#imports'
 import { $fetch } from 'ofetch'
 import { useAuthz } from '@/composables/useAuthz'
 
@@ -23,11 +23,13 @@ interface TeamDetail {
 }
 
 interface PlayerApi {
-  playerId: number
-  fullName: string
-  curp: string
-  jerseyNumber: number | null
-  photoUrl: string | null
+  id?: number
+  playerId?: number
+  teamPlayerId?: number
+  fullName?: string | null
+  curp?: string | null
+  jerseyNumber?: number | string | null
+  photoUrl?: string | null
 }
 
 export interface PlayerForm {
@@ -50,8 +52,8 @@ interface TeamPhotoApi {
 
 interface TeamDetailResponse {
   team: TeamDetail
-  players: PlayerApi[]
-  gallery: TeamPhotoApi[]
+  players?: PlayerApi[]
+  gallery?: TeamPhotoApi[]
 }
 
 export interface PhotoForm {
@@ -149,6 +151,26 @@ function normalizeUrl(url?: string | null): string | null {
   return value
 }
 
+function toPositiveNumber(value: unknown): number | undefined {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : undefined
+}
+
+function resolvePlayerId(player: PlayerApi): number | undefined {
+  return (
+    toPositiveNumber(player.playerId) ??
+    toPositiveNumber(player.id) ??
+    toPositiveNumber(player.teamPlayerId)
+  )
+}
+
+function normalizeJerseyNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
 export function useTeamEditor(teamId: number | Ref<number>) {
   const authz = useAuthz()
   const rawIsAuthenticated = (authz as { isAuthenticated?: boolean | Ref<boolean> }).isAuthenticated
@@ -161,7 +183,6 @@ export function useTeamEditor(teamId: number | Ref<number>) {
   })
 
   const nuxtApp = useNuxtApp() as NuxtAppAuthHelpers
-  const config = useRuntimeConfig()
 
   const currentTeamId = computed(() => Number(unref(teamId)) || 0)
   const apiBase = '/api/t5'
@@ -264,17 +285,21 @@ export function useTeamEditor(teamId: number | Ref<number>) {
         revokePreview(player.photoPreview)
       }
 
-      players.value = (data.players ?? []).map((player, index) => ({
-        localId: index + 1,
-        playerId: player.playerId,
-        fullName: player.fullName,
-        curp: player.curp,
-        jerseyNumber: player.jerseyNumber ?? null,
-        photoFile: null,
-        photoPreview: normalizeUrl(player.photoUrl),
-        markedForDeletion: false,
-        isNew: false,
-      }))
+      players.value = (data.players ?? []).map((player, index) => {
+        const resolvedPlayerId = resolvePlayerId(player)
+
+        return {
+          localId: resolvedPlayerId ?? index + 1,
+          playerId: resolvedPlayerId,
+          fullName: String(player.fullName ?? ''),
+          curp: String(player.curp ?? ''),
+          jerseyNumber: normalizeJerseyNumber(player.jerseyNumber),
+          photoFile: null,
+          photoPreview: normalizeUrl(player.photoUrl),
+          markedForDeletion: false,
+          isNew: false,
+        }
+      })
     } catch (err) {
       console.error('Error cargando jugadores', err)
       players.value = []
@@ -587,6 +612,7 @@ export function useTeamEditor(teamId: number | Ref<number>) {
       return true
     } catch (err) {
       console.error('Error guardando cambios del equipo', err)
+
       const status = getStatusCode(err)
       const apiError = toApiError(err)
       const rawMessage = apiError.data?.message ?? apiError.response?._data?.message ?? apiError.message
@@ -608,8 +634,16 @@ export function useTeamEditor(teamId: number | Ref<number>) {
   async function saveRoster() {
     resetMessages()
 
+    if (!currentTeamId.value) {
+      errorMessage.value = 'No se encontró el ID del equipo.'
+      return false
+    }
+
     const invalidExistingPlayer = players.value.find(
-      (player) => !player.markedForDeletion && !player.isNew && (!player.fullName.trim() || !player.curp.trim())
+      (player) =>
+        !player.markedForDeletion &&
+        !player.isNew &&
+        (!player.fullName.trim() || !player.curp.trim())
     )
 
     if (invalidExistingPlayer) {
@@ -617,8 +651,28 @@ export function useTeamEditor(teamId: number | Ref<number>) {
       return false
     }
 
+    const invalidNewPlayer = players.value.find((player) => {
+      if (!player.isNew || player.markedForDeletion) return false
+
+      const hasSomeData =
+        !!player.fullName.trim() ||
+        !!player.curp.trim() ||
+        player.jerseyNumber !== null ||
+        !!player.photoFile
+
+      if (!hasSomeData) return false
+
+      return !player.fullName.trim() || !player.curp.trim()
+    })
+
+    if (invalidNewPlayer) {
+      errorMessage.value = 'Los jugadores nuevos que captures deben tener al menos nombre completo y CURP.'
+      return false
+    }
+
     try {
       saving.value = true
+
       const token = await getAuthToken()
 
       if (!token) {
@@ -641,6 +695,20 @@ export function useTeamEditor(teamId: number | Ref<number>) {
           })
         } catch (err) {
           console.error('Error eliminando jugador', err)
+
+          const status = getStatusCode(err)
+
+          if (status === 401) {
+            errorMessage.value = 'Tu sesión expiró. Vuelve a iniciar sesión.'
+          } else if (status === 403) {
+            errorMessage.value = 'No tienes permisos para eliminar este jugador.'
+          } else if (status === 404) {
+            errorMessage.value = 'No se encontró el jugador que intentas eliminar.'
+          } else {
+            errorMessage.value = 'No se pudo eliminar uno de los jugadores.'
+          }
+
+          return false
         }
       }
 
@@ -656,7 +724,9 @@ export function useTeamEditor(teamId: number | Ref<number>) {
           form.append('jerseyNumber', String(player.jerseyNumber))
         }
 
-        if (player.photoFile) form.append('photo', player.photoFile)
+        if (player.photoFile) {
+          form.append('photo', player.photoFile)
+        }
 
         try {
           await $fetch(`/teams/${currentTeamId.value}/players`, {
@@ -666,16 +736,20 @@ export function useTeamEditor(teamId: number | Ref<number>) {
             headers: authHeaders,
           })
         } catch (err) {
+          console.error('Error creando jugador', err)
+
           if (getStatusCode(err) === 413) {
             errorMessage.value = 'Una foto nueva de jugador pesa demasiado. Usa archivos más ligeros.'
           } else {
-            console.error('Error creando jugador', err)
+            errorMessage.value = 'No se pudo crear uno de los jugadores nuevos.'
           }
+
+          return false
         }
       }
 
       for (const player of players.value) {
-        if (!player.playerId || player.markedForDeletion) continue
+        if (!player.playerId || player.markedForDeletion || player.isNew) continue
 
         const form = new FormData()
         form.append('fullName', player.fullName.trim())
@@ -685,7 +759,9 @@ export function useTeamEditor(teamId: number | Ref<number>) {
           form.append('jerseyNumber', String(player.jerseyNumber))
         }
 
-        if (player.photoFile) form.append('photo', player.photoFile)
+        if (player.photoFile) {
+          form.append('photo', player.photoFile)
+        }
 
         try {
           await $fetch(`/teams/${currentTeamId.value}/players/${player.playerId}`, {
@@ -695,11 +771,23 @@ export function useTeamEditor(teamId: number | Ref<number>) {
             headers: authHeaders,
           })
         } catch (err) {
-          if (getStatusCode(err) === 413) {
+          console.error('Error actualizando jugador', err)
+
+          const status = getStatusCode(err)
+
+          if (status === 401) {
+            errorMessage.value = 'Tu sesión expiró. Vuelve a iniciar sesión.'
+          } else if (status === 403) {
+            errorMessage.value = 'No tienes permisos para actualizar este jugador.'
+          } else if (status === 404) {
+            errorMessage.value = 'No se encontró el jugador que intentas actualizar.'
+          } else if (status === 413) {
             errorMessage.value = 'Una foto actualizada de jugador pesa demasiado. Usa archivos más ligeros.'
           } else {
-            console.error('Error actualizando jugador', err)
+            errorMessage.value = 'No se pudo actualizar uno de los jugadores.'
           }
+
+          return false
         }
       }
 
@@ -708,6 +796,7 @@ export function useTeamEditor(teamId: number | Ref<number>) {
       return true
     } catch (err) {
       console.error('Error guardando roster', err)
+
       const status = getStatusCode(err)
 
       if (status === 413) {
@@ -754,6 +843,7 @@ export function useTeamEditor(teamId: number | Ref<number>) {
       return true
     } catch (err) {
       console.error('Error desactivando equipo', err)
+
       const status = getStatusCode(err)
       const apiError = toApiError(err)
       const rawMessage = apiError.data?.message ?? apiError.response?._data?.message ?? apiError.message

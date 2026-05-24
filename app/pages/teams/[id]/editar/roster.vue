@@ -178,16 +178,18 @@ onBeforeUnmount(() => {
               ]"
             >
               <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div class="flex items-center gap-2 text-xs text-slate-400">
+                <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                   <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white">
                     {{ index + 1 }}
                   </span>
+
                   <span
                     v-if="player.isNew && !player.playerId"
                     class="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-100"
                   >
                     Nuevo
                   </span>
+
                   <span
                     v-if="player.markedForDeletion"
                     class="rounded-full border border-red-400/30 bg-red-500/10 px-2 py-0.5 text-red-100"
@@ -196,19 +198,28 @@ onBeforeUnmount(() => {
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  class="text-left text-[11px] font-semibold text-slate-400 hover:text-red-200"
-                  @click="player.isNew && !player.playerId ? removeNewPlayerCard(index) : toggleRemovePlayer(index)"
-                >
-                  {{
-                    player.isNew && !player.playerId
-                      ? 'Quitar tarjeta'
-                      : player.markedForDeletion
-                        ? 'Deshacer'
-                        : 'Marcar para eliminar'
-                  }}
-                </button>
+                <div class="flex flex-col items-start gap-1 lg:items-end">
+                  <button
+                    type="button"
+                    class="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-1.5 text-left text-[11px] font-semibold text-red-100 hover:bg-red-500/20"
+                    @click="player.isNew && !player.playerId ? removeNewPlayerCard(index) : toggleRemovePlayer(index)"
+                  >
+                    {{
+                      player.isNew && !player.playerId
+                        ? 'Quitar tarjeta'
+                        : player.markedForDeletion
+                          ? 'Deshacer eliminación'
+                          : 'Eliminar integrante'
+                    }}
+                  </button>
+
+                  <p
+                    v-if="player.markedForDeletion"
+                    class="text-[11px] text-red-200/80"
+                  >
+                    Se eliminará cuando guardes el roster.
+                  </p>
+                </div>
               </div>
 
               <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_240px]">
