@@ -144,7 +144,7 @@
                     {{
                       panelMode === 'edit' && editingTeam
                         ? `Editar equipo: ${editingTeam.name}`
-                        : 'Datos del equipo e integrantes'
+                        : 'Datos del equipo'
                     }}
                   </h2>
                 </div>
@@ -357,136 +357,11 @@
                   </div>
                 </div>
 
-                <div class="mt-8 space-y-4">
-                  <div class="flex items-center justify-between gap-2">
-                    <div>
-                      <h3 class="text-lg font-semibold text-slate-900">Integrantes del equipo</h3>
-                      <p class="text-xs text-slate-500">
-                        Solo se registrarán los integrantes que tengan <strong>Nombre + CURP + Foto</strong>.
-                        Los incompletos <strong>se ignoran</strong>. El jersey es opcional.
-                      </p>
-                      <p class="mt-1 text-[11px] text-slate-500">
-                        Se enviarán: <strong>{{ sendablePlayers.length }}</strong> / {{ players.length }}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                      @click="addPlayer"
-                    >
-                      + Agregar integrante
-                    </button>
-                  </div>
-
-                  <div
-                    v-if="players.length === 0"
-                    class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600"
-                  >
-                    No has agregado integrantes. Puedes continuar así y luego cargar más desde “Mi equipo”.
-                  </div>
-
-                  <div v-else class="space-y-3">
-                    <div
-                      v-for="(player, index) in players"
-                      :key="player.id"
-                      class="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 sm:px-5"
-                    >
-                      <div class="mb-3 flex items-start justify-between gap-3">
-                        <div class="flex items-center gap-2 text-xs text-slate-500">
-                          <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white">
-                            {{ index + 1 }}
-                          </span>
-                          <span>Integrante</span>
-                        </div>
-
-                        <button
-                          type="button"
-                          class="text-[11px] text-slate-500 hover:text-red-500"
-                          @click="removePlayer(index)"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-
-                      <div class="grid items-start gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-                        <div class="space-y-3">
-                          <div>
-                            <label class="mb-1 block text-[11px] font-semibold text-slate-700">
-                              Nombre completo
-                            </label>
-                            <input
-                              v-model="player.fullName"
-                              type="text"
-                              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500/70 focus:outline-none focus:ring-2 focus:ring-blue-500/70"
-                              placeholder="Ej. María López"
-                            />
-                          </div>
-
-                          <div class="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
-                            <div>
-                              <label class="mb-1 block text-[11px] font-semibold text-slate-700">
-                                CURP
-                              </label>
-                              <input
-                                v-model="player.curp"
-                                type="text"
-                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs uppercase tracking-[0.08em] text-slate-900 focus:border-blue-500/70 focus:outline-none focus:ring-2 focus:ring-blue-500/70"
-                                placeholder="CURP"
-                              />
-                            </div>
-
-                            <div>
-                              <label class="mb-1 block text-[11px] font-semibold text-slate-700">
-                                # Jersey (opcional)
-                              </label>
-                              <input
-                                v-model.number="player.jerseyNumber"
-                                type="number"
-                                min="0"
-                                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-blue-500/70 focus:outline-none focus:ring-2 focus:ring-blue-500/70"
-                                placeholder="Ej. 10"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div class="space-y-2">
-                          <label class="mb-1 block text-[11px] font-semibold text-slate-700">
-                            Foto
-                          </label>
-                          <p class="text-[11px] text-slate-500">
-                            Si no hay foto, este integrante no se enviará.
-                          </p>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            class="block w-full text-[11px] text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
-                            @change="onPlayerPhotoChange(index, $event)"
-                          />
-
-                          <div class="mt-2 flex h-24 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-white">
-                            <img
-                              v-if="player.photoPreview"
-                              :src="player.photoPreview"
-                              alt="Foto del jugador"
-                              class="h-full w-full object-cover"
-                            />
-                            <span v-else class="px-2 text-center text-[11px] text-slate-400">
-                              Previsualización de la foto
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p class="text-[11px] text-slate-500">
-                    Puedes agregar más integrantes después desde <strong>“Mi equipo”</strong>.
-                  </p>
+                <div class=”mt-6 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700”>
+                  Los integrantes del equipo se agregan desde el <strong>Roster</strong>, una vez que el equipo esté registrado.
                 </div>
 
-                <div class="mt-6 flex flex-wrap justify-end gap-3">
+                <div class=”mt-6 flex flex-wrap justify-end gap-3”>
                   <button
                     type="button"
                     class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
@@ -775,22 +650,6 @@ interface SeasonOption {
   leagueId: number
 }
 
-interface PlayerForm {
-  id: number
-  fullName: string
-  curp: string
-  jerseyNumber: number | null
-  photoFile: File | null
-  photoPreview: string | null
-}
-
-interface DraftPlayer {
-  id: number
-  fullName?: string
-  curp?: string
-  jerseyNumber?: number
-}
-
 interface DraftData {
   teamName?: string
   teamShortName?: string
@@ -801,7 +660,6 @@ interface DraftData {
   categoryId?: number
   gender?: string
   rama?: string
-  players?: DraftPlayer[]
 }
 
 interface CreatedTeam {
@@ -887,16 +745,6 @@ function normalizeCategories(raw: any): CategoryDto[] {
     .filter((c: CategoryDto) => c.id > 0 && !!c.name)
 }
 
-function createEmptyPlayer(id: number): PlayerForm {
-  return {
-    id,
-    fullName: '',
-    curp: '',
-    jerseyNumber: null,
-    photoFile: null,
-    photoPreview: null,
-  }
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -1271,23 +1119,6 @@ async function fetchCategories() {
   }
 }
 
-function nextPlayerId() {
-  const maxId = players.value.reduce((mx, p) => Math.max(mx, p.id), 0)
-  return maxId + 1
-}
-
-function addPlayer() {
-  players.value.push(createEmptyPlayer(nextPlayerId()))
-}
-
-function removePlayer(index: number) {
-  if (index < 0 || index >= players.value.length) return
-
-  const p = players.value[index]
-  if (p?.photoPreview) URL.revokeObjectURL(p.photoPreview)
-  players.value.splice(index, 1)
-}
-
 function onLogoChange(event: Event) {
   const target = event.target as HTMLInputElement | null
   const file = target?.files?.[0] ?? null
@@ -1304,25 +1135,6 @@ function onLogoChange(event: Event) {
   logoPreview.value = URL.createObjectURL(file)
 }
 
-function onPlayerPhotoChange(index: number, event: Event) {
-  const player = players.value[index]
-  if (!player) return
-
-  const target = event.target as HTMLInputElement | null
-  const file = target?.files?.[0] ?? null
-
-  if (!file) {
-    player.photoFile = null
-    if (player.photoPreview) URL.revokeObjectURL(player.photoPreview)
-    player.photoPreview = null
-    return
-  }
-
-  player.photoFile = file
-  if (player.photoPreview) URL.revokeObjectURL(player.photoPreview)
-  player.photoPreview = URL.createObjectURL(file)
-}
-
 function saveDraft() {
   try {
     const forcedSeasonId = currentSeason.value?.id ?? FALLBACK_SEASON_ID
@@ -1337,12 +1149,6 @@ function saveDraft() {
       categoryId: selectedCategoryId.value,
       gender: selectedGender.value,
       rama: selectedRama.value,
-      players: players.value.map((p) => ({
-        id: p.id,
-        fullName: p.fullName,
-        curp: p.curp,
-        jerseyNumber: p.jerseyNumber === null ? undefined : p.jerseyNumber,
-      })),
     }
 
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -1376,15 +1182,6 @@ function loadDraft() {
     selectedRama.value = draft.rama ?? ''
     selectedCategoryId.value = draft.categoryId ?? 0
 
-    const playersDraft = draft.players ?? []
-    players.value = playersDraft.map((p, idx) => ({
-      id: p.id ?? idx + 1,
-      fullName: p.fullName ?? '',
-      curp: p.curp ?? '',
-      jerseyNumber: typeof p.jerseyNumber === 'number' ? p.jerseyNumber : null,
-      photoFile: null,
-      photoPreview: null,
-    }))
   } catch (e) {
     console.error('Error cargando borrador:', e)
   }

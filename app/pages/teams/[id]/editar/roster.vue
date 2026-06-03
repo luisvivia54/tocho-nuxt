@@ -68,7 +68,7 @@ onBeforeUnmount(() => {
             Editar roster
           </h1>
           <p class="mt-2 max-w-2xl text-sm text-slate-400">
-            Agrega, actualiza o elimina integrantes en una pantalla enfocada solo en el roster.
+            Agrega, actualiza o elimina integrantes en una pantalla enfocada solo en el roster, para agregar un integrante es necesario subir una foto.
           </p>
         </div>
 

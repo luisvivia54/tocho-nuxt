@@ -247,8 +247,8 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
       name: String(teamRaw?.name ?? teamRaw?.teamName ?? ''),
       shortName: String(teamRaw?.shortName ?? teamRaw?.short_name ?? teamRaw?.abbr ?? ''),
       categoryId: Number(teamRaw?.categoryId ?? teamRaw?.category_id ?? category.id ?? 0) || 0,
-      primaryColor: String(teamRaw?.primaryColor ?? teamRaw?.primary_color ?? '#F97316'),
-      secondaryColor: String(teamRaw?.secondaryColor ?? teamRaw?.secondary_color ?? '#FFFFFF'),
+      primaryColor: String(teamRaw?.colorPrimary ?? teamRaw?.primaryColor ?? teamRaw?.primary_color ?? '#F97316'),
+      secondaryColor: String(teamRaw?.colorSecondary ?? teamRaw?.secondaryColor ?? teamRaw?.secondary_color ?? '#FFFFFF'),
       logoUrl: normalizeUrl(String(teamRaw?.logoUrl ?? teamRaw?.logo_url ?? teamRaw?.photoUrl ?? teamRaw?.photo_url ?? '')),
       players: rosterRaw.map((player) => ({
         id: uid('pl'),
@@ -432,6 +432,8 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
       season_id: SEASON_ID,
       leagueId: LEAGUE_ID,
       league_id: LEAGUE_ID,
+      colorPrimary: team.value.primaryColor.trim(),
+      colorSecondary: team.value.secondaryColor.trim(),
       primaryColor: team.value.primaryColor.trim(),
       primary_color: team.value.primaryColor.trim(),
       secondaryColor: team.value.secondaryColor.trim(),
@@ -533,9 +535,15 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
       for (const player of team.value.players) {
         if (!player.playerId || !player.markedForDeletion) continue
 
-        await authedFetch(`${API_BASE}/teams/${teamId.value}/players/${player.playerId}`, {
-          method: 'DELETE',
-        })
+        try {
+          await authedFetch(`${API_BASE}/teams/${teamId.value}/players/${player.playerId}`, {
+            method: 'DELETE',
+          })
+        } catch (err) {
+          const status = readStatus(err)
+          if (status === 401 || status === 403) throw err
+          // 404 = ya no existe en el servidor, continuar
+        }
       }
 
       for (const player of team.value.players) {

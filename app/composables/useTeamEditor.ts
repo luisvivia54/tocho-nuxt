@@ -700,15 +700,16 @@ export function useTeamEditor(teamId: number | Ref<number>) {
 
           if (status === 401) {
             errorMessage.value = 'Tu sesión expiró. Vuelve a iniciar sesión.'
+            return false
           } else if (status === 403) {
             errorMessage.value = 'No tienes permisos para eliminar este jugador.'
+            return false
           } else if (status === 404) {
-            errorMessage.value = 'No se encontró el jugador que intentas eliminar.'
+            // El jugador ya no existe en el servidor, continuar con el resto
           } else {
             errorMessage.value = 'No se pudo eliminar uno de los jugadores.'
+            return false
           }
-
-          return false
         }
       }
 
