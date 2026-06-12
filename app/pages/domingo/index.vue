@@ -759,7 +759,7 @@
                     <p class="mt-1 text-sm text-slate-600">Desliza (mobile) o haz clic para destacar.</p>
                   </div>
 
-                  <a href="https://www.instagram.com/tochero5liga/" target="_blank" rel="noopener"
+                  <a href="https://www.instagram.com/tochero5liga?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener"
                     class="hidden sm:inline-flex items-center rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 shrink-0">
                     ¿Quieres patrocinar? ↗
                   </a>

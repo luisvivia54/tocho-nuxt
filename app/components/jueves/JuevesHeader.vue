@@ -120,7 +120,7 @@
           </div>
 
           <a
-            href="https://www.instagram.com/"
+            href="https://www.instagram.com/tochero5liga?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
             target="_blank"
             rel="noopener noreferrer"
             class="text-slate-300 transition hover:text-white"
@@ -255,7 +255,7 @@
 
           <div class="flex items-center justify-between gap-4 border-t border-white/10 px-5 py-5 sm:px-7">
             <a
-              href="https://www.instagram.com/"
+              href="https://www.instagram.com/tochero5liga?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
               target="_blank"
               rel="noopener noreferrer"
               class="flex items-center gap-3 text-[1.05rem] font-semibold text-slate-200 transition hover:text-white"
