@@ -314,7 +314,7 @@
               class="whitespace-nowrap rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] transition hover:bg-blue-500"
               @click="onAuthClick"
             >
-              {{ isAuthenticated ? 'Cerrar sesión' : 'Entrar' }}
+              {{ isAuthenticated ? 'Cerrar sesión' : 'Iniciar sesión' }}
             </button>
 
             <span v-else class="text-xs text-white/60">Inicializando…</span>
@@ -424,7 +424,7 @@
                     class="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] transition hover:bg-blue-500"
                     @click="onAuthClick(); closeMobile()"
                   >
-                    {{ isAuthenticated ? 'Cerrar sesión' : 'Entrar' }}
+                    {{ isAuthenticated ? 'Cerrar sesión' : 'Iniciar sesión' }}
                   </button>
 
                   <span v-else class="text-xs text-slate-400">Inicializando…</span>

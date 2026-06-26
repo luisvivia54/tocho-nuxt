@@ -122,7 +122,7 @@
               :disabled="authActionLoading"
               @click="handleLogin"
             >
-              Entrar
+              Iniciar Sesión
             </button>
           </template>
 
