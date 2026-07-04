@@ -357,11 +357,11 @@
                   </div>
                 </div>
 
-                <div class=”mt-6 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700”>
+                <div class="mt-6 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
                   Los integrantes del equipo se agregan desde el <strong>Roster</strong>, una vez que el equipo esté registrado.
                 </div>
 
-                <div class=”mt-6 flex flex-wrap justify-end gap-3”>
+                <div class="mt-6 flex flex-wrap justify-end gap-3">
                   <button
                     type="button"
                     class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
