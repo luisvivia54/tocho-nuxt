@@ -39,7 +39,7 @@
               </div>
 
               <div class="rounded-2xl border border-slate-700/70 bg-slate-950/50 px-3 py-2">
-                <select v-model="seasonPick" class="w-full appearance-none bg-transparent outline-none text-xs text-slate-100">
+                <select v-model="seasonPick" class="w-full appearance-none bg-transparent outline-none text-xs text-slate-100" @change="seasonTouched = true">
                   <option
                     v-for="s in seasonOptions"
                     :key="s.id"
@@ -462,9 +462,37 @@ const API_BASE = ((config.public as any)?.apiBase as string || 'https://tocho5-a
   .replace(/\/api$/, '') + '/api'
 
 const LEAGUE_ID = 1
-const DEFAULT_SEASON_ID = 6
 
-const seasonPick = ref<string>(String(DEFAULT_SEASON_ID))
+// Si el backend no responde la temporada activa, usamos esta como respaldo.
+const FALLBACK_SEASON_ID = 7
+
+// Temporada activa (dinámica): la resuelve el backend según el último rollover,
+// así el default se mueve solo al iniciar una nueva temporada.
+const { data: currentSeasonRaw } = useAsyncData<{ seasonId?: number } | null>(
+  `season-current-league-${LEAGUE_ID}`,
+  () =>
+    $fetch<{ seasonId?: number }>(`${API_BASE}/seasons/current?leagueId=${LEAGUE_ID}`).catch(
+      () => null
+    ),
+  { server: false }
+)
+
+const DEFAULT_SEASON_ID = computed<number>(
+  () => Number(currentSeasonRaw.value?.seasonId) || FALLBACK_SEASON_ID
+)
+
+// Marca si el usuario ya eligió una temporada a mano; en ese caso no la pisamos.
+const seasonTouched = ref(false)
+const seasonPick = ref<string>('')
+
+// Selecciona la temporada activa por defecto hasta que el usuario cambie el filtro.
+watch(
+  DEFAULT_SEASON_ID,
+  (id) => {
+    if (!seasonTouched.value && id) seasonPick.value = String(id)
+  },
+  { immediate: true }
+)
 const roundPick = ref<'ALL' | string>('ALL')
 const roundInput = ref('')
 const categoria = ref<'ALL' | Gender>('ALL')
@@ -695,15 +723,15 @@ const seasonOptions = computed<Season[]>(() => {
     if (id && name) merged.set(id, name)
   }
 
-  if (!merged.has(DEFAULT_SEASON_ID)) {
-    merged.set(DEFAULT_SEASON_ID, seasonsMap.value[DEFAULT_SEASON_ID] || `Temporada #${DEFAULT_SEASON_ID}`)
+  if (!merged.has(DEFAULT_SEASON_ID.value)) {
+    merged.set(DEFAULT_SEASON_ID.value, seasonsMap.value[DEFAULT_SEASON_ID.value] || `Temporada #${DEFAULT_SEASON_ID.value}`)
   }
 
   const arr = Array.from(merged.entries()).map(([id, name]) => ({ id, name }))
 
   arr.sort((a, b) => {
-    if (a.id === DEFAULT_SEASON_ID) return -1
-    if (b.id === DEFAULT_SEASON_ID) return 1
+    if (a.id === DEFAULT_SEASON_ID.value) return -1
+    if (b.id === DEFAULT_SEASON_ID.value) return 1
     return a.name.localeCompare(b.name, 'es')
   })
 
@@ -712,7 +740,7 @@ const seasonOptions = computed<Season[]>(() => {
 
 watch(seasonOptions, (opts) => {
   if (!opts.some(x => String(x.id) === String(seasonPick.value))) {
-    seasonPick.value = String(DEFAULT_SEASON_ID)
+    seasonPick.value = String(DEFAULT_SEASON_ID.value)
   }
 }, { immediate: true })
 
@@ -872,7 +900,8 @@ const pageRangeLabel = computed(() => {
 })
 
 function resetFilters() {
-  seasonPick.value = String(DEFAULT_SEASON_ID)
+  seasonTouched.value = false
+  seasonPick.value = String(DEFAULT_SEASON_ID.value)
   roundPick.value = 'ALL'
   roundInput.value = ''
   categoria.value = 'ALL'
@@ -1099,8 +1128,8 @@ function statusRank(st: string) {
 }
 
 function safeSeasonId() {
-  const n = Number(seasonPick.value || DEFAULT_SEASON_ID)
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_SEASON_ID
+  const n = Number(seasonPick.value || DEFAULT_SEASON_ID.value)
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_SEASON_ID.value
 }
 </script>
 
