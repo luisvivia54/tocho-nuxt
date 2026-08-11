@@ -403,31 +403,45 @@
                   </NuxtLink>
                 </div>
 
-                <div class="flex items-center justify-between gap-3 border-t border-white/10 px-4 pb-4 pt-3">
-                  <a
-                    href="https://www.instagram.com/tochero5liga?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
-                    target="_blank"
-                    rel="noopener"
-                    class="inline-flex items-center gap-2 text-sm text-slate-300 transition hover:text-white"
-                    @click="closeMobile"
-                  >
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="1.6" />
-                      <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6" />
-                      <circle cx="17.5" cy="6.5" r="1.3" fill="currentColor" />
-                    </svg>
-                    Instagram
-                  </a>
+                <div class="space-y-5 border-t border-white/10 px-4 pb-5 pt-4">
+                  <!-- Cuenta: iniciar / cerrar sesión -->
+                  <div class="space-y-2">
+                    <p class="px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Tu cuenta</p>
 
-                  <button
-                    v-if="kcReady"
-                    class="rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] transition hover:bg-blue-500"
-                    @click="onAuthClick(); closeMobile()"
-                  >
-                    {{ isAuthenticated ? 'Cerrar sesión' : 'Iniciar sesión' }}
-                  </button>
+                    <button
+                      v-if="kcReady"
+                      class="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] transition hover:bg-blue-500"
+                      @click="onAuthClick(); closeMobile()"
+                    >
+                      <component :is="isAuthenticated ? LogOut : LogIn" class="h-4 w-4" />
+                      {{ isAuthenticated ? 'Cerrar sesión' : 'Iniciar sesión' }}
+                    </button>
 
-                  <span v-else class="text-xs text-slate-400">Inicializando…</span>
+                    <span v-else class="block px-1 text-xs text-slate-400">Inicializando…</span>
+                  </div>
+
+                  <!-- Redes: enlace externo a Instagram -->
+                  <div class="space-y-2">
+                    <p class="px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Síguenos</p>
+
+                    <a
+                      href="https://www.instagram.com/tochero5liga?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+                      target="_blank"
+                      rel="noopener"
+                      class="flex w-full items-center justify-between gap-2 rounded-2xl border border-white/12 px-4 py-3 text-sm font-medium text-slate-300 transition hover:border-white/25 hover:text-white"
+                      @click="closeMobile"
+                    >
+                      <span class="inline-flex items-center gap-2">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="1.6" />
+                          <circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6" />
+                          <circle cx="17.5" cy="6.5" r="1.3" fill="currentColor" />
+                        </svg>
+                        Instagram
+                      </span>
+                      <ExternalLink class="h-4 w-4 text-slate-500" />
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -572,7 +586,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Home } from 'lucide-vue-next'
+import { ExternalLink, Home, LogIn, LogOut } from 'lucide-vue-next'
 import { useNuxtApp, useRoute, useState } from '#imports'
 import { useAuthz } from '~/composables/useAuthz'
 import { useBackendUser } from '~/composables/useBackendUser'

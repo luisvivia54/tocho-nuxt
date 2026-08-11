@@ -253,39 +253,54 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between gap-4 border-t border-white/10 px-5 py-5 sm:px-7">
-            <a
-              href="https://www.instagram.com/tochero5liga?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center gap-3 text-[1.05rem] font-semibold text-slate-200 transition hover:text-white"
-              aria-label="Instagram"
-            >
-              <Instagram class="h-6 w-6" />
-              <span>Instagram</span>
-            </a>
+          <div class="space-y-6 border-t border-white/10 px-5 py-6 sm:px-7">
+            <!-- Cuenta: iniciar / cerrar sesión -->
+            <div class="space-y-3">
+              <p class="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-500">Tu cuenta</p>
 
-            <template v-if="kcReady && !isAuthenticated">
-              <button
-                type="button"
-                class="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-6 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="authActionLoading"
-                @click="handleLogin"
-              >
-                Iniciar Sesión
-              </button>
-            </template>
+              <template v-if="kcReady && !isAuthenticated">
+                <button
+                  type="button"
+                  class="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-6 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="authActionLoading"
+                  @click="handleLogin"
+                >
+                  <LogIn class="h-4 w-4" />
+                  Iniciar sesión
+                </button>
+              </template>
 
-            <template v-else-if="kcReady && isAuthenticated">
-              <button
-                type="button"
-                class="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-6 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="authActionLoading"
-                @click="handleLogout"
+              <template v-else-if="kcReady && isAuthenticated">
+                <button
+                  type="button"
+                  class="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-400 px-6 py-3 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(249,115,22,0.25)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                  :disabled="authActionLoading"
+                  @click="handleLogout"
+                >
+                  <LogOut class="h-4 w-4" />
+                  Cerrar sesión
+                </button>
+              </template>
+            </div>
+
+            <!-- Redes: enlace externo a Instagram -->
+            <div class="space-y-3">
+              <p class="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-500">Síguenos</p>
+
+              <a
+                href="https://www.instagram.com/tochero5liga?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/12 px-4 py-3 text-[1.05rem] font-semibold text-slate-200 transition hover:border-white/25 hover:text-white"
+                aria-label="Abrir Instagram en una pestaña nueva"
               >
-                Cerrar sesión
-              </button>
-            </template>
+                <span class="inline-flex items-center gap-3">
+                  <Instagram class="h-6 w-6" />
+                  <span>Instagram</span>
+                </span>
+                <ExternalLink class="h-4 w-4 text-slate-500" />
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -299,8 +314,11 @@ import {
   CalendarPlus,
   ChevronDown,
   ClipboardList,
+  ExternalLink,
   House,
   Instagram,
+  LogIn,
+  LogOut,
   Menu,
   ShieldCheck,
   Trash2,

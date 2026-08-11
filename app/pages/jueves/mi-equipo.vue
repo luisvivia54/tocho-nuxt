@@ -1027,6 +1027,7 @@ const submitting = ref(false)
 const uploading = ref(false)
 const deletingTeam = ref(false)
 const logoInput = ref<HTMLInputElement | null>(null)
+const logoFile = ref<File | null>(null)
 
 const editingTeamCard = computed<TeamCard | null>(() => {
   if (!activeEditTeamId.value) return null
@@ -1066,6 +1067,7 @@ function resetForm() {
   revokeAllPlayerPreviews()
   team.value = createEmptyTeam()
   serverSnapshot.value = createEmptyTeam()
+  logoFile.value = null
 }
 
 function clearProgress() {
@@ -1154,6 +1156,10 @@ async function onLogoChange(e: Event) {
   const file = input.files?.[0]
   input.value = ""
   if (!file) return
+
+  // Conservamos el archivo para poder mandarlo al endpoint dedicado
+  // POST /teams/{id}/logo al crear el equipo (asocia el logo al equipo).
+  logoFile.value = file
 
   uploading.value = true
   errorMsg.value = ""
@@ -1263,6 +1269,8 @@ async function submitTeam() {
     const token = headers.Authorization.replace("Bearer ", "")
     let res: any = null
 
+    const isCreate = !(panelMode.value === "edit" && activeEditTeamId.value)
+
     if (panelMode.value === "edit" && activeEditTeamId.value) {
       const url = TEAM_UPDATE_URL(activeEditTeamId.value)
 
@@ -1292,6 +1300,28 @@ async function submitTeam() {
 
     const newId = Number(res?.id ?? res?.teamId ?? res?.team_id ?? activeEditTeamId.value ?? 0) || null
     if (newId) team.value.id = newId
+
+    // Solución A (solo crear): asociar el logo al equipo por el endpoint
+    // dedicado, igual que la liga que sí funciona. El create por JSON no
+    // persiste logoUrl, así que aquí lo mandamos como multipart.
+    if (isCreate && newId && logoFile.value) {
+      try {
+        const fdLogo = new FormData()
+        fdLogo.append("logo", logoFile.value)
+
+        const rLogo = await fetch(`${API_BASE}/teams/${newId}/logo`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fdLogo,
+        })
+
+        if (!rLogo.ok) {
+          console.error("No se pudo asociar el logo al equipo:", await rLogo.text().catch(() => ""))
+        }
+      } catch (errLogo) {
+        console.error("Error subiendo logo del equipo:", errLogo)
+      }
+    }
 
     if (newId && validPlayers.value.length > 0) {
       for (const p of validPlayers.value) {

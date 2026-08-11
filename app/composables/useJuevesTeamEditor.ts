@@ -150,6 +150,7 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
   const categoriesLoading = ref(false)
   const team = ref<JuevesTeamDraft>(createEmptyTeam())
   const serverSnapshot = ref<JuevesTeamDraft>(createEmptyTeam())
+  const logoFile = ref<File | null>(null)
 
   const selectedCategory = computed<JuevesCategory | null>(() =>
     categories.value.find((item) => item.id === team.value.categoryId) || null
@@ -314,6 +315,7 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
       revokeAllPlayerPreviews()
       team.value = clone(normalized)
       serverSnapshot.value = clone(normalized)
+      logoFile.value = null
       successMessage.value = ''
       errorMessage.value = ''
     } catch (err) {
@@ -367,6 +369,11 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
     const file = input.files?.[0]
     input.value = ''
     if (!file) return
+
+    // Conservamos el archivo para asociarlo al equipo por el endpoint
+    // dedicado POST /teams/{id}/logo al guardar (el PUT/PATCH por JSON
+    // no persiste logoUrl).
+    logoFile.value = file
 
     uploading.value = true
     errorMessage.value = ''
@@ -505,6 +512,30 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
         if (!response.ok) {
           const raw = await response.text().catch(() => '')
           throw new Error(raw || `Error ${response.status}`)
+        }
+      }
+
+      // Solución A: asociar el logo por el endpoint dedicado (multipart),
+      // igual que la liga que sí funciona. Solo si se seleccionó un archivo nuevo.
+      if (logoFile.value) {
+        try {
+          const token = await getAccessToken()
+          const formLogo = new FormData()
+          formLogo.append('logo', logoFile.value)
+
+          const logoResponse = await fetch(`${API_BASE}/teams/${teamId.value}/logo`, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formLogo,
+          })
+
+          if (!logoResponse.ok) {
+            console.error('No se pudo asociar el logo al equipo:', await logoResponse.text().catch(() => ''))
+          } else {
+            logoFile.value = null
+          }
+        } catch (errLogo) {
+          console.error('Error subiendo logo del equipo:', errLogo)
         }
       }
 

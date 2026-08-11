@@ -369,6 +369,23 @@ const { data: teamsData, pending: pendingTeams, error: teamsError } =
               ["season.id", "seasonId", "season_id", "temporada.id"]
             )
 
+          // El listado /api/t5/teams (liga jueves) no trae el logo por equipo,
+          // pero el /detail sí. Usamos el detail como respaldo del logo.
+          const detailLogoUrl = pickTextFromSources(
+            [
+              { obj: detailTeam, flat: detailFlat },
+              { obj: baseTeam.raw, flat: baseFlat },
+            ],
+            [
+              "logoUrl",
+              "logo",
+              "imageUrl",
+              "image",
+              "teamLogo",
+              "teamLogoUrl",
+            ]
+          )
+
           return {
             id: baseTeam.id,
             name: baseTeam.name,
@@ -379,7 +396,7 @@ const { data: teamsData, pending: pendingTeams, error: teamsError } =
             branchValue: normalizeFilterValue(branchLabel),
             seasonLabel,
             seasonValue: buildSeasonValue(seasonId, seasonLabel),
-            logoUrl: baseTeam.logoUrl,
+            logoUrl: baseTeam.logoUrl || detailLogoUrl,
             colorPrimary: baseTeam.colorPrimary,
             colorSecondary: baseTeam.colorSecondary,
             isActive: baseTeam.isActive,
