@@ -1,6 +1,7 @@
 import { computed, ref, type Ref, unref } from 'vue'
 import { useAuthz } from '~/composables/useAuthz'
 import { useAuthedFetch } from '~/composables/useAuthedFetch'
+import { useCurrentSeason } from '~/composables/useCurrentSeason'
 import { useNuxtApp, useState } from '#imports'
 
 type HeadersMap = Record<string, string>
@@ -57,7 +58,8 @@ type ApiErrorLike = {
 type LooseRecord = Record<string, unknown>
 
 const LEAGUE_ID = 2
-const SEASON_ID = 3
+// Solo se usa si el backend no responde la temporada activa.
+const FALLBACK_SEASON_ID = 3
 
 function uid(prefix: string) {
   return `${prefix}-${Math.random().toString(16).slice(2, 8)}-${Date.now().toString(16).slice(2)}`
@@ -121,6 +123,8 @@ function niceGender(g: string) {
 export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
   const nuxtApp = useNuxtApp()
   const { authedFetch } = useAuthedFetch()
+  // Temporada activa de la liga de jueves (cambia sola tras cada rollover).
+  const { currentSeasonId } = useCurrentSeason(LEAGUE_ID, FALLBACK_SEASON_ID)
   const kcReady = useState<boolean>('kcReady', () => false)
   const authz = useAuthz() as { isAuthenticated?: boolean | Ref<boolean> }
 
@@ -435,8 +439,8 @@ export function useJuevesTeamEditor(teamIdInput: number | Ref<number>) {
       short_name: team.value.shortName.trim(),
       categoryId: team.value.categoryId,
       category_id: team.value.categoryId,
-      seasonId: SEASON_ID,
-      season_id: SEASON_ID,
+      seasonId: currentSeasonId.value,
+      season_id: currentSeasonId.value,
       leagueId: LEAGUE_ID,
       league_id: LEAGUE_ID,
       colorPrimary: team.value.primaryColor.trim(),

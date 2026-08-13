@@ -801,6 +801,7 @@
 import { computed, ref, watch, shallowRef, onMounted, onBeforeUnmount } from 'vue'
 import { useNuxtApp, useRuntimeConfig, useState, useAsyncData } from '#imports'
 import { useAuthz } from '~/composables/useAuthz'
+import { useCurrentSeason } from '~/composables/useCurrentSeason'
 
 /** =========================
  *  PERF: quitar blur ANTES del scroll
@@ -876,7 +877,10 @@ const API_BASE = ((config.public as any)?.apiBase as string || 'https://tocho5-a
   .replace(/\/api$/, '') + '/api'
 
 const LEAGUE_ID = 1
-const DEFAULT_SEASON_ID = 6
+// Solo se usa si el backend no responde la temporada activa.
+const FALLBACK_SEASON_ID = 7
+// Temporada activa de la liga: los partidos nuevos caen aquí automáticamente.
+const { currentSeasonId } = useCurrentSeason(LEAGUE_ID, FALLBACK_SEASON_ID)
 
 function withLeague(path: string, extra: Record<string, string | number | boolean | null | undefined> = {}) {
   const qs = new URLSearchParams()
@@ -1330,12 +1334,18 @@ const homeTeam = computed(() => (homeTeamId.value ? teamsById.value.get(homeTeam
 const awayTeam = computed(() => (awayTeamId.value ? teamsById.value.get(awayTeamId.value) || null : null))
 
 const form = ref({
-  seasonId: DEFAULT_SEASON_ID,
+  seasonId: currentSeasonId.value,
   categoryId: 0,
   date: '',
   time: '',
   jornada: '',
   field: '',
+})
+
+// Al crear (no editar), mantén el default en la temporada activa aunque el
+// backend responda después de montar la página.
+watch(currentSeasonId, (id) => {
+  if (!editingId.value && id) form.value.seasonId = id
 })
 
 const catHint = computed(() => {
@@ -1355,7 +1365,7 @@ function clearForm() {
   awayInput.value = ''
   homeOpen.value = false
   awayOpen.value = false
-  form.value = { seasonId: DEFAULT_SEASON_ID, categoryId: 0, date: '', time: '', jornada: '', field: '' }
+  form.value = { seasonId: currentSeasonId.value, categoryId: 0, date: '', time: '', jornada: '', field: '' }
   formError.value = ''
   formOk.value = ''
 }
@@ -1385,7 +1395,7 @@ async function saveGame() {
 
   try {
     const isoUtc = localToUtcIso(form.value.date, form.value.time)
-    const seasonId = Number(form.value.seasonId || DEFAULT_SEASON_ID)
+    const seasonId = Number(form.value.seasonId || currentSeasonId.value)
     const isEdit = !!editingId.value
     const jornadaText = String(form.value.jornada ?? '').trim()
     const jornadaNumber = /^\d+$/.test(jornadaText) ? Number(jornadaText) : null

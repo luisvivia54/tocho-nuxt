@@ -681,6 +681,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRuntimeConfig, useAsyncData, useNuxtApp } from '#imports'
+import { useCurrentSeason } from '~/composables/useCurrentSeason'
 import JuevesHeader from '~/components/jueves/JuevesHeader.vue'
 
 type HeadersMap = Record<string, string>
@@ -717,7 +718,10 @@ type CategoryDto = {
 }
 
 const JUEVES_LEAGUE_ID = 2
-const JUEVES_SEASON_ID = 3
+// Solo se usa si el backend no responde la temporada activa.
+const FALLBACK_SEASON_ID = 3
+// Temporada activa de la liga de jueves (para etiquetas y nombres de archivo).
+const { currentSeasonId } = useCurrentSeason(JUEVES_LEAGUE_ID, FALLBACK_SEASON_ID)
 
 const config = useRuntimeConfig()
 const nuxtApp = useNuxtApp()
@@ -1389,7 +1393,7 @@ async function downloadCurpPdf() {
       selectedCategoria.value !== 'all' ? `Categoría: ${niceGender(selectedCategoria.value)}` : 'Categoría: Todas',
       q.value.trim() ? `Búsqueda: "${q.value.trim()}"` : null,
       `Liga: ${JUEVES_LEAGUE_ID}`,
-      `Temporada: ${JUEVES_SEASON_ID}`,
+      `Temporada: ${currentSeasonId.value}`,
       `Total CURP: ${rows.length}`
     ].filter(Boolean) as string[]
 
@@ -1425,7 +1429,7 @@ async function downloadCurpPdf() {
     })
 
     const namePart = sanitizeFileName(teamPick.value !== 'ALL' ? teamPickLabel.value : 'Todos')
-    doc.save(`CURP_Jueves_L${JUEVES_LEAGUE_ID}_S${JUEVES_SEASON_ID}_${namePart}_${dateStr}.pdf`)
+    doc.save(`CURP_Jueves_L${JUEVES_LEAGUE_ID}_S${currentSeasonId.value}_${namePart}_${dateStr}.pdf`)
     setNotice('ok', `PDF generado: ${rows.length} CURP`)
   } catch (e) {
     console.error(e)
@@ -1476,7 +1480,7 @@ function downloadCurpExcel() {
     const url = URL.createObjectURL(blob)
 
     const namePart = sanitizeFileName(teamPick.value !== 'ALL' ? teamPickLabel.value : 'Todos')
-    const fileName = `CURP_Jueves_L${JUEVES_LEAGUE_ID}_S${JUEVES_SEASON_ID}_${namePart}_${dateStr}.csv`
+    const fileName = `CURP_Jueves_L${JUEVES_LEAGUE_ID}_S${currentSeasonId.value}_${namePart}_${dateStr}.csv`
 
     const a = document.createElement('a')
     a.href = url

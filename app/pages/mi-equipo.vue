@@ -625,10 +625,12 @@ import { useNuxtApp, useRoute, useRouter, useRuntimeConfig, useState } from '#im
 import { $fetch } from 'ofetch'
 import { useAuthz } from '@/composables/useAuthz'
 import { useMyTeam } from '@/composables/useMyTeam'
+import { fetchCurrentSeasonId } from '@/composables/useCurrentSeason'
 
 const DEFAULT_LEAGUE_ID = 1
-const CURRENT_SEASON_TAG = 'ST'
-const FALLBACK_SEASON_ID = 6
+const CURRENT_SEASON_TAG = 'Actual'
+// Solo se usa si el backend no responde la temporada activa.
+const FALLBACK_SEASON_ID = 7
 const DRAFT_KEY = 'miEquipoRegistroDraft'
 
 interface CategoryDto {
@@ -684,15 +686,6 @@ function normalizeApiBase(raw?: string | null) {
   return clean.endsWith('/api') ? clean : `${clean}/api`
 }
 
-function seasonKey(name: string) {
-  return String(name || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ')
-}
-
 function norm(v?: string | null) {
   return (v ?? '').trim().toUpperCase()
 }
@@ -703,20 +696,6 @@ function prettyGender(g: string) {
   if (key === 'VARONIL') return 'Varonil'
   if (key === 'MIXTO') return 'Mixto'
   return g
-}
-
-function pickCurrentSeason(list: SeasonOption[]): SeasonOption | null {
-  const tag = seasonKey(CURRENT_SEASON_TAG)
-  const matches = list.filter((s) => seasonKey(s.name).includes(tag))
-
-  if (matches.length > 0) {
-    return matches.slice().sort((a, b) => b.id - a.id)[0] ?? null
-  }
-
-  const byFallback = list.find((s) => s.id === FALLBACK_SEASON_ID)
-  if (byFallback) return byFallback
-
-  return list.slice().sort((a, b) => b.id - a.id)[0] ?? null
 }
 
 function getStatusCode(err: any): number | undefined {
@@ -1066,18 +1045,14 @@ async function fetchSeasons() {
       })
       .filter((s) => s.id > 0 && !!s.name)
 
-    const current = pickCurrentSeason(mapped)
+    // Temporada activa según el backend (cambia sola tras cada rollover).
+    const activeId = await fetchCurrentSeasonId(API_BASE, DEFAULT_LEAGUE_ID, FALLBACK_SEASON_ID)
+    const current =
+      mapped.find((s) => s.id === activeId) ?? { id: activeId, name: CURRENT_SEASON_TAG, leagueId: 1 }
 
-    if (current) {
-      currentSeason.value = current
-      seasons.value = [current]
-      selectedSeasonId.value = current.id
-      return
-    }
-
-    currentSeason.value = { id: FALLBACK_SEASON_ID, name: CURRENT_SEASON_TAG, leagueId: 1 }
-    seasons.value = [currentSeason.value]
-    selectedSeasonId.value = FALLBACK_SEASON_ID
+    currentSeason.value = current
+    seasons.value = [current]
+    selectedSeasonId.value = current.id
   } catch (e) {
     console.error('Error cargando seasons', e)
     currentSeason.value = { id: FALLBACK_SEASON_ID, name: CURRENT_SEASON_TAG, leagueId: 1 }

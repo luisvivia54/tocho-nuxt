@@ -1373,7 +1373,21 @@ function extractApiError(error: any, fallback: string) {
 async function ensureSeasonId() {
   if (resolvedSeasonId.value) return resolvedSeasonId.value
 
-  const raw = await $fetch<any>("/api/t5/seasons/list").catch(() => [])
+  // Fuente de verdad: la temporada activa de la liga según el backend.
+  const current = await $fetch<{ seasonId?: number; season_id?: number }>(
+    "/api/t5/seasons/current",
+    { query: { leagueId: JUEVES_LEAGUE_ID } }
+  ).catch(() => null)
+  const activeId = Number(current?.seasonId ?? current?.season_id ?? 0) || 0
+  if (activeId > 0) {
+    resolvedSeasonId.value = activeId
+    return resolvedSeasonId.value
+  }
+
+  // Respaldo: si /current falla, deducir de la lista (la más reciente).
+  const raw = await $fetch<any>("/api/t5/seasons/list", {
+    query: { leagueId: JUEVES_LEAGUE_ID },
+  }).catch(() => [])
   const seasons = toList(raw)
     .map((row: any) => {
       const id = firstNumber(row, ["season_id", "seasonId", "id"])

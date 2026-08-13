@@ -667,6 +667,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useNuxtApp, useRoute, useRouter, useRuntimeConfig, useState } from "#imports"
 import { $fetch } from "ofetch"
 import { useAuthz } from "~/composables/useAuthz"
+import { useCurrentSeason } from "~/composables/useCurrentSeason"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
 
 type HeadersMap = Record<string, string>
@@ -710,7 +711,10 @@ type TeamDraft = {
 
 const JUEVES_LEAGUE_ID = 2
 const LEAGUE_ID = 2
-const SEASON_ID = 3
+// Solo se usa si el backend no responde la temporada activa.
+const FALLBACK_SEASON_ID = 3
+// Temporada activa de la liga de jueves (cambia sola tras cada rollover).
+const { currentSeasonId } = useCurrentSeason(JUEVES_LEAGUE_ID, FALLBACK_SEASON_ID)
 const LEAGUE_LABEL = "Liga de Jueves"
 const SEASON_LABEL = "Nocturna"
 
@@ -1231,8 +1235,8 @@ function buildTeamPayload() {
     short_name: team.value.shortName.trim(),
     categoryId: team.value.categoryId,
     category_id: team.value.categoryId,
-    seasonId: SEASON_ID,
-    season_id: SEASON_ID,
+    seasonId: currentSeasonId.value,
+    season_id: currentSeasonId.value,
     leagueId: LEAGUE_ID,
     league_id: LEAGUE_ID,
     primaryColor: team.value.primaryColor.trim(),
