@@ -435,7 +435,7 @@
           <div v-else class="space-y-3">
             <article
               v-for="(player, idx) in pagedPlayers"
-              :key="player.id"
+              :key="player.key"
               class="rounded-2xl border border-slate-700 bg-slate-900/90 p-4 shadow-lg hover:border-slate-500 transition"
             >
               <div class="flex flex-col md:flex-row md:items-center gap-4">
@@ -475,10 +475,24 @@
                       <span class="inline-flex items-center rounded-full bg-white/10 text-white px-2 py-0.5 text-[11px] font-semibold border border-white/10">
                         IMP: {{ impact(player) }}
                       </span>
+
+                      <button
+                        v-if="player.teamsCount > 1"
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded-full bg-sky-500/15 text-sky-200 px-2 py-0.5 text-[11px] font-semibold border border-sky-500/25 hover:bg-sky-500/25 transition"
+                        :aria-expanded="isPlayerExpanded(player.key)"
+                        @click="togglePlayerExpanded(player.key)"
+                      >
+                        {{ player.teamsCount }} equipos
+                        <span
+                          class="inline-block transition-transform"
+                          :class="isPlayerExpanded(player.key) ? 'rotate-180' : ''"
+                        >▾</span>
+                      </button>
                     </div>
 
                     <p class="mt-0.5 text-[12px] text-slate-300 truncate">
-                      {{ player.teamName || '—' }}
+                      {{ player.teamName || '—' }}<span v-if="player.teamsCount > 1" class="text-slate-500"> · +{{ player.teamsCount - 1 }} más</span>
                     </p>
 
                     <p class="text-[11px] text-slate-500 truncate">
@@ -507,6 +521,50 @@
                     <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
                       <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">SACK</p>
                       <p class="mt-0.5 text-lg font-extrabold text-emerald-200 tabular-nums">{{ player.stats.sack }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- DESGLOSE POR EQUIPO / CATEGORÍA -->
+              <div
+                v-if="player.teamsCount > 1 && isPlayerExpanded(player.key)"
+                class="mt-3 border-t border-slate-700/70 pt-3 space-y-2"
+              >
+                <p class="text-[10px] uppercase tracking-[0.22em] text-slate-500">
+                  Desglose por equipo
+                </p>
+
+                <div
+                  v-for="b in player.breakdown"
+                  :key="`${player.key}-${b.teamId ?? 'x'}`"
+                  class="rounded-xl border border-slate-700/70 bg-slate-950/50 p-3"
+                >
+                  <div class="min-w-0 mb-2">
+                    <p class="text-[12px] font-semibold text-slate-200 truncate">
+                      {{ b.teamName || '—' }}
+                    </p>
+                    <p class="text-[10px] text-slate-500 truncate">
+                      {{ b.teamCode || '—' }}<span v-if="b.gender"> · {{ niceGender(b.gender) }}</span><span v-if="b.number !== null && b.number !== undefined"> · #{{ b.number }}</span>
+                    </p>
+                  </div>
+
+                  <div class="grid grid-cols-4 gap-2">
+                    <div class="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/10 px-2 py-1 text-center">
+                      <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">INT</p>
+                      <p class="text-sm font-bold text-fuchsia-200 tabular-nums">{{ b.stats.int }}</p>
+                    </div>
+                    <div class="rounded-lg border border-violet-500/20 bg-violet-500/10 px-2 py-1 text-center">
+                      <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">TD</p>
+                      <p class="text-sm font-bold text-violet-200 tabular-nums">{{ b.stats.td }}</p>
+                    </div>
+                    <div class="rounded-lg border border-sky-500/20 bg-sky-500/10 px-2 py-1 text-center">
+                      <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">PA</p>
+                      <p class="text-sm font-bold text-sky-200 tabular-nums">{{ b.stats.pa }}</p>
+                    </div>
+                    <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-center">
+                      <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">SACK</p>
+                      <p class="text-sm font-bold text-emerald-200 tabular-nums">{{ b.stats.sack }}</p>
                     </div>
                   </div>
                 </div>
@@ -641,16 +699,29 @@ interface PlayerStats {
   rec: number
 }
 
+// Desglose de un jugador dentro de UN equipo/categoría concreto
+interface PlayerTeamStat {
+  teamId: number | null
+  teamName: string
+  teamCode: string
+  gender: string
+  number?: number | null
+  stats: PlayerStats
+}
+
 interface PlayerVM {
   id: number
+  key: string                  // llave de agrupación (personKey del back, o fallback por id)
   fullName: string
   number?: number | null
   photoUrl?: string | null
-  teamId?: number | null
+  teamId?: number | null       // equipo representativo (el de mayor impacto)
   teamName?: string
   teamCode?: string
   gender?: string
-  stats: PlayerStats
+  stats: PlayerStats           // totales sumados de todos sus equipos
+  breakdown: PlayerTeamStat[]  // una entrada por equipo/categoría
+  teamsCount: number
 }
 
 /* =========================
@@ -720,8 +791,11 @@ function initials(text: string): string {
   return parts.map((p) => p[0]?.toUpperCase() || '').join('')
 }
 
+function impactStats(s: PlayerStats): number {
+  return s.td + s.int + s.pa + s.sack
+}
 function impact(p: PlayerVM): number {
-  return p.stats.td + p.stats.int + p.stats.pa + p.stats.sack
+  return impactStats(p.stats)
 }
 
 function stringHash(text: string): number {
@@ -1090,6 +1164,18 @@ const playerNumberQuery = ref('')
 const teamPick = ref<'ALL' | string>('ALL')
 const page = ref(1)
 
+// Desglose por persona expandido/colapsado (por key de agrupación)
+const expandedPlayers = ref<Set<string>>(new Set())
+function isPlayerExpanded(key: string): boolean {
+  return expandedPlayers.value.has(key)
+}
+function togglePlayerExpanded(key: string): void {
+  const next = new Set(expandedPlayers.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  expandedPlayers.value = next
+}
+
 const playerTeamOptions = computed(() => {
   return teamsList.value
     .filter((team) => {
@@ -1179,7 +1265,10 @@ function playerBelongsToSunday(raw: any): boolean {
 }
 
 const playersVm = computed<PlayerVM[]>(() => {
-  const unique = new Map<number, PlayerVM>()
+  // Agrupamos por PERSONA. La llave preferida es personKey (hash de CURP que
+  // manda el back); si no viene (endpoint viejo o fallback), caemos al id
+  // numérico para que cada jugador siga siendo su propio grupo.
+  const groups = new Map<string, PlayerVM>()
 
   for (const raw of unwrapList<any>(playersRaw.value)) {
     if (!playerBelongsToSunday(raw)) continue
@@ -1232,28 +1321,88 @@ const playersVm = computed<PlayerVM[]>(() => {
     const syntheticId = stringHash(`${fullName}|${teamId ?? 'x'}|${raw?.number ?? raw?.jerseyNumber ?? raw?.jersey_number ?? ''}`)
     const id = explicitId > 0 ? explicitId : syntheticId
 
+    // Llave de agrupación de PERSONA, en orden de preferencia:
+    //  1) personKey (hash de CURP que manda el leaderboard del back)
+    //  2) curp normalizada (el roster equipo-por-equipo sí trae curp)
+    //  3) id de inscripción (último recurso: cada fila queda separada)
+    const personKey = String(raw?.personKey ?? raw?.person_key ?? raw?.curpHash ?? '').trim()
+    const curpKey = String(raw?.curp ?? raw?.CURP ?? raw?.curp_id ?? '').trim().toLowerCase()
+    const groupKey = personKey || (curpKey ? `curp:${curpKey}` : `id:${id}`)
+
+    const number = raw?.number ?? raw?.jerseyNumber ?? raw?.jersey_number ?? raw?.num ?? null
+    const photoUrl = raw?.photoUrl ?? raw?.photo_url ?? raw?.photo ?? raw?.avatarUrl ?? null
+
     const stats: PlayerStats = {
       td: toNum(raw?.td ?? raw?.tds ?? raw?.touchdowns ?? raw?.stats?.td ?? raw?.stats?.tds),
-      int: toNum(raw?.int ?? raw?.interceptions ?? raw?.stats?.int ?? raw?.stats?.interceptions),
-      pa: toNum(raw?.pa ?? raw?.passingTd ?? raw?.passing_td ?? raw?.stats?.pa ?? raw?.stats?.passingTd),
+      int: toNum(raw?.int ?? raw?.intercep ?? raw?.interceptions ?? raw?.stats?.int ?? raw?.stats?.interceptions),
+      pa: toNum(raw?.pa ?? raw?.passTd ?? raw?.passingTd ?? raw?.passing_td ?? raw?.stats?.pa ?? raw?.stats?.passingTd),
       sack: toNum(raw?.sack ?? raw?.sacks ?? raw?.stats?.sack ?? raw?.stats?.sacks),
       rec: toNum(raw?.rec ?? raw?.receptions ?? raw?.stats?.rec ?? raw?.stats?.receptions),
     }
 
-    unique.set(id, {
-      id,
-      fullName,
-      number: raw?.number ?? raw?.jerseyNumber ?? raw?.jersey_number ?? raw?.num ?? null,
-      photoUrl: raw?.photoUrl ?? raw?.photo_url ?? raw?.photo ?? raw?.avatarUrl ?? null,
-      teamId,
-      teamName: teamName || undefined,
-      teamCode,
-      gender,
-      stats,
-    })
+    let g = groups.get(groupKey)
+    if (!g) {
+      g = {
+        id,
+        key: groupKey,
+        fullName,
+        number,
+        photoUrl,
+        teamId,
+        teamName: teamName || undefined,
+        teamCode,
+        gender,
+        stats: { td: 0, int: 0, pa: 0, sack: 0, rec: 0 },
+        breakdown: [],
+        teamsCount: 0,
+      }
+      groups.set(groupKey, g)
+    }
+
+    // Sumar a los totales de la persona
+    g.stats.td += stats.td
+    g.stats.int += stats.int
+    g.stats.pa += stats.pa
+    g.stats.sack += stats.sack
+    g.stats.rec += stats.rec
+
+    // Conservar una foto/dorsal si el grupo aún no tiene
+    if (!g.photoUrl && photoUrl) g.photoUrl = photoUrl
+
+    // Desglose: fusionar por equipo (por si hay varias filas del mismo equipo)
+    const existing = g.breakdown.find((b) => b.teamId === teamId)
+    if (existing) {
+      existing.stats.td += stats.td
+      existing.stats.int += stats.int
+      existing.stats.pa += stats.pa
+      existing.stats.sack += stats.sack
+      existing.stats.rec += stats.rec
+    } else {
+      g.breakdown.push({
+        teamId,
+        teamName: teamName || '—',
+        teamCode,
+        gender,
+        number,
+        stats: { ...stats },
+      })
+    }
   }
 
-  return Array.from(unique.values())
+  const list = Array.from(groups.values())
+  for (const g of list) {
+    g.teamsCount = g.breakdown.length
+    // Representativo = el equipo donde tiene mayor impacto
+    const rep = g.breakdown.slice().sort((a, b) => impactStats(b.stats) - impactStats(a.stats))[0]
+    if (rep) {
+      g.teamId = rep.teamId
+      g.teamName = rep.teamName && rep.teamName !== '—' ? rep.teamName : g.teamName
+      g.teamCode = rep.teamCode
+      g.gender = rep.gender
+      if (g.number == null) g.number = rep.number ?? null
+    }
+  }
+  return list
 })
 
 const filteredPlayers = computed<PlayerVM[]>(() => {
@@ -1263,7 +1412,8 @@ const filteredPlayers = computed<PlayerVM[]>(() => {
   return playersVm.value.filter((player) => {
     if (teamPick.value !== 'ALL') {
       const wanted = Number(teamPick.value)
-      if (Number.isFinite(wanted) && player.teamId !== wanted) return false
+      // La persona pasa si juega en ese equipo (en cualquiera de su desglose)
+      if (Number.isFinite(wanted) && !player.breakdown.some((b) => b.teamId === wanted)) return false
     }
 
     if (nameQ) {
@@ -1272,8 +1422,10 @@ const filteredPlayers = computed<PlayerVM[]>(() => {
     }
 
     if (numQ) {
-      const n = String(player.number ?? '')
-      if (!n.includes(numQ)) return false
+      const hit =
+        String(player.number ?? '').includes(numQ) ||
+        player.breakdown.some((b) => String(b.number ?? '').includes(numQ))
+      if (!hit) return false
     }
 
     return true
