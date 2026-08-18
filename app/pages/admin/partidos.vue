@@ -1963,24 +1963,58 @@ function closeFinish() {
   rosterHint.value = ''
 }
 
-async function tryPostPlayerStats(gameId: number) {
+type PlayerStatsUpsert = {
+  playerId: number
+  teamId: number
+  td: number
+  passTd: number
+  intercep: number
+  sacks: number
+}
+
+async function tryPostPlayerStats(g: GameVM) {
+  const gameId = g.id
   const entries = getStats(gameId)
   if (!entries.length) return
 
   try {
-    const payload = entries.map((e) => ({
-      kind: e.kind,
-      side: e.side,
-      playerId: e.playerId,
-      qty: e.qty,
-    }))
+    // El backend espera UNA fila por (jugador, equipo) con las 4 stats sumadas,
+    // no una fila por jugada. Agrupamos y resolvemos el teamId desde el 'side'.
+    const rows = new Map<string, PlayerStatsUpsert>()
+
+    for (const e of entries) {
+      const teamId = e.side === 'HOME'
+        ? Number(g.homeTeamId || 0)
+        : Number(g.awayTeamId || 0)
+
+      if (!teamId) continue // sin equipo válido no se puede guardar (team_id es NOT NULL)
+
+      const key = `${e.playerId}-${teamId}`
+      let row = rows.get(key)
+      if (!row) {
+        row = { playerId: e.playerId, teamId, td: 0, passTd: 0, intercep: 0, sacks: 0 }
+        rows.set(key, row)
+      }
+
+      const qty = Number(e.qty || 0)
+      if (e.kind === 'TD') row.td += qty
+      else if (e.kind === 'PASS_TD') row.passTd += qty
+      else if (e.kind === 'INT') row.intercep += qty
+      else if (e.kind === 'SACK') row.sacks += qty
+    }
+
+    const payload = Array.from(rows.values())
+    if (!payload.length) {
+      statsWarn.value = 'No se pudieron guardar stats: faltan equipos válidos.'
+      return
+    }
 
     await authedFetch(PLAYER_STATS_URL(gameId), { method: 'PUT', body: payload })
 
     statsOk.value = 'Stats individuales guardadas.'
     statsWarn.value = ''
-  } catch {
-    statsWarn.value = 'No se pudieron guardar stats (endpoint no existe o backend aún no soporta). El FINAL sí se guardó.'
+  } catch (err: any) {
+    statsWarn.value = err?.data?.message || err?.message || 'No se pudieron guardar las stats. El FINAL sí se guardó.'
   }
 }
 
@@ -2019,7 +2053,7 @@ async function finishGame(g: GameVM) {
     await postFinalizeOnly(g.id, hs, as)
     finishOk.value = `Partido ${g.id} finalizado (${hs} - ${as}).`
     await refreshGames()
-    await tryPostPlayerStats(g.id)
+    await tryPostPlayerStats(g)
     setTimeout(() => (finishOk.value = ''), 2000)
   } catch (e: any) {
     finishError.value = e?.data?.message || e?.message || 'No se pudo finalizar. Revisa el backend.'
