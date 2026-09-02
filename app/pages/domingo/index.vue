@@ -71,16 +71,16 @@
 
                 <div class="mt-4 flex flex-wrap gap-3">
                   <NuxtLink
-                    to="/estadisticas"
+                    to="/registro"
                     class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-sm"
                   >
-                    Ver estadísticas
+                    Registrar equipo
                   </NuxtLink>
                   <NuxtLink
-                    to="/registro"
+                    to="/mi-equipo"
                     class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-blue-700 bg-white border border-blue-200 hover:bg-blue-50"
                   >
-                    Registrar equipo
+                    Agregar jugador
                   </NuxtLink>
                 </div>
 
@@ -97,7 +97,7 @@
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center gap-2 min-w-0 flex-wrap">
                         <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-500 shrink-0">
-                          Próximo juego
+                          {{ activeUpcoming?.isPast ? 'Último partido' : 'Próximo juego' }}
                         </p>
 
                         <span
@@ -134,7 +134,7 @@
                   </div>
 
                   <div
-                    v-if="gamesPending"
+                    v-if="gamesPendingUI"
                     class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-600"
                   >
                     Cargando próximos juegos…
@@ -183,8 +183,13 @@
                               <p class="text-xl md:text-[22px] font-extrabold text-slate-900 tabular-nums leading-none whitespace-nowrap">
                                 {{ activeUpcoming.timeLabel }}
                               </p>
-                              <p class="mt-1 text-[11px] font-semibold text-slate-500 whitespace-nowrap">
-                                {{ String(activeUpcoming.status).toUpperCase() === 'LIVE' ? 'EN JUEGO' : 'PROGRAMADO' }}
+                              <p
+                                class="mt-1 text-[11px] font-semibold whitespace-nowrap"
+                                :class="activeUpcoming.isPast ? 'text-amber-600' : 'text-slate-500'"
+                              >
+                                {{ activeUpcoming.isPast
+                                  ? 'YA JUGADO'
+                                  : (String(activeUpcoming.status).toUpperCase() === 'LIVE' ? 'EN JUEGO' : 'PROGRAMADO') }}
                               </p>
                               <p class="mt-1 text-[11px] text-slate-500 whitespace-nowrap">
                                 Cancha: <span class="font-semibold text-slate-700">{{ activeUpcoming.venue || '-' }}</span>
@@ -242,6 +247,13 @@
                                 </p>
                               </div>
                             </div>
+                          </div>
+
+                          <div
+                            v-if="activeUpcoming.isPast"
+                            class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800"
+                          >
+                            Aún no hay partidos con fecha futura registrados. Este fue el último programado.
                           </div>
 
                           <div class="mt-3 flex items-center justify-between gap-2 min-w-0">
@@ -393,6 +405,16 @@
                         <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-extrabold text-slate-700 shrink-0">
                           #{{ row.rank }}
                         </span>
+                        <div class="h-8 w-8 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center shrink-0">
+                          <img
+                            v-if="row.logo"
+                            :src="row.logo"
+                            :alt="row.teamName"
+                            class="h-full w-full object-contain p-1"
+                            loading="lazy"
+                          />
+                          <span v-else class="text-[10px] font-extrabold text-blue-700">{{ initials(row.teamName) }}</span>
+                        </div>
                         <p class="font-extrabold text-slate-900 truncate min-w-0">{{ row.teamName }}</p>
                       </div>
 
@@ -478,8 +500,15 @@
 
                       <td class="px-4 py-3">
                         <div class="flex items-center gap-3 min-w-0">
-                          <div class="h-9 w-9 rounded-xl border border-slate-200 bg-slate-50 grid place-items-center shrink-0">
-                            <span class="text-[11px] font-extrabold text-blue-700">{{ initials(row.teamName) }}</span>
+                          <div class="h-9 w-9 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center shrink-0">
+                            <img
+                              v-if="row.logo"
+                              :src="row.logo"
+                              :alt="row.teamName"
+                              class="h-full w-full object-contain p-1"
+                              loading="lazy"
+                            />
+                            <span v-else class="text-[11px] font-extrabold text-blue-700">{{ initials(row.teamName) }}</span>
                           </div>
                           <span class="font-semibold text-slate-900 truncate min-w-0">{{ row.teamName }}</span>
                         </div>
@@ -867,6 +896,8 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRuntimeConfig, useAsyncData } from '#imports'
+import { normalizeApiBase } from '../../composables/useApiBase'
+import { useCurrentSeason } from '../../composables/useCurrentSeason'
 
 useHead({
   htmlAttrs: {
@@ -879,7 +910,7 @@ useHead({
 
 /* ===================== API_BASE ===================== */
 const config = useRuntimeConfig()
-const API_BASE = (config.public && config.public.apiBase) ? String(config.public.apiBase) : 'https://tocho5-api.tochero5.mx/api'
+const API_BASE = normalizeApiBase(config.public.apiBase)
 const HOME_CFG_ENDPOINT = `${API_BASE}/site-configs/home`
 const LEAGUE_ID = 1
 
@@ -1070,9 +1101,28 @@ const clamp01 = (n) => Math.min(1, Math.max(0, Number(n) || 0))
 const pctToLabel = (pct) => `${(clamp01(pct) * 100).toFixed(1)}%`
 const pctWidth = (pct) => `${Math.round(clamp01(pct) * 100)}%`
 
-/* ===================== SEASONS DINÁMICAS ===================== */
-const DEFAULT_SEASON_ID = 6
+/* ===================== SEASONS DINÁMICAS =====================
+   La temporada "actual" viene de /seasons/current (vía useCurrentSeason),
+   la misma fuente única de verdad que ya usan admin/partidos.vue y
+   jueves/admin/jugadores.vue. Después de un rollover de temporada, ese
+   endpoint cambia solo, así que esta página se mueve a la temporada nueva
+   sin tocar código — ya no se asume "la de mayor id" ni se hardcodea nada
+   salvo el fallback final si /seasons/current no responde. */
+const DEFAULT_SEASON_ID = 9
 const selectedSeasonId = ref(DEFAULT_SEASON_ID)
+let seasonAutoSelected = false
+
+const { currentSeasonId } = useCurrentSeason(LEAGUE_ID, DEFAULT_SEASON_ID)
+
+watch(
+  currentSeasonId,
+  (id) => {
+    if (!id) return
+    seasonAutoSelected = true
+    selectedSeasonId.value = id
+  },
+  { immediate: true }
+)
 
 const { data: seasonsRaw } = useAsyncData(
   'seasons-home-lite-league-1',
@@ -1089,7 +1139,8 @@ const seasonOptions = computed(() => {
   const raw = seasonsRaw.value
   if (!Array.isArray(raw) || raw.length === 0) {
     return [
-      { label: 'Temporada 6 (Actual)', value: 6 },
+      { label: `Temporada ${DEFAULT_SEASON_ID} (Actual)`, value: DEFAULT_SEASON_ID },
+      { label: 'Temporada 6', value: 6 },
       { label: 'Temporada 2', value: 2 },
       { label: 'Temporada 1', value: 1 }
     ]
@@ -1109,7 +1160,12 @@ const seasonOptions = computed(() => {
   for (const o of tmp) {
     if (seen.has(o.value)) continue
     seen.add(o.value)
-    out.push({ value: o.value, label: o.value === DEFAULT_SEASON_ID ? `${o.label} (Actual)` : o.label })
+    // "Actual" = la temporada que reporta /seasons/current; si aún no
+    // resolvió, se asume temporalmente la de mayor id (primera del orden desc)
+    const isActual = currentSeasonId.value
+      ? o.value === currentSeasonId.value
+      : out.length === 0
+    out.push({ value: o.value, label: isActual ? `${o.label} (Actual)` : o.label })
   }
   return out
 })
@@ -1118,6 +1174,16 @@ watch(
   seasonOptions,
   (opts) => {
     if (opts.length === 0) return
+
+    // Primer arribo de datos reales: saltar a la temporada más reciente
+    // por id como estimación inicial; el watch de currentSeasonId de
+    // arriba la corrige en cuanto /seasons/current resuelva.
+    if (!seasonAutoSelected) {
+      seasonAutoSelected = true
+      selectedSeasonId.value = opts[0]?.value ?? DEFAULT_SEASON_ID
+      return
+    }
+
     const has = opts.some((o) => o.value === selectedSeasonId.value)
     if (has) return
     selectedSeasonId.value = opts[0]?.value ?? DEFAULT_SEASON_ID
@@ -1159,6 +1225,24 @@ const pointsParams = computed(() => {
   if (normalizedCategoryCode.value !== 'all') p.categoryCode = normalizedCategoryCode.value
   if (selectedGender.value !== 'all') p.gender = selectedGender.value
   return p
+})
+
+const { data: teamsMetaRaw } = useAsyncData(
+  'teams-home-top5-league-1',
+  async () => {
+    const res = await leagueGet('/teams/list').catch(() => null)
+    return Array.isArray(res) ? res : []
+  },
+  { server: false, default: () => [] }
+)
+
+const teamLogoById = computed(() => {
+  const map = new Map()
+  for (const t of (teamsMetaRaw.value || [])) {
+    const id = toNum(t?.teamId ?? t?.team_id ?? t?.id)
+    if (id > 0) map.set(id, pickLogo(t))
+  }
+  return map
 })
 
 const standings = ref([])
@@ -1259,8 +1343,9 @@ const scheduleStandingsReload = () => {
 watch([selectedSeasonId, normalizedCategoryCode, selectedGender], () => scheduleStandingsReload(), { immediate: true })
 
 const clearFilters = () => {
-  const ids = seasonOptions.value.map((x) => x.value)
-  selectedSeasonId.value = ids.includes(DEFAULT_SEASON_ID) ? DEFAULT_SEASON_ID : (ids[0] ?? DEFAULT_SEASON_ID)
+  // Preferir /seasons/current; si aún no resolvió, usar la de mayor id
+  // (seasonOptions viene ordenado desc)
+  selectedSeasonId.value = currentSeasonId.value || seasonOptions.value[0]?.value || DEFAULT_SEASON_ID
   selectedCategoryCode.value = 'all'
   selectedGender.value = 'MIXTO'
   scheduleStandingsReload()
@@ -1284,9 +1369,14 @@ const topPositions = computed(() => {
     const diff = pf - pa
     const pct = gp > 0 ? wins / gp : 0
 
+    const teamId = toNum(row?.team_id ?? row?.teamId)
+    const logo = pickLogo(row?.team) ?? (teamId > 0 ? teamLogoById.value.get(teamId) || null : null)
+
     const item = {
       rank: 0,
+      teamId,
       teamName: String(row?.team_name ?? row?.teamName ?? '—'),
+      logo,
       gamesPlayed: gp,
       wins,
       losses,
@@ -1452,6 +1542,12 @@ const { data: gamesRaw, pending: gamesPending, refresh: refreshGames } = useAsyn
   { server: false, default: () => [] }
 )
 
+// Mismo fix que en estadisticas.vue: este fetch es { server: false }, así que
+// en SSR reporta pending=false aunque no haya datos, mientras el cliente sí
+// arranca en pending=true al hidratar — eso producía un mismatch de
+// hidratación en este widget. Forzamos "pendiente" también en el servidor.
+const gamesPendingUI = computed(() => gamesPending.value || import.meta.server)
+
 watch(selectedSeasonId, () => {
   upcomingIndex.value = 0
   refreshGames()
@@ -1548,7 +1644,8 @@ const upcomingGames = computed(() => {
   const cutoff = (nowMs.value || Date.now()) - 20 * 60_000
   const seasonFilter = Number(selectedSeasonId.value || 0) || 0
 
-  const out = []
+  const future = []
+  const past = []
 
   for (const g of raw) {
     const id = Number(g?.game_id ?? g?.gameId ?? g?.id ?? 0)
@@ -1560,7 +1657,6 @@ const upcomingGames = computed(() => {
 
     const status = normalizeStatus(g?.status)
     if (!(status === 'SCHEDULED' || status === 'LIVE')) continue
-    if (ms < cutoff) continue
 
     const sid = pickSeasonId(g)
     if (seasonFilter && sid > 0 && sid !== seasonFilter) continue
@@ -1579,7 +1675,7 @@ const upcomingGames = computed(() => {
     const homeTeam = g?.homeTeam ?? g?.home ?? null
     const awayTeam = g?.awayTeam ?? g?.away ?? null
 
-    out.push({
+    const entry = {
       id,
       seasonId: sid,
       seasonName: sid ? (seasonsMap.value[sid] || `Temporada ${sid}`) : null,
@@ -1596,12 +1692,22 @@ const upcomingGames = computed(() => {
       awayName,
       venue: String(g?.venue ?? g?.field ?? g?.location ?? g?.court ?? g?.stadium ?? '').trim(),
       homeLogo: pickLogo(homeTeam),
-      awayLogo: pickLogo(awayTeam)
-    })
+      awayLogo: pickLogo(awayTeam),
+      isPast: ms < cutoff
+    }
+
+    if (entry.isPast) past.push(entry)
+    else future.push(entry)
   }
 
-  out.sort((a, b) => a.ms - b.ms)
-  return out
+  future.sort((a, b) => a.ms - b.ms)
+  if (future.length > 0) return future
+
+  // No hay ningún partido con fecha futura: en vez de dejar el widget
+  // vacío, mostramos el SCHEDULED más reciente que exista (marcado
+  // isPast) para que "Próximo juego" nunca se sienta desconectado.
+  past.sort((a, b) => b.ms - a.ms)
+  return past.length > 0 ? [past[0]] : []
 })
 
 const upcomingIndex = ref(0)

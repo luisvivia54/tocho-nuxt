@@ -471,6 +471,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, useAsyncData, useHead } from "#imports"
 import JuevesHeader from "~/components/jueves/JuevesHeader.vue"
+import { useCurrentSeason } from "~/composables/useCurrentSeason"
 
 useHead({
   title: "Estadísticas | Liga Jueves",
@@ -580,6 +581,11 @@ type ResolvedBranchInfo = {
 const JUEVES_LEAGUE_ID = 2
 const JUEVES_DEFAULT_SEASON_ID = 3
 const JUEVES_DEFAULT_SEASON_LABEL = "Liga nocturna"
+
+// Fuente única de verdad para "la temporada activa": /seasons/current.
+// JUEVES_DEFAULT_SEASON_ID solo se usa como valor inicial mientras esa
+// llamada resuelve, y como último respaldo si /seasons/current falla.
+const { currentSeasonId: juevesCurrentSeasonId } = useCurrentSeason(JUEVES_LEAGUE_ID, JUEVES_DEFAULT_SEASON_ID)
 
 const stadiumBg = "/img/hero-stadium.jpg"
 
@@ -727,8 +733,10 @@ const defaultSeasonInfo = computed(() => {
 })
 
 const preferredSeasonValue = computed(() => {
-  const currentDefault = `SEASON_${JUEVES_DEFAULT_SEASON_ID}`
-  if (seasonOptions.value.some((option) => option.value === currentDefault)) return currentDefault
+  // Preferir la temporada que reporta /seasons/current; JUEVES_DEFAULT_SEASON_ID
+  // solo entra como respaldo si esa llamada aún no resuelve o falla.
+  const liveDefault = `SEASON_${juevesCurrentSeasonId.value || JUEVES_DEFAULT_SEASON_ID}`
+  if (seasonOptions.value.some((option) => option.value === liveDefault)) return liveDefault
   if (seasonOptions.value.some((option) => option.value === defaultSeasonInfo.value.seasonValue)) {
     return defaultSeasonInfo.value.seasonValue
   }
@@ -993,6 +1001,19 @@ const paginatedPlayers = computed(() => {
       ...item,
       position: playerStartIndex.value + index + 1,
     }))
+})
+
+// Cuando /seasons/current resuelva a una temporada distinta del fallback
+// inicial (JUEVES_DEFAULT_SEASON_ID), saltar a ella automáticamente —
+// pero solo si el usuario sigue en el valor por defecto, para no pisar
+// una selección manual. Hoy la temporada 3 sí es la activa, así que esto
+// no cambia nada visible; empieza a actuar solo cuando haya un rollover.
+watch(juevesCurrentSeasonId, (id) => {
+  if (!id) return
+  const liveDefault = `SEASON_${id}`
+  if (selectedSeason.value === `SEASON_${JUEVES_DEFAULT_SEASON_ID}` && selectedSeason.value !== liveDefault) {
+    selectedSeason.value = liveDefault
+  }
 })
 
 watch([search, selectedSeason, selectedCategory, selectedBranch, onlyActive, view], () => {

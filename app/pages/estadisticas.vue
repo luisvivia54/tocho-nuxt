@@ -296,11 +296,15 @@
                   <tr
                     v-for="row in paginatedTeamRows"
                     :key="row.key"
-                    class="border-b border-slate-800 last:border-0 hover:bg-slate-800/35"
+                    class="border-b border-slate-800 last:border-0 transition"
+                    :class="row.isActive ? 'hover:bg-slate-800/35' : 'bg-red-950/20 hover:bg-red-950/30'"
                   >
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-xl overflow-hidden border border-slate-700 bg-slate-950/70 flex items-center justify-center shrink-0">
+                        <div
+                          class="h-10 w-10 rounded-xl overflow-hidden border flex items-center justify-center shrink-0"
+                          :class="row.isActive ? 'border-slate-700 bg-slate-950/70' : 'border-red-500/40 bg-slate-950/70 grayscale opacity-60'"
+                        >
                           <img
                             v-if="row.logoUrl"
                             :src="row.logoUrl"
@@ -314,7 +318,20 @@
                         </div>
 
                         <div class="min-w-0">
-                          <p class="font-semibold text-white truncate">{{ row.teamName }}</p>
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <p
+                              class="font-semibold truncate"
+                              :class="row.isActive ? 'text-white' : 'text-red-300 line-through decoration-red-500/60'"
+                            >
+                              {{ row.teamName }}
+                            </p>
+                            <span
+                              v-if="!row.isActive"
+                              class="inline-flex items-center gap-1 rounded-full bg-red-500/15 text-red-300 border border-red-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide shrink-0"
+                            >
+                              ✕ Eliminado
+                            </span>
+                          </div>
                           <p class="text-[11px] text-slate-400 truncate">
                             {{ row.shortName || 'Sin abreviatura' }}
                           </p>
@@ -336,25 +353,31 @@
                         {{ niceGender(row.gender) }}
                       </span>
                     </td>
-                    <td class="px-4 py-3 text-slate-200">{{ row.gp }}</td>
-                    <td class="px-4 py-3 text-slate-200">{{ row.wins }}</td>
-                    <td class="px-4 py-3 text-slate-200">{{ row.losses }}</td>
-                    <td class="px-4 py-3 text-slate-200">{{ row.draws }}</td>
-                    <td class="px-4 py-3 text-slate-200">{{ row.pointsFor }}</td>
-                    <td class="px-4 py-3 text-slate-200">{{ row.pointsAgainst }}</td>
+                    <td class="px-4 py-3 text-slate-200" :class="!row.isActive && 'blur-[3px] select-none opacity-50'">{{ row.gp }}</td>
+                    <td class="px-4 py-3 text-slate-200" :class="!row.isActive && 'blur-[3px] select-none opacity-50'">{{ row.wins }}</td>
+                    <td class="px-4 py-3 text-slate-200" :class="!row.isActive && 'blur-[3px] select-none opacity-50'">{{ row.losses }}</td>
+                    <td class="px-4 py-3 text-slate-200" :class="!row.isActive && 'blur-[3px] select-none opacity-50'">{{ row.draws }}</td>
+                    <td class="px-4 py-3 text-slate-200" :class="!row.isActive && 'blur-[3px] select-none opacity-50'">{{ row.pointsFor }}</td>
+                    <td class="px-4 py-3 text-slate-200" :class="!row.isActive && 'blur-[3px] select-none opacity-50'">{{ row.pointsAgainst }}</td>
                     <td class="px-4 py-3">
                       <span
                         class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
-                        :class="row.diff >= 0
-                          ? 'bg-emerald-500/10 text-emerald-200 border border-emerald-500/20'
-                          : 'bg-red-500/10 text-red-200 border border-red-500/20'"
+                        :class="[
+                          row.diff >= 0
+                            ? 'bg-emerald-500/10 text-emerald-200 border border-emerald-500/20'
+                            : 'bg-red-500/10 text-red-200 border border-red-500/20',
+                          !row.isActive && 'blur-[3px] select-none opacity-50'
+                        ]"
                       >
                         {{ row.diff }}
                       </span>
                     </td>
-                    <td class="px-4 py-3 text-slate-100 font-semibold">{{ row.tablePoints }}</td>
+                    <td class="px-4 py-3 text-slate-100 font-semibold" :class="!row.isActive && 'blur-[3px] select-none opacity-50'">{{ row.tablePoints }}</td>
                     <td class="px-4 py-3">
-                      <span class="inline-flex items-center rounded-full bg-white/10 text-white px-2 py-0.5 text-xs font-semibold border border-white/10">
+                      <span
+                        class="inline-flex items-center rounded-full bg-white/10 text-white px-2 py-0.5 text-xs font-semibold border border-white/10"
+                        :class="!row.isActive && 'blur-[3px] select-none opacity-50'"
+                      >
                         {{ row.winRate }}
                       </span>
                     </td>
@@ -680,6 +703,7 @@ interface TeamRowVM {
   logoUrl: string | null
   gender: string
   categoryCode: string
+  isActive: boolean
   gp: number
   wins: number
   losses: number
@@ -1049,6 +1073,8 @@ const allRows = computed<TeamRowVM[]>(() => {
       const shortName = String(row.shortName || team?.shortName || '').trim()
       const categoryCode = normalizeUpper(row.categoryCode || team?.categoryCode || team?.code || team?.category?.code || '')
       const gender = normalizeUpper(row.gender || team?.gender || team?.categoryGender || team?.category?.gender || '')
+      // Si no encontramos el equipo en teams/list no asumimos que está eliminado
+      const isActive = team ? team.isActive !== false : true
 
       const gp = toNum(row.gp)
       const wins = toNum(row.wins)
@@ -1071,6 +1097,7 @@ const allRows = computed<TeamRowVM[]>(() => {
         logoUrl: team?.logoUrl || null,
         gender,
         categoryCode,
+        isActive,
         gp,
         wins,
         losses,
@@ -1460,7 +1487,13 @@ watch(totalPlayerPages, (tp) => {
   if (page.value > tp) page.value = tp
 })
 
-const pendingPlayersAny = computed(() => pendingPlayers.value || pendingTeams.value)
+// El fetch de jugadores usa { server: false } (solo corre en cliente), así que
+// en el servidor su `pending` reporta false aunque aún no haya datos. Eso hacía
+// que SSR pintara "Sin resultados" mientras el cliente, al arrancar, esperaba
+// "Cargando...", produciendo un mismatch de hidratación y un parpadeo visible.
+// Forzamos "pendiente" también en el servidor para que ambos lados coincidan
+// en el primer render; no cambia cuándo ni cómo se piden los datos.
+const pendingPlayersAny = computed(() => pendingPlayers.value || pendingTeams.value || import.meta.server)
 const errorPlayersAny = computed(() => !!errorPlayers.value && playersVm.value.length === 0)
 
 /* =========================
