@@ -560,6 +560,94 @@
           </div>
         </div>
 
+        <!-- ========== TOP 5 JUGADORES ========== -->
+        <div class="mt-8 w-full max-w-full rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#2563EB] min-w-0">
+            <div class="flex items-center gap-3 min-w-0">
+              <h3 class="font-display font-extrabold text-white truncate">Top 5 · Jugadores</h3>
+              <span class="inline-flex items-center rounded-full bg-white/15 px-2 py-1 text-[11px] font-extrabold text-white shrink-0" title="Temporada seleccionada">
+                {{ selectedSeasonLabel }}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              class="inline-flex items-center rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/15 shrink-0"
+              @click="refreshTopPlayers()"
+            >
+              Refrescar
+            </button>
+          </div>
+
+          <div class="bg-white w-full max-w-full">
+            <div v-if="topPlayersPendingUI" class="px-5 py-4 text-sm text-slate-500">
+              Cargando jugadores...
+            </div>
+
+            <div v-else-if="topPlayersError" class="px-5 py-4 text-sm text-red-600 break-words">
+              Error al cargar jugadores.
+            </div>
+
+            <template v-else>
+              <ul v-if="topPlayers.length" class="divide-y divide-slate-100">
+                <li
+                  v-for="p in topPlayers"
+                  :key="p.key"
+                  class="flex flex-wrap sm:flex-nowrap items-center gap-3 px-4 py-3 min-w-0"
+                >
+                  <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-extrabold text-slate-700 shrink-0">
+                    #{{ p.rank }}
+                  </span>
+
+                  <div class="h-9 w-9 rounded-full border border-slate-200 bg-slate-50 overflow-hidden grid place-items-center shrink-0">
+                    <img
+                      v-if="p.photoUrl"
+                      :src="p.photoUrl"
+                      :alt="p.fullName"
+                      class="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                    <span v-else class="text-[10px] font-extrabold text-blue-700">{{ initials(p.fullName) }}</span>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-slate-900 truncate text-sm">{{ p.fullName }}</p>
+                    <p class="text-[11px] text-slate-500 truncate">
+                      {{ p.teamName || 'Sin equipo' }}<span v-if="p.number !== null && p.number !== undefined"> · #{{ p.number }}</span>
+                    </p>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+                    <span class="inline-flex flex-col items-center rounded-lg bg-fuchsia-50 border border-fuchsia-100 px-2 py-1 min-w-[34px]">
+                      <span class="text-[9px] font-bold uppercase text-fuchsia-500">INT</span>
+                      <span class="text-xs font-extrabold text-fuchsia-700 tabular-nums">{{ p.stats.int }}</span>
+                    </span>
+                    <span class="inline-flex flex-col items-center rounded-lg bg-violet-50 border border-violet-100 px-2 py-1 min-w-[34px]">
+                      <span class="text-[9px] font-bold uppercase text-violet-500">TD</span>
+                      <span class="text-xs font-extrabold text-violet-700 tabular-nums">{{ p.stats.td }}</span>
+                    </span>
+                    <span class="inline-flex flex-col items-center rounded-lg bg-sky-50 border border-sky-100 px-2 py-1 min-w-[34px]">
+                      <span class="text-[9px] font-bold uppercase text-sky-500">PA</span>
+                      <span class="text-xs font-extrabold text-sky-700 tabular-nums">{{ p.stats.pa }}</span>
+                    </span>
+                    <span class="inline-flex flex-col items-center rounded-lg bg-emerald-50 border border-emerald-100 px-2 py-1 min-w-[34px]">
+                      <span class="text-[9px] font-bold uppercase text-emerald-500">SACK</span>
+                      <span class="text-xs font-extrabold text-emerald-700 tabular-nums">{{ p.stats.sack }}</span>
+                    </span>
+                    <span class="inline-flex items-center rounded-full bg-slate-900 text-white px-2.5 py-1 text-[11px] font-extrabold">
+                      IMP {{ p.impact }}
+                    </span>
+                  </div>
+                </li>
+              </ul>
+
+              <div v-else class="px-5 py-5 text-sm text-slate-500">
+                Aún no hay estadísticas de jugadores para esta temporada.
+              </div>
+            </template>
+          </div>
+        </div>
+
         <!-- ========== REGLAMENTOS (3) ========== -->
         <section id="reglamentos" class="mt-12">
           <div class="rounded-[26px] bg-white border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.10)] overflow-hidden w-full max-w-full">
@@ -1405,6 +1493,101 @@ const topPositions = computed(() => {
   })
 
   return mapped.slice(0, 5).map((r, idx) => ({ ...r, rank: idx + 1 }))
+})
+
+/* ===================== TOP 5 JUGADORES =====================
+   Misma lógica de agrupación/impacto que estadisticas.vue (suma
+   TD+INT+PA+SACK por personKey), pero sin el filtrado defensivo por
+   equipo: /stats/players?leagueId=1&seasonId=X ya viene filtrado por
+   el backend, así que no hace falta cruzarlo contra teams/list salvo
+   para mostrar el nombre del equipo. Se reutiliza teamsMetaRaw, que
+   ya se pedía para los logos del Top 5 de posiciones. */
+const teamNameById = computed(() => {
+  const map = new Map()
+  for (const t of (teamsMetaRaw.value || [])) {
+    const id = toNum(t?.teamId ?? t?.team_id ?? t?.id)
+    if (id > 0) map.set(id, String(t?.name || '').trim())
+  }
+  return map
+})
+
+const {
+  data: topPlayersRaw,
+  pending: topPlayersPending,
+  error: topPlayersError,
+  refresh: refreshTopPlayers,
+} = useAsyncData(
+  'top5-players-league-1',
+  async () => {
+    const res = await leagueGet('/stats/players', { seasonId: selectedSeasonId.value }).catch(() => null)
+    return Array.isArray(res) ? res : []
+  },
+  { server: false, default: () => [], watch: [selectedSeasonId] }
+)
+
+const topPlayersPendingUI = computed(() => topPlayersPending.value || import.meta.server)
+
+const topPlayers = computed(() => {
+  const raw = Array.isArray(topPlayersRaw.value) ? topPlayersRaw.value : []
+  if (raw.length === 0) return []
+
+  const groups = new Map()
+
+  for (const p of raw) {
+    const key = String(p?.personKey || '').trim() || `id:${toNum(p?.playerId)}`
+    const teamId = toNum(p?.teamId)
+
+    const rowStats = {
+      td: toNum(p?.td),
+      int: toNum(p?.intercep),
+      pa: toNum(p?.passTd),
+      sack: toNum(p?.sacks),
+    }
+    const rowImpact = rowStats.td + rowStats.int + rowStats.pa + rowStats.sack
+
+    let g = groups.get(key)
+    if (!g) {
+      g = {
+        key,
+        fullName: String(p?.fullName || 'Jugador').trim(),
+        photoUrl: p?.photoUrl || null,
+        number: p?.number ?? null,
+        teamId,
+        teamName: teamNameById.value.get(teamId) || '',
+        stats: { td: 0, int: 0, pa: 0, sack: 0 },
+        bestImpact: -1,
+      }
+      groups.set(key, g)
+    }
+
+    g.stats.td += rowStats.td
+    g.stats.int += rowStats.int
+    g.stats.pa += rowStats.pa
+    g.stats.sack += rowStats.sack
+
+    if (!g.photoUrl && p?.photoUrl) g.photoUrl = p.photoUrl
+
+    // Equipo/número representativo = donde tuvo más impacto individual
+    // (misma convención que la vista de jugadores de estadisticas.vue)
+    if (rowImpact > g.bestImpact) {
+      g.bestImpact = rowImpact
+      g.teamId = teamId
+      g.teamName = teamNameById.value.get(teamId) || g.teamName
+      if (p?.number != null) g.number = p.number
+    }
+  }
+
+  const list = Array.from(groups.values()).map((g) => ({
+    ...g,
+    impact: g.stats.td + g.stats.int + g.stats.pa + g.stats.sack,
+  }))
+
+  list.sort((a, b) => {
+    if (b.impact !== a.impact) return b.impact - a.impact
+    return a.fullName.localeCompare(b.fullName, 'es')
+  })
+
+  return list.slice(0, 5).map((p, idx) => ({ ...p, rank: idx + 1 }))
 })
 
 /* ===================== HERO CARRUSEL ===================== */
