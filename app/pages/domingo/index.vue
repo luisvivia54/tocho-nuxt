@@ -1288,24 +1288,68 @@ const seasonsMap = computed(() => {
 const selectedSeasonLabel = computed(() => seasonsMap.value[selectedSeasonId.value] || `Temporada ${selectedSeasonId.value}`)
 
 /* ===================== TOP 5 POSICIONES ===================== */
-const categoryOptions = [
-  { label: 'Libre', value: 'Libre' },
-  { label: '35+', value: '35+' },
-  { label: 'U-8', value: 'U8' },
-  { label: 'U-10', value: 'U10' },
-  { label: 'U-12', value: 'U12' },
-  { label: 'U-14', value: 'U14' },
-  { label: 'U-16', value: 'U16' }
-]
+
+/** "0", vacio o ausente significan "sin division". */
+function normLevel(raw) {
+  const v = String(raw ?? '').trim()
+  if (!v || v === '0') return null
+  return v.toUpperCase()
+}
+
+/** Llave de rama+division: "LIBRE|A", "LIBRE|B", o "35+" si la rama no esta dividida. */
+function ramaKeyOf(code, level) {
+  const c = String(code ?? '').trim().toUpperCase()
+  if (!c) return ''
+  return level ? `${c}|${level}` : c
+}
+
+function ramaLabelOf(code, level) {
+  const c = String(code ?? '').trim()
+  if (!c) return ''
+  return level ? `${c} ${level}` : c
+}
+
+// El catalogo sale de /categories, no de una lista escrita a mano: asi las
+// divisiones nuevas aparecen solas sin tocar este archivo.
+const { data: categoriesRaw } = useAsyncData(
+  `home-categories-league-${LEAGUE_ID}`,
+  async () => {
+    const res = await leagueGet('/categories').catch(() => null)
+    return Array.isArray(res) ? res : []
+  },
+  { server: false, default: () => [] }
+)
+
+const categoryOptions = computed(() => {
+  const map = new Map()
+
+  for (const c of (Array.isArray(categoriesRaw.value) ? categoriesRaw.value : [])) {
+    const level = normLevel(c?.levelOrder ?? c?.level_order)
+    const key = ramaKeyOf(c?.code, level)
+    if (key && !map.has(key)) map.set(key, ramaLabelOf(c?.code, level))
+  }
+
+  return Array.from(map.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'es'))
+})
 
 const selectedCategoryCode = ref('all')
 const selectedGender = ref('all')
 
+// selectedCategoryCode guarda la llave completa; estas dos la parten.
 const normalizedCategoryCode = computed(() => {
   const v = String(selectedCategoryCode.value || 'all').trim()
   if (v === 'all') return 'all'
-  if (v === '+35') return '35+'
-  return v
+  const code = v.split('|')[0] ?? ''
+  if (code === '+35') return '35+'
+  return code
+})
+
+const selectedLevel = computed(() => {
+  const v = String(selectedCategoryCode.value || 'all').trim()
+  if (v === 'all') return null
+  return normLevel(v.split('|')[1])
 })
 
 const pointsParams = computed(() => {
@@ -1440,7 +1484,14 @@ const clearFilters = () => {
 }
 
 const topPositions = computed(() => {
-  const raw = Array.isArray(standings.value) ? standings.value : []
+  const all = Array.isArray(standings.value) ? standings.value : []
+
+  // El back filtra por code (devuelve A y B juntas); la division se separa aqui.
+  const wantLevel = selectedLevel.value
+  const raw = wantLevel
+    ? all.filter((r) => normLevel(r?.levelOrder ?? r?.level_order) === wantLevel)
+    : all
+
   if (raw.length === 0) return []
 
   const ded = new Map()

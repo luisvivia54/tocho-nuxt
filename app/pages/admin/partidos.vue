@@ -95,6 +95,24 @@
                     Filtrar equipos por esta categoría
                   </label>
 
+                  <label
+                    v-if="siblingCategoryIds.length > 1"
+                    class="mt-2 inline-flex items-center gap-2 text-xs text-slate-300 select-none"
+                  >
+                    <input type="checkbox" v-model="allowCrossDivision" class="accent-amber-500" />
+                    Permitir visitante de otra división (cruzado A vs B)
+                  </label>
+
+                  <p
+                    v-if="derivedHint"
+                    class="mt-2 text-[11px]"
+                    :class="isCrossDivision ? 'text-amber-200' : 'text-slate-400'"
+                  >
+                    Se guardará como:
+                    <span class="font-semibold">{{ derivedHint }}</span>
+                    <template v-if="isCrossDivision"> · cruzado</template>
+                  </p>
+
                   <p v-if="catHint" class="mt-2 text-[11px] text-slate-400">
                     Seleccionada: <span class="text-slate-100 font-semibold">{{ catHint }}</span>
                   </p>
@@ -1375,6 +1393,24 @@ function validateForm() {
   if (!homeTeamId.value) return 'Selecciona equipo Local.'
   if (!awayTeamId.value) return 'Selecciona equipo Visitante.'
   if (homeTeamId.value === awayTeamId.value) return 'Local y Visitante no pueden ser el mismo equipo.'
+
+  // La categoria se toma del equipo, asi que sin inscripcion no hay partido posible.
+  if (homeDerivedCategoryId.value < 1) {
+    return 'El equipo Local no tiene categoría inscrita. Revisa su inscripción antes de agendar.'
+  }
+  if (awayDerivedCategoryId.value < 1) {
+    return 'El equipo Visitante no tiene categoría inscrita. Revisa su inscripción antes de agendar.'
+  }
+
+  if (isCrossDivision.value) {
+    if (!allowCrossDivision.value) {
+      return 'Local y Visitante son de divisiones distintas. Marca “Permitir visitante de otra división” para agendar un cruzado.'
+    }
+    if (!siblingCategoryIds.value.includes(awayDerivedCategoryId.value)) {
+      return 'Sólo se pueden cruzar divisiones de la misma rama (A vs B).'
+    }
+  }
+
   if (!form.value.date) return 'Falta la fecha.'
   if (!form.value.time) return 'Falta la hora.'
   if (!String(form.value.jornada ?? '').trim()) return 'Falta la jornada.'
@@ -1401,13 +1437,20 @@ async function saveGame() {
     const jornadaNumber = /^\d+$/.test(jornadaText) ? Number(jornadaText) : null
     const venue = String(form.value.field ?? '').trim()
 
+    // Categoria del LOCAL, y la del visitante solo si es cruzado. null (no 0)
+    // para que el back lo guarde como partido normal.
+    const categoryIdToSend = homeDerivedCategoryId.value || Number(form.value.categoryId || 0)
+    const categoryId2ToSend = isCrossDivision.value ? awayDerivedCategoryId.value : null
+
     const payloadCreate: any = {
       league_id: LEAGUE_ID,
       leagueId: LEAGUE_ID,
       season_id: seasonId,
       seasonId,
-      category_id: form.value.categoryId,
-      categoryId: form.value.categoryId,
+      category_id: categoryIdToSend,
+      categoryId: categoryIdToSend,
+      category_id_2: categoryId2ToSend,
+      categoryId2: categoryId2ToSend,
       home_team_id: homeTeamId.value,
       homeTeamId: homeTeamId.value,
       away_team_id: awayTeamId.value,
@@ -1433,8 +1476,10 @@ async function saveGame() {
       leagueId: LEAGUE_ID,
       season_id: seasonId,
       seasonId,
-      category_id: form.value.categoryId,
-      categoryId: form.value.categoryId,
+      category_id: categoryIdToSend,
+      categoryId: categoryIdToSend,
+      category_id_2: categoryId2ToSend,
+      categoryId2: categoryId2ToSend,
       match_date_utc: isoUtc,
       matchDateUtc: isoUtc,
       status: 'SCHEDULED',
@@ -1489,6 +1534,7 @@ function swapTeams() {
  *  TEAM PICKER
  *  ========================= */
 const filterTeamsByCategory = ref(true)
+const allowCrossDivision = ref(false)
 const homeInput = ref('')
 const awayInput = ref('')
 const homeOpen = ref(false)
@@ -1504,9 +1550,63 @@ const poolTeams = computed(() => {
   return teamsByCategory.value.get(catId) || []
 })
 
-function suggest(q: string, excludeId: number | null) {
+/**
+ * Categorias "hermanas": mismo code + gender, distinta division (A / B).
+ * Es el unico cruce permitido. Evita que alguien arme un Libre vs U-12.
+ */
+const siblingCategoryIds = computed<number[]>(() => {
+  const base = categoryById.value.get(Number(form.value.categoryId || 0))
+  if (!base) return []
+
+  const code = String(base.code || '').trim().toUpperCase()
+  const gender = String(base.gender || '').trim().toUpperCase()
+  if (!code || !gender) return []
+
+  return categories.value
+    .filter(
+      (c) =>
+        String(c.code || '').trim().toUpperCase() === code &&
+        String(c.gender || '').trim().toUpperCase() === gender
+    )
+    .map((c) => c.id)
+})
+
+// Con el cruce activado el visitante puede venir de cualquier division hermana.
+const awayPoolTeams = computed<Team[]>(() => {
+  if (!allowCrossDivision.value) return poolTeams.value
+
+  const ids = siblingCategoryIds.value
+  if (!ids.length) return poolTeams.value
+
+  const out: Team[] = []
+  for (const id of ids) out.push(...(teamsByCategory.value.get(id) || []))
+  return out
+})
+
+// La categoria del partido NO sale del selector, sale del equipo. Asi no puede
+// quedar desalineada si alguien cambia el selector despues de elegir equipos.
+const homeDerivedCategoryId = computed(() => Number(homeTeam.value?.categoryId || 0))
+const awayDerivedCategoryId = computed(() => Number(awayTeam.value?.categoryId || 0))
+
+const isCrossDivision = computed(
+  () =>
+    homeDerivedCategoryId.value > 0 &&
+    awayDerivedCategoryId.value > 0 &&
+    homeDerivedCategoryId.value !== awayDerivedCategoryId.value
+)
+
+const derivedHint = computed(() => {
+  const h = categoryById.value.get(homeDerivedCategoryId.value)
+  const a = categoryById.value.get(awayDerivedCategoryId.value)
+  if (!h && !a) return ''
+  const hl = h ? categoryLabel(h) : '-'
+  if (!isCrossDivision.value) return hl
+  return `${hl}  vs  ${a ? categoryLabel(a) : '-'}`
+})
+
+function suggest(q: string, excludeId: number | null, pool?: Team[]) {
   const query = q.trim()
-  const arr = poolTeams.value
+  const arr = pool ?? poolTeams.value
   const out: Team[] = []
   const LIMIT = 5
 
@@ -1529,7 +1629,7 @@ function suggest(q: string, excludeId: number | null) {
 }
 
 const homeSuggestions = computed(() => suggest(homeQ.value, awayTeamId.value))
-const awaySuggestions = computed(() => suggest(awayQ.value, homeTeamId.value))
+const awaySuggestions = computed(() => suggest(awayQ.value, homeTeamId.value, awayPoolTeams.value))
 
 function pickHome(t: Team) {
   homeTeamId.value = t.teamId

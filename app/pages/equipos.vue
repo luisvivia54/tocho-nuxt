@@ -45,8 +45,8 @@
                     :disabled="categoriesPending"
                   >
                     <option value="all">Todas</option>
-                    <option v-for="code in ramaOptions" :key="code" :value="code">
-                      {{ code }}
+                    <option v-for="opt in ramaOptions" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
                     </option>
                   </select>
 
@@ -126,7 +126,7 @@
               v-if="selectedRama !== 'all'"
               class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
             >
-              Rama: <strong class="text-slate-100">{{ selectedRama }}</strong>
+              Rama: <strong class="text-slate-100">{{ selectedRamaOptionLabel }}</strong>
               <button type="button" class="text-slate-300 hover:text-white" @click="clearRama">✕</button>
             </span>
 
@@ -324,6 +324,7 @@ interface ApiTeam {
   updatedAt?: string
   code?: Nullable<string>
   categoryCode?: Nullable<string>
+  categoryLevelOrder?: Nullable<string>
   gender?: Nullable<string>
   categoryGender?: Nullable<string>
   category?: Nullable<{ code?: string; gender?: string; name?: string; leagueId?: number | null }>
@@ -335,6 +336,8 @@ interface CategoryDto {
   name: string
   code: string
   gender: string
+  levelOrder?: string | null
+  displayName?: string | null
 }
 
 function unwrapList<T>(x: any): T[] {
@@ -351,7 +354,37 @@ const config = useRuntimeConfig()
 const API_BASE = `${normalizeApiBase(config.public.apiBase)}/`
 
 // ================== FILTROS ==================
+/** "0", vacio o ausente significan "sin division". */
+function normLevel(raw: unknown): string | null {
+  const v = String(raw ?? '').trim()
+  if (!v || v === '0') return null
+  return v.toUpperCase()
+}
+
+/** Llave de rama+division: "LIBRE|A", "LIBRE|B", o "35+" si la rama no esta dividida. */
+function ramaKeyOf(code: unknown, level: string | null): string {
+  const c = normalizeUpper(code)
+  if (!c) return ''
+  return level ? `${c}|${level}` : c
+}
+
+function ramaLabelOf(code: unknown, level: string | null): string {
+  const c = String(code ?? '').trim()
+  if (!c) return ''
+  return level ? `${c} ${level}` : c
+}
+
+// selectedRama guarda la llave completa; estas dos la parten para usarla.
 const selectedRama = ref<string>('all')
+
+const selectedRamaCode = computed(() =>
+  selectedRama.value === 'all' ? null : (selectedRama.value.split('|')[0] ?? null)
+)
+
+const selectedRamaLevel = computed(() => {
+  if (selectedRama.value === 'all') return null
+  return normLevel(selectedRama.value.split('|')[1])
+})
 const selectedCategoria = ref<string>('all')
 const searchQuery = ref('')
 
@@ -409,15 +442,22 @@ const hasUsableCategoryCatalog = computed(() =>
 )
 
 const ramaOptions = computed(() => {
-  const set = new Set<string>()
+  const map = new Map<string, string>()
 
   for (const c of categoriesList.value) {
-    const code = normalizeUpper(c?.code)
-    if (code) set.add(code)
+    const level = normLevel(c?.levelOrder)
+    const key = ramaKeyOf(c?.code, level)
+    if (key && !map.has(key)) map.set(key, ramaLabelOf(c?.code, level))
   }
 
-  return Array.from(set).sort()
+  return Array.from(map.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'es'))
 })
+
+const selectedRamaOptionLabel = computed(
+  () => ramaOptions.value.find((o) => o.value === selectedRama.value)?.label ?? selectedRama.value
+)
 
 const categoriaOptions = computed(() => {
   const set = new Set<string>()
@@ -431,7 +471,7 @@ const categoriaOptions = computed(() => {
 })
 
 const selectedRamaLabel = computed(() =>
-  selectedRama.value === 'all' ? 'Todas las ramas' : selectedRama.value
+  selectedRama.value === 'all' ? 'Todas las ramas' : selectedRamaOptionLabel.value
 )
 
 const selectedCategoriaLabel = computed(() =>
@@ -441,7 +481,7 @@ const selectedCategoriaLabel = computed(() =>
 // Query para el BACK: teams/list?leagueId=1&categoryCode=...&gender=...
 const teamsQuery = computed(() => ({
   leagueId: PAGE_LEAGUE_ID,
-  categoryCode: selectedRama.value === 'all' ? undefined : selectedRama.value,
+  categoryCode: selectedRamaCode.value ?? undefined,
   gender: selectedCategoria.value === 'all' ? undefined : selectedCategoria.value,
 }))
 
@@ -465,10 +505,16 @@ const teamsList = computed<ApiTeam[]>(() => {
 
 // ================== FILTRO LOCAL (búsqueda) ==================
 const filteredTeams = computed<ApiTeam[]>(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return teamsList.value
+  // El back filtra por code (devuelve A y B juntas); la division se separa aqui.
+  const wantLevel = selectedRamaLevel.value
+  const base = wantLevel
+    ? teamsList.value.filter((team) => normLevel(team?.categoryLevelOrder) === wantLevel)
+    : teamsList.value
 
-  return teamsList.value.filter((team) => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return base
+
+  return base.filter((team) => {
     const name = String(team.name || '').toLowerCase()
     const short = String(team.shortName || '').toLowerCase()
     return name.includes(query) || short.includes(query)

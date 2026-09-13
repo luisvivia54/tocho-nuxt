@@ -285,10 +285,30 @@
                         </option>
                       </select>
                     </div>
+
+                    <div v-if="divisionOptions.length">
+                      <label class="mb-1 block text-xs font-semibold text-slate-700">División</label>
+                      <select
+                        v-model.number="selectedDivisionId"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900"
+                      >
+                        <option :value="0" disabled>Selecciona división</option>
+                        <option v-for="d in divisionOptions" :key="d.value" :value="d.value">
+                          {{ d.label }}
+                        </option>
+                      </select>
+                    </div>
                   </div>
 
+                  <p v-if="needsDivision" class="mt-2 text-[11px] font-semibold text-amber-600">
+                    Esta rama tiene División A y B. Elige una para continuar.
+                  </p>
+
                   <div v-if="selectedCategory" class="mt-2 text-[11px] text-slate-500">
-                    Seleccionaste: <span class="font-semibold">{{ selectedCategory.name }}</span>
+                    Seleccionaste:
+                    <span class="font-semibold">
+                      {{ selectedCategory.displayName || selectedCategory.name }}
+                    </span>
                   </div>
 
                   <div class="mt-2 grid gap-4 md:grid-cols-2">
@@ -639,6 +659,10 @@ interface CategoryDto {
   name: string
   code: string
   gender: string
+  // "A" | "B"; null cuando la categoria no esta dividida en divisiones
+  levelOrder: string | null
+  // name + division, ya armado por el back: "Varonil A", "Varonil B", "35+"
+  displayName: string
 }
 
 interface LeagueOption {
@@ -714,13 +738,27 @@ function normalizeCategories(raw: any): CategoryDto[] {
           : []
 
   return arr
-    .map((c: any) => ({
-      id: Number(c?.id ?? c?.categoryId ?? c?.category_id ?? 0) || 0,
-      leagueId: Number(c?.leagueId ?? c?.league_id ?? c?.league?.id ?? 0) || undefined,
-      name: String(c?.name ?? c?.categoryName ?? '').trim(),
-      code: String(c?.code ?? '').trim(),
-      gender: String(c?.gender ?? '').trim(),
-    }))
+    .map((c: any) => {
+      const name = String(c?.name ?? c?.categoryName ?? '').trim()
+
+      // El back manda "A" / "B" y null cuando no hay division. Si todavia no esta
+      // desplegado ese cambio, esto queda en null y la pantalla se comporta como antes.
+      const rawLevel = String(c?.levelOrder ?? c?.level_order ?? '').trim()
+      const levelOrder = !rawLevel || rawLevel === '0' ? null : rawLevel.toUpperCase()
+
+      const rawDisplay = String(c?.displayName ?? c?.display_name ?? '').trim()
+      const displayName = rawDisplay || (levelOrder ? `${name} ${levelOrder}` : name)
+
+      return {
+        id: Number(c?.id ?? c?.categoryId ?? c?.category_id ?? 0) || 0,
+        leagueId: Number(c?.leagueId ?? c?.league_id ?? c?.league?.id ?? 0) || undefined,
+        name,
+        code: String(c?.code ?? '').trim(),
+        gender: String(c?.gender ?? '').trim(),
+        levelOrder,
+        displayName,
+      }
+    })
     .filter((c: CategoryDto) => c.id > 0 && !!c.name)
 }
 
@@ -821,6 +859,7 @@ function resetFormFields() {
   selectedSeasonId.value = currentSeason.value?.id ?? FALLBACK_SEASON_ID
   selectedGender.value = ''
   selectedRama.value = ''
+  selectedDivisionId.value = 0
   selectedCategoryId.value = 0
 
   for (const p of players.value) {
@@ -932,6 +971,9 @@ const categoriesError = ref<string | null>(null)
 const selectedCategoryId = ref<number>(0)
 const selectedGender = ref<string>('')
 const selectedRama = ref<string>('')
+// Guarda el category_id de la division elegida (no la letra), para no depender
+// de que name/code/gender sean distintos entre A y B: en BD son identicos.
+const selectedDivisionId = ref<number>(0)
 
 const teamName = ref('')
 const teamShortName = ref('')
@@ -974,14 +1016,46 @@ const ramaOptions = computed(() => {
   return Array.from(set.entries()).map(([value, label]) => ({ value, label }))
 })
 
-const selectedCategory = computed<CategoryDto | null>(() => {
-  if (!selectedGender.value || !selectedRama.value) return null
+// Todas las categorias que comparten (gender, code). Con divisiones A/B hay mas de una
+// y son indistinguibles por name/code/gender: solo las separa levelOrder.
+const categoryGroup = computed<CategoryDto[]>(() => {
+  if (!selectedGender.value || !selectedRama.value) return []
 
-  return (
-    categories.value.find(
-      (c) => norm(c.gender) === selectedGender.value && norm(c.code) === selectedRama.value
-    ) ?? null
+  return categories.value.filter(
+    (c) => norm(c.gender) === selectedGender.value && norm(c.code) === selectedRama.value
   )
+})
+
+// Solo se ofrece elegir division cuando de verdad hay mas de una.
+const divisionOptions = computed(() => {
+  const group = categoryGroup.value
+  if (group.length < 2) return []
+
+  return group
+    .slice()
+    .sort((a, b) => (a.levelOrder ?? '').localeCompare(b.levelOrder ?? ''))
+    .map((c) => ({
+      value: c.id,
+      // El id va en la etiqueta solo si el back todavia no manda levelOrder, para que
+      // dos categorias con el mismo nombre no se vean identicas en el desplegable.
+      label: c.levelOrder
+        ? `División ${c.levelOrder}`
+        : `${c.displayName || c.name} (#${c.id})`,
+    }))
+})
+
+const needsDivision = computed(
+  () => divisionOptions.value.length > 0 && !selectedDivisionId.value
+)
+
+const selectedCategory = computed<CategoryDto | null>(() => {
+  const group = categoryGroup.value
+  if (!group.length) return null
+
+  // Sin divisiones el comportamiento es el de siempre: una sola categoria posible.
+  if (group.length === 1) return group[0] ?? null
+
+  return group.find((c) => c.id === selectedDivisionId.value) ?? null
 })
 
 const sendablePlayers = computed(() =>
@@ -1026,6 +1100,13 @@ watch(
     selectedCategoryId.value = 0
   }
 )
+
+// Al cambiar categoria o rama, la division elegida solo sobrevive si sigue siendo
+// una opcion valida. Asi el borrador guardado no se pierde al recargar.
+watch([() => selectedGender.value, () => selectedRama.value], () => {
+  const stillValid = categoryGroup.value.some((c) => c.id === selectedDivisionId.value)
+  if (!stillValid) selectedDivisionId.value = 0
+})
 
 async function fetchSeasons() {
   try {
@@ -1156,6 +1237,7 @@ function loadDraft() {
     selectedGender.value = draft.gender ?? ''
     selectedRama.value = draft.rama ?? ''
     selectedCategoryId.value = draft.categoryId ?? 0
+    selectedDivisionId.value = draft.categoryId ?? 0
 
   } catch (e) {
     console.error('Error cargando borrador:', e)
@@ -1194,6 +1276,11 @@ async function onSubmit() {
 
   const forcedSeasonId = currentSeason.value?.id ?? FALLBACK_SEASON_ID
   selectedSeasonId.value = forcedSeasonId
+
+  if (needsDivision.value) {
+    errorMessage.value = 'Selecciona la división (A o B) antes de registrar el equipo.'
+    return
+  }
 
   if (!selectedLeagueId.value || !selectedSeasonId.value || !selectedCategoryId.value) {
     errorMessage.value = 'Selecciona liga, temporada, categoría y rama antes de registrar el equipo.'

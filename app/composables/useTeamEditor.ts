@@ -16,10 +16,16 @@ interface TeamDetail {
   categoryId?: number
   league?: { name?: string | null } | null
   season?: { name?: string | null } | null
-  category?: { name?: string | null; code?: string | null } | null
+  category?: {
+    name?: string | null
+    code?: string | null
+    levelOrder?: string | null
+    displayName?: string | null
+  } | null
   leagueName?: string | null
   seasonName?: string | null
   categoryName?: string | null
+  categoryLevelOrder?: string | null
 }
 
 interface PlayerApi {
@@ -205,6 +211,28 @@ export function useTeamEditor(teamId: number | Ref<number>) {
   const seasonName = ref('Temporada actual')
   const categoryName = ref('Categoría por definir')
 
+  /**
+   * Con divisiones A/B el `name` de la categoria es identico entre una y otra
+   * ("Varonil" en ambas): lo unico que las separa es levelOrder. Por eso se
+   * prefiere displayName y, si no viene, se arma name + division.
+   */
+  function resolveCategoryLabel(team: TeamApi): string {
+    const display = String(team.category?.displayName ?? '').trim()
+    if (display) return display
+
+    const base = String(
+      team.category?.name ?? team.category?.code ?? team.categoryName ?? ''
+    ).trim()
+    if (!base) return ''
+
+    const rawLevel = String(
+      team.category?.levelOrder ?? team.categoryLevelOrder ?? ''
+    ).trim()
+    const level = !rawLevel || rawLevel === '0' ? null : rawLevel.toUpperCase()
+
+    return level ? `${base} ${level}` : base
+  }
+
   const players = ref<PlayerForm[]>([])
   const photos = ref<PhotoForm[]>([])
 
@@ -261,9 +289,7 @@ export function useTeamEditor(teamId: number | Ref<number>) {
       colorSecondary.value = normalizeColorForPicker(team.colorSecondary, '#FFFFFF')
       leagueName.value = String(team.league?.name ?? team.leagueName ?? leagueName.value).trim() || 'Liga Tochero5'
       seasonName.value = String(team.season?.name ?? team.seasonName ?? seasonName.value).trim() || 'Temporada actual'
-      categoryName.value =
-        String(team.category?.name ?? team.category?.code ?? team.categoryName ?? categoryName.value).trim() ||
-        'Categoría por definir'
+      categoryName.value = resolveCategoryLabel(team) || 'Categoría por definir'
     } catch (err) {
       console.error('Error cargando equipo', err)
       loadError.value = 'No se pudo cargar la información del equipo.'

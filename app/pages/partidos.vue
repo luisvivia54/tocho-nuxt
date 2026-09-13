@@ -120,7 +120,7 @@
                   :class="segBtn(rama === opt.value, 'blue', !canPickRama)"
                   :title="!canPickRama ? 'Elige categoría primero' : `${opt.count} partido(s)`"
                 >
-                  {{ opt.value }}
+                  {{ opt.label }}
                   <span class="ml-2 count-pill">{{ opt.count }}</span>
                 </button>
               </div>
@@ -271,8 +271,15 @@
                   <span class="text-slate-500" v-if="g.gender">·</span>
                   <span v-if="g.gender">{{ niceGender(g.gender) }}</span>
 
-                  <span class="text-slate-500" v-if="g.code">·</span>
-                  <span v-if="g.code">Rama: {{ g.code }}</span>
+                  <span class="text-slate-500" v-if="g.ramaLabel">·</span>
+                  <span v-if="g.ramaLabel">Rama: {{ g.ramaLabel }}</span>
+
+                  <span
+                    v-if="g.isCross"
+                    class="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-200 border border-amber-500/20"
+                  >
+                    Cruzado
+                  </span>
 
                   <span class="text-slate-500" v-if="g.roundDisplay">·</span>
                   <span v-if="g.roundDisplay" :class="roundBadgeClass(g.roundKey)">
@@ -426,6 +433,26 @@ import { markRaw, shallowRef, ref, computed, watch, onMounted, onBeforeUnmount }
 type Gender = 'VARONIL' | 'FEMENIL' | 'MIXTO' | string
 type Season = { id: number; name: string }
 
+/** "0", vacio o ausente significan "sin division". */
+function normLevel(raw: unknown): string | null {
+  const v = String(raw ?? '').trim()
+  if (!v || v === '0') return null
+  return v.toUpperCase()
+}
+
+/** Llave estable de rama+division: "LIBRE|A", "LIBRE|B", o "35+" si no hay division. */
+function ramaKeyOf(code: unknown, level: string | null): string {
+  const c = String(code ?? '').trim().toUpperCase()
+  if (!c) return ''
+  return level ? `${c}|${level}` : c
+}
+
+function ramaLabelOf(code: unknown, level: string | null): string {
+  const c = String(code ?? '').trim()
+  if (!c) return ''
+  return level ? `${c} ${level}` : c
+}
+
 type VMGame = {
   id: number
   seasonId: number
@@ -441,6 +468,11 @@ type VMGame = {
   gender: string | null
   code: string | null
   categoryName: string
+  // Llaves "CODE|LEVEL" de las divisiones a las que pertenece el partido.
+  // Un partido normal tiene una; un cruzado A vs B tiene dos.
+  ramaKeys: string[]
+  ramaLabel: string
+  isCross: boolean
   homeName: string
   awayName: string
   venue: string
@@ -658,6 +690,16 @@ watch([data, seasonsMap, seasonNameToId], ([raw]) => {
 
     const gen = g.category?.gender ? upper(g.category.gender) : null
     const code = g.category?.code ? String(g.category.code) : null
+
+    const level = normLevel(g.category?.levelOrder ?? g.category?.level_order)
+    const cat2 = g.category2 ?? g.category_2 ?? null
+    const level2 = normLevel(cat2?.levelOrder ?? cat2?.level_order)
+
+    const key1 = ramaKeyOf(code, level)
+    const key2 = cat2?.code ? ramaKeyOf(cat2.code, level2) : ''
+    // Un cruzado aparece en el filtro de las DOS divisiones.
+    const ramaKeys = [key1, key2].filter((k, i, arr) => !!k && arr.indexOf(k) === i)
+    const isCross = ramaKeys.length > 1
     const homeName = String(g.home_team ?? g.homeTeam?.name ?? 'Local').trim()
     const awayName = String(g.away_team ?? g.awayTeam?.name ?? 'Visitante').trim()
 
@@ -688,6 +730,11 @@ watch([data, seasonsMap, seasonNameToId], ([raw]) => {
       gender: gen,
       code,
       categoryName: String(g.category?.name ?? `Categoría ${g.category?.id ?? ''}`).trim(),
+      ramaKeys,
+      ramaLabel: isCross
+        ? `${ramaLabelOf(code, level)} vs ${ramaLabelOf(cat2?.code, level2)}`
+        : ramaLabelOf(code, level),
+      isCross,
       homeName,
       awayName,
       venue: String(g?.venue ?? g?.field ?? g?.location ?? g?.court ?? g?.stadium ?? '').trim(),
@@ -777,17 +824,24 @@ const ramaOptions = computed(() => {
   if (categoria.value === 'ALL') return []
 
   const gen = upper(categoria.value)
-  const map: Record<string, number> = {}
+  const map: Record<string, { count: number; label: string }> = {}
 
   for (const g of seasonScopedGames.value) {
     if (upper(g.gender ?? '') !== gen) continue
-    const code = upper(g.code ?? '')
-    if (code) map[code] = (map[code] ?? 0) + 1
+
+    // Un cruzado suma en las dos divisiones, por eso iteramos las llaves.
+    for (const key of g.ramaKeys) {
+      if (!map[key]) {
+        const [code, level] = key.split('|')
+        map[key] = { count: 0, label: ramaLabelOf(code, level ?? null) }
+      }
+      map[key]!.count += 1
+    }
   }
 
   return Object.entries(map)
-    .map(([value, count]) => ({ value, count }))
-    .sort((a, b) => a.value.localeCompare(b.value))
+    .map(([value, meta]) => ({ value, count: meta.count, label: meta.label }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'es'))
 })
 
 const roundOptions = computed(() => {
@@ -799,7 +853,7 @@ const roundOptions = computed(() => {
 
   for (const g of seasonScopedGames.value) {
     if (upper(g.gender ?? '') !== gen) continue
-    if (upper(g.code ?? '') !== code) continue
+    if (!g.ramaKeys.includes(code)) continue
 
     const value = normalizeRoundKey(g.roundRaw ?? g.roundDisplay ?? '')
     if (!value) continue
@@ -846,7 +900,7 @@ const filteredAll = computed(() => {
     }
 
     if (cg && upper(g.gender ?? '') !== cg) continue
-    if (cg && rc && upper(g.code ?? '') !== rc) continue
+    if (cg && rc && !g.ramaKeys.includes(rc)) continue
 
     if (rp && canPickRound.value) {
       const gameRoundKey = normalizeRoundKey(g.roundRaw ?? g.roundDisplay ?? '')
