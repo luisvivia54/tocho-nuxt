@@ -471,6 +471,8 @@ type VMGame = {
   // Llaves "CODE|LEVEL" de las divisiones a las que pertenece el partido.
   // Un partido normal tiene una; un cruzado A vs B tiene dos.
   ramaKeys: string[]
+  // Una etiqueta por llave, en el mismo orden, con el casing original del backend.
+  ramaLabels: string[]
   ramaLabel: string
   isCross: boolean
   homeName: string
@@ -697,8 +699,18 @@ watch([data, seasonsMap, seasonNameToId], ([raw]) => {
 
     const key1 = ramaKeyOf(code, level)
     const key2 = cat2?.code ? ramaKeyOf(cat2.code, level2) : ''
+    const label1 = ramaLabelOf(code, level)
+    const label2 = cat2?.code ? ramaLabelOf(cat2.code, level2) : ''
+
     // Un cruzado aparece en el filtro de las DOS divisiones.
-    const ramaKeys = [key1, key2].filter((k, i, arr) => !!k && arr.indexOf(k) === i)
+    const ramaKeys: string[] = []
+    const ramaLabels: string[] = []
+    for (const [k, l] of [[key1, label1], [key2, label2]] as const) {
+      if (k && !ramaKeys.includes(k)) {
+        ramaKeys.push(k)
+        ramaLabels.push(l)
+      }
+    }
     const isCross = ramaKeys.length > 1
     const homeName = String(g.home_team ?? g.homeTeam?.name ?? 'Local').trim()
     const awayName = String(g.away_team ?? g.awayTeam?.name ?? 'Visitante').trim()
@@ -731,6 +743,7 @@ watch([data, seasonsMap, seasonNameToId], ([raw]) => {
       code,
       categoryName: String(g.category?.name ?? `Categoría ${g.category?.id ?? ''}`).trim(),
       ramaKeys,
+      ramaLabels,
       ramaLabel: isCross
         ? `${ramaLabelOf(code, level)} vs ${ramaLabelOf(cat2?.code, level2)}`
         : ramaLabelOf(code, level),
@@ -830,13 +843,14 @@ const ramaOptions = computed(() => {
     if (upper(g.gender ?? '') !== gen) continue
 
     // Un cruzado suma en las dos divisiones, por eso iteramos las llaves.
-    for (const key of g.ramaKeys) {
+    g.ramaKeys.forEach((key, i) => {
       if (!map[key]) {
-        const [code, level] = key.split('|')
-        map[key] = { count: 0, label: ramaLabelOf(code, level ?? null) }
+        // La etiqueta usa el casing original que vino del backend ("Libre A"),
+        // no la llave, que esta normalizada a mayusculas.
+        map[key] = { count: 0, label: g.ramaLabels[i] ?? key }
       }
       map[key]!.count += 1
-    }
+    })
   }
 
   return Object.entries(map)
