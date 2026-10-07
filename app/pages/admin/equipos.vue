@@ -104,7 +104,21 @@
           >
             <div class="col-span-8 md:col-span-9 min-w-0">
               <p class="truncate font-semibold text-slate-50">{{ t.name }}</p>
-              <p class="text-xs text-slate-300/60">ID: {{ t.id }}</p>
+
+              <p class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-300/60">
+                <span>ID: {{ t.id }}</span>
+
+                <span
+                  v-if="t.categoryLabel"
+                  class="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-semibold text-slate-100"
+                >
+                  {{ t.categoryLabel }}
+                </span>
+
+                <span v-if="t.gender" class="text-slate-400">{{ niceGender(t.gender) }}</span>
+
+                <span v-if="!t.categoryLabel" class="text-amber-300/80">Sin inscripción</span>
+              </p>
             </div>
 
             <div class="col-span-4 md:col-span-3 flex justify-end">
@@ -222,7 +236,20 @@ import { useNuxtApp, useRuntimeConfig, useState, useRouter } from '#imports'
 import { $fetch } from 'ofetch'
 import { useAuthz } from '~/composables/useAuthz'
 
-type Team = { id: number | string; name: string }
+function niceGender(g: string) {
+  const x = String(g || '').trim().toUpperCase()
+  if (x === 'VARONIL') return 'Varonil'
+  if (x === 'FEMENIL') return 'Femenil'
+  if (x === 'MIXTO') return 'Mixto'
+  return g
+}
+
+type Team = {
+  id: number | string
+  name: string
+  categoryLabel: string
+  gender: string
+}
 
 type FetchSource = {
   label: string
@@ -295,17 +322,29 @@ function normalizeTeams(payload: any): Team[] {
     []
 
   return arr
-    .map((t: any) => ({
-      id: t?.id ?? t?.teamId ?? t?.team_id,
-      name: t?.name ?? t?.teamName ?? t?.team_name ?? 'Sin nombre',
-    }))
+    .map((t: any) => {
+      // /teams/list trae la rama y, desde el cambio de divisiones, tambien
+      // categoryLevelOrder ("A" / "B", o "0" cuando la rama no esta dividida).
+      const code = String(t?.categoryCode ?? t?.category?.code ?? t?.code ?? '').trim()
+      const rawLevel = String(t?.categoryLevelOrder ?? t?.category_level_order ?? '').trim()
+      const level = !rawLevel || rawLevel === '0' ? null : rawLevel.toUpperCase()
+
+      return {
+        id: t?.id ?? t?.teamId ?? t?.team_id,
+        name: t?.name ?? t?.teamName ?? t?.team_name ?? 'Sin nombre',
+        categoryLabel: code ? (level ? `${code} ${level}` : code) : '',
+        gender: String(t?.categoryGender ?? t?.category?.gender ?? t?.gender ?? '').trim().toUpperCase(),
+      }
+    })
     .filter((t: Team) => t.id != null)
 }
 
 const filteredTeams = computed(() => {
   const term = q.value.trim().toLowerCase()
   if (!term) return teams.value
-  return teams.value.filter((t) => String(t.name || '').toLowerCase().includes(term))
+  return teams.value.filter((t) =>
+    `${t.name || ''} ${t.categoryLabel || ''} ${t.gender || ''}`.toLowerCase().includes(term)
+  )
 })
 
 async function fetchFromSource(source: FetchSource) {

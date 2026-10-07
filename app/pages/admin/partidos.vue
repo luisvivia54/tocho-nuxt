@@ -173,7 +173,7 @@
                           </span>
 
                           <span v-if="t.category?.name" class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
-                            <strong class="text-white/95 truncate max-w-[14rem]">{{ t.category.name }}</strong>
+                            <strong class="text-white/95 truncate max-w-[14rem]">{{ t.category.displayName || t.category.name }}</strong>
                           </span>
                         </div>
                       </div>
@@ -246,7 +246,7 @@
                           </span>
 
                           <span v-if="t.category?.name" class="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 border border-white/10 text-slate-100">
-                            <strong class="text-white/95 truncate max-w-[14rem]">{{ t.category.name }}</strong>
+                            <strong class="text-white/95 truncate max-w-[14rem]">{{ t.category.displayName || t.category.name }}</strong>
                           </span>
                         </div>
                       </div>
@@ -927,7 +927,16 @@ const API_GAME_EDIT_SCORE = (gameId: number) => `${API_BASE}/admin/games/${gameI
 /** =========================
  *  TYPES
  *  ========================= */
-type Category = { id: number; name: string; code: string; gender: string }
+type Category = {
+  id: number
+  name: string
+  code: string
+  gender: string
+  // "A" | "B"; null cuando la rama no esta dividida
+  levelOrder: string | null
+  // name + division, ya armado por el back: "Varonil A"
+  displayName: string
+}
 
 type Team = {
   teamId: number
@@ -1036,7 +1045,9 @@ function niceGender(g: string) {
 }
 
 function categoryLabel(c: Category) {
-  return `${c.name} · ${niceGender(c.gender)} · ${String(c.code).toUpperCase()}`
+  // displayName ya trae la division ("Varonil A"). Sin el, dos categorias A y B
+  // de la misma rama se verian exactamente iguales en el desplegable.
+  return `${c.displayName || c.name} · ${niceGender(c.gender)} · ${String(c.code).toUpperCase()}`
 }
 
 function debounceLowerRef(src: any, ms: number) {
@@ -1123,12 +1134,23 @@ watch(
     const list = unwrapList<any>(catData.value)
 
     const arr: Category[] = list
-      .map((x) => ({
-        id: Number(x.id ?? x.categoryId ?? x.category_id),
-        name: String(x.name ?? x.categoryName ?? `Categoría ${x.id ?? x.categoryId ?? x.category_id}`),
-        code: String(x.code ?? ''),
-        gender: String(x.gender ?? ''),
-      }))
+      .map((x) => {
+        const name = String(x.name ?? x.categoryName ?? `Categoría ${x.id ?? x.categoryId ?? x.category_id}`)
+
+        const rawLevel = String(x.levelOrder ?? x.level_order ?? '').trim()
+        const levelOrder = !rawLevel || rawLevel === '0' ? null : rawLevel.toUpperCase()
+
+        const rawDisplay = String(x.displayName ?? x.display_name ?? '').trim()
+
+        return {
+          id: Number(x.id ?? x.categoryId ?? x.category_id),
+          name,
+          code: String(x.code ?? ''),
+          gender: String(x.gender ?? ''),
+          levelOrder,
+          displayName: rawDisplay || (levelOrder ? `${name} ${levelOrder}` : name),
+        }
+      })
       .filter((c) => Number.isFinite(c.id) && c.id > 0)
 
     categories.value = arr
@@ -1188,13 +1210,25 @@ watch(
       const nameLoose = String(x.categoryName ?? x.category?.name ?? '').trim()
       const catFromMap = cid ? catMap.get(cid) : null
 
+      // La division sale de /teams/list (categoryLevelOrder) o del catalogo de
+      // /categories. Sin ella, un equipo de la A y uno de la B se ven igual.
+      const rawLevelLoose = String(
+        x.categoryLevelOrder ?? x.category_level_order ?? x.category?.levelOrder ?? ''
+      ).trim()
+      const levelLoose = !rawLevelLoose || rawLevelLoose === '0' ? null : rawLevelLoose.toUpperCase()
+      const level = levelLoose ?? catFromMap?.levelOrder ?? null
+      const baseName = String(nameLoose || catFromMap?.name || '')
+
       const mergedCat: Category | null =
         cid || codeLoose || genderLoose || nameLoose || catFromMap
           ? {
               id: Number(cid ?? catFromMap?.id ?? 0) || 0,
-              name: String(nameLoose || catFromMap?.name || ''),
+              name: baseName,
               code: String(codeLoose || catFromMap?.code || ''),
               gender: String(genderLoose || catFromMap?.gender || ''),
+              levelOrder: level,
+              displayName:
+                catFromMap?.displayName || (level && baseName ? `${baseName} ${level}` : baseName),
             }
           : null
 

@@ -47,6 +47,7 @@
                   </h1>
 
                   <button
+                    v-if="view === 'equipos'"
                     type="button"
                     class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition"
                     :class="onlyActive
@@ -71,7 +72,8 @@
               </NuxtLink>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-[#081122]/80 p-4 md:p-5">
+            <!-- Filtros de equipos (en jugadores viven dentro del panel de líderes) -->
+            <div v-if="view === 'equipos'" class="rounded-2xl border border-white/10 bg-[#081122]/80 p-4 md:p-5">
               <div class="grid gap-4 lg:grid-cols-[180px_220px_220px_minmax(0,1fr)_auto] lg:items-end">
                 <label class="block">
                   <span class="mb-2 block text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Temporada</span>
@@ -129,12 +131,12 @@
 
                 <label class="block">
                   <span class="mb-2 block text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                    {{ view === 'equipos' ? 'Buscar equipo' : 'Buscar jugador' }}
+                    Buscar equipo
                   </span>
                   <input
                     v-model="search"
                     type="text"
-                    :placeholder="view === 'equipos' ? 'Ej. Buhos, Águilas...' : 'Ej. Juan, Carlos...'"
+                    placeholder="Ej. Buhos, Águilas..."
                     class="w-full rounded-2xl border border-white/10 bg-[#0b152a] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/50"
                   />
                 </label>
@@ -160,25 +162,18 @@
               </div>
             </div>
 
-            <div class="flex flex-col gap-2 text-sm text-slate-400 md:flex-row md:flex-wrap md:items-center md:gap-6">
-              <div v-if="view === 'equipos'">
+            <div
+              v-if="view === 'equipos'"
+              class="flex flex-col gap-2 text-sm text-slate-400 md:flex-row md:flex-wrap md:items-center md:gap-6"
+            >
+              <div>
                 Equipos:
                 <span class="font-semibold text-white">{{ filteredTeams.length }}</span>
               </div>
 
-              <div v-if="view === 'equipos'">
+              <div>
                 Activos:
                 <span class="font-semibold text-white">{{ activeTeamsCount }}</span>
-              </div>
-
-              <div v-if="view === 'jugadores'">
-                Jugadores:
-                <span class="font-semibold text-white">{{ filteredPlayers.length }}</span>
-              </div>
-
-              <div v-if="view === 'jugadores'">
-                Activos:
-                <span class="font-semibold text-white">{{ activePlayersCount }}</span>
               </div>
             </div>
           </div>
@@ -342,6 +337,195 @@
           v-else
           class="mt-6 overflow-hidden rounded-[24px] border border-white/10 bg-[#0b152a] shadow-[0_30px_80px_rgba(2,6,23,0.45)]"
         >
+          <!-- Panel de líderes: categoría → rama → estadística, y búsqueda -->
+          <div class="border-b border-white/10 bg-white/[0.02]">
+            <div class="px-5 py-5">
+              <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div class="min-w-0">
+                  <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Líderes</p>
+                  <h2 class="mt-1 text-xl font-extrabold tracking-tight text-white md:text-2xl">
+                    <span class="text-cyan-300">{{ selectedPlayerStatOption.name }}</span>
+                    <span class="text-slate-600"> · </span>
+                    <span>{{ leaderTitleLabel }}</span>
+                  </h2>
+                  <p class="mt-1 text-xs text-slate-400">
+                    <template v-if="pendingPlayersView && !playerRows.length">Cargando jugadores…</template>
+                    <template v-else>
+                      {{ filteredPlayers.length }} jugador{{ filteredPlayers.length === 1 ? '' : 'es' }}
+                    </template>
+                  </p>
+                </div>
+
+                <div
+                  class="flex w-full rounded-2xl border border-white/10 bg-[#081122] p-1 md:w-auto"
+                  role="tablist"
+                  aria-label="Categoría"
+                >
+                  <button
+                    v-for="tab in leaderCategoryTabs"
+                    :key="tab.value"
+                    type="button"
+                    role="tab"
+                    :aria-selected="activeLeaderCategory === tab.value"
+                    class="flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold transition sm:px-4 md:flex-none"
+                    :class="activeLeaderCategory === tab.value
+                      ? 'bg-white text-slate-950 shadow'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'"
+                    @click="leaderCategory = tab.value"
+                  >
+                    {{ tab.label }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-3 border-t border-white/10 pt-4">
+                <!-- Temporada: solo si hay más de una -->
+                <div v-if="realSeasonOptions.length > 1" class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                  <p class="shrink-0 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 sm:w-24">Temporada</p>
+                  <div
+                    class="-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible"
+                    role="tablist"
+                    aria-label="Temporada"
+                  >
+                    <button
+                      v-for="opt in realSeasonOptions"
+                      :key="opt.value"
+                      type="button"
+                      role="tab"
+                      :aria-selected="selectedSeason === opt.value"
+                      class="shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition"
+                      :class="selectedSeason === opt.value
+                        ? 'border-white/70 bg-white/10 text-white'
+                        : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-white'"
+                      @click="selectedSeason = opt.value"
+                    >
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Rama: solo las que existen en la categoría elegida -->
+                <div v-if="leaderBranchTabs.length > 2" class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                  <p class="shrink-0 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 sm:w-24">Rama</p>
+                  <div
+                    class="-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible"
+                    role="tablist"
+                    aria-label="Rama"
+                  >
+                    <button
+                      v-for="tab in leaderBranchTabs"
+                      :key="tab.value"
+                      type="button"
+                      role="tab"
+                      :aria-selected="selectedBranch === tab.value"
+                      class="shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition"
+                      :class="selectedBranch === tab.value
+                        ? 'border-white/70 bg-white/10 text-white'
+                        : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-white'"
+                      @click="selectedBranch = tab.value"
+                    >
+                      {{ tab.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                  <p class="shrink-0 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 sm:w-24">Estadística</p>
+                  <div
+                    class="-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible"
+                    role="tablist"
+                    aria-label="Estadística a mostrar"
+                  >
+                    <button
+                      v-for="opt in playerStatOptions"
+                      :key="opt.key"
+                      type="button"
+                      role="tab"
+                      :aria-selected="selectedPlayerStat === opt.key"
+                      :title="opt.name"
+                      class="shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition"
+                      :class="selectedPlayerStat === opt.key
+                        ? 'bg-cyan-400 text-slate-950'
+                        : 'border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'"
+                      @click="selectedPlayerStat = opt.key"
+                    >
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Búsqueda -->
+            <div class="flex flex-col gap-2 border-t border-white/10 bg-[#081122]/70 px-5 py-3 sm:flex-row sm:items-center">
+              <div class="relative min-w-0 flex-1">
+                <svg
+                  class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <circle cx="9" cy="9" r="6" />
+                  <path d="m14 14 4 4" stroke-linecap="round" />
+                </svg>
+                <input
+                  v-model="search"
+                  type="search"
+                  placeholder="Buscar jugador o equipo"
+                  aria-label="Buscar jugador o equipo"
+                  class="w-full rounded-xl border border-white/10 bg-[#0b152a] py-2.5 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/50"
+                >
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition sm:flex-none"
+                  :class="onlyActive
+                    ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15'
+                    : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'"
+                  :aria-pressed="onlyActive"
+                  @click="toggleOnlyActive"
+                >
+                  <span class="h-2 w-2 rounded-full" :class="onlyActive ? 'bg-emerald-400' : 'bg-slate-500'" />
+                  {{ onlyActive ? 'Solo equipos activos' : 'Todos los equipos' }}
+                </button>
+
+                <button
+                  v-if="hasPlayerFilters"
+                  type="button"
+                  class="shrink-0 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+                  @click="clearPlayerFilters"
+                >
+                  Limpiar
+                </button>
+
+                <button
+                  type="button"
+                  class="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  :disabled="pending"
+                  title="Refrescar"
+                  aria-label="Refrescar"
+                  @click="reloadData"
+                >
+                  <svg
+                    class="h-4 w-4"
+                    :class="pending ? 'animate-spin' : ''"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path d="M16 10a6 6 0 1 1-1.76-4.24M16 3v4h-4" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div v-if="pendingPlayersView && !playerRows.length" class="space-y-3 p-5">
             <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
             <div class="h-12 animate-pulse rounded-2xl bg-white/5" />
@@ -353,18 +537,14 @@
             <table class="min-w-full border-separate border-spacing-0 text-sm">
               <thead>
                 <tr class="bg-white/[0.03] text-left text-[13px] font-bold text-slate-400">
-                  <th class="px-4 py-4">Jugador</th>
-                  <th class="px-4 py-4">Equipo</th>
-                  <th class="px-4 py-4">Temporada</th>
-                  <th class="px-4 py-4">Categoría</th>
-                  <th class="px-4 py-4">Rama</th>
-                  <th class="px-4 py-4 text-center">PJ</th>
-                  <th class="px-4 py-4 text-center">TD</th>
-                  <th class="px-4 py-4 text-center">Pass Yds</th>
-                  <th class="px-4 py-4 text-center">Rush Yds</th>
-                  <th class="px-4 py-4 text-center">Rec Yds</th>
-                  <th class="px-4 py-4 text-center">INT</th>
-                  <th class="px-4 py-4 text-center">Sacks</th>
+                  <th class="w-14 px-3 py-4 text-center sm:px-4">#</th>
+                  <th class="px-3 py-4 sm:px-4">Jugador</th>
+                  <th class="hidden px-4 py-4 sm:table-cell">Equipo</th>
+                  <th class="hidden px-4 py-4 xl:table-cell">Temporada</th>
+                  <th v-if="activeLeaderCategory === 'ALL'" class="hidden px-4 py-4 md:table-cell">Categoría</th>
+                  <th class="hidden px-4 py-4 lg:table-cell">Rama</th>
+                  <th class="hidden px-4 py-4 text-center md:table-cell">PJ</th>
+                  <th class="px-3 py-4 text-center text-cyan-300 sm:px-4">{{ selectedPlayerStatOption.label }}</th>
                 </tr>
               </thead>
 
@@ -374,42 +554,63 @@
                   :key="player.rowKey"
                   class="transition hover:bg-white/[0.03]"
                 >
-                  <td class="border-t border-white/5 px-4 py-4">
+                  <td class="border-t border-white/5 px-3 py-4 text-center sm:px-4">
+                    <span
+                      class="inline-flex h-8 min-w-[32px] items-center justify-center rounded-full px-2 text-sm font-extrabold tabular-nums"
+                      :class="rankBadgeClass(player.rank, player[selectedPlayerStat])"
+                    >
+                      {{ player[selectedPlayerStat] > 0 ? player.rank : '–' }}
+                    </span>
+                  </td>
+                  <td class="border-t border-white/5 px-3 py-4 sm:px-4">
                     <div class="flex items-center gap-3">
-                      <div class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5 text-xs font-bold text-cyan-200">
+                      <div class="hidden h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/5 text-xs font-bold text-cyan-200 sm:flex">
                         <span>{{ initials(player.playerName) }}</span>
                       </div>
 
                       <div class="min-w-0">
-                        <p class="truncate text-[15px] font-semibold text-white">{{ player.playerName }}</p>
-                        <p class="mt-0.5 text-xs text-slate-500">#{{ player.position }}</p>
+                        <p class="text-[15px] font-semibold leading-snug text-white sm:truncate">{{ player.playerName }}</p>
+                        <!-- En celular el equipo va debajo del nombre -->
+                        <p class="mt-0.5 truncate text-xs text-slate-400 sm:hidden">
+                          {{ player.teamName }}<span v-if="activeLeaderCategory === 'ALL' && player.categoryValue"> · {{ player.category }}</span>
+                        </p>
                       </div>
                     </div>
                   </td>
 
-                  <td class="border-t border-white/5 px-4 py-4">{{ player.teamName }}</td>
-                  <td class="border-t border-white/5 px-4 py-4">{{ player.season }}</td>
-                  <td class="border-t border-white/5 px-4 py-4">{{ player.category }}</td>
-                  <td class="border-t border-white/5 px-4 py-4">
+                  <td class="hidden border-t border-white/5 px-4 py-4 sm:table-cell">{{ player.teamName }}</td>
+                  <td class="hidden border-t border-white/5 px-4 py-4 xl:table-cell">{{ player.season }}</td>
+                  <td v-if="activeLeaderCategory === 'ALL'" class="hidden border-t border-white/5 px-4 py-4 md:table-cell">{{ player.category }}</td>
+                  <td class="hidden border-t border-white/5 px-4 py-4 lg:table-cell">
                     <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="branchBadgeClass(player.branch)">
                       {{ player.branch }}
                     </span>
                   </td>
-                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.gamesPlayed }}</td>
-                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.touchdowns }}</td>
-                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.passingYards }}</td>
-                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.rushingYards }}</td>
-                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.receivingYards }}</td>
-                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.interceptions }}</td>
-                  <td class="border-t border-white/5 px-4 py-4 text-center">{{ player.sacks }}</td>
+                  <td class="hidden border-t border-white/5 px-4 py-4 text-center md:table-cell">{{ player.gamesPlayed }}</td>
+                  <td
+                    class="border-t border-white/5 px-3 py-4 text-center text-lg font-extrabold tabular-nums sm:px-4"
+                    :class="player[selectedPlayerStat] > 0 ? 'text-cyan-200' : 'text-slate-600'"
+                  >
+                    {{ player[selectedPlayerStat] }}
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <div v-else class="p-10 text-center">
-            <p class="text-lg font-semibold text-white">No hay jugadores para mostrar</p>
-            <p class="mt-2 text-sm text-slate-400">Prueba con otros filtros.</p>
+            <p class="text-lg font-semibold text-white">No hay jugadores en {{ leaderTitleLabel }}</p>
+            <p class="mt-2 text-sm text-slate-400">
+              {{ hasPlayerFilters ? 'Ningún jugador coincide con esos filtros.' : 'Prueba con otra categoría.' }}
+            </p>
+            <button
+              v-if="hasPlayerFilters"
+              type="button"
+              class="mt-4 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+              @click="clearPlayerFilters"
+            >
+              Limpiar filtros
+            </button>
           </div>
 
           <div
@@ -555,10 +756,32 @@ type PlayerSeasonRow = {
   passingYards: number
   rushingYards: number
   receivingYards: number
+  passTouchdowns: number
   interceptions: number
   sacks: number
   active: boolean
 }
+
+type PlayerStatKey =
+  | "touchdowns"
+  | "interceptions"
+  | "passTouchdowns"
+  | "sacks"
+
+type PlayerStatOption = {
+  key: PlayerStatKey
+  label: string
+  name: string
+}
+
+// Estadísticas que se pueden ver en la tabla de jugadores (una a la vez).
+// La primera es la que aparece seleccionada por defecto.
+const playerStatOptions: PlayerStatOption[] = [
+  { key: "touchdowns", label: "TD", name: "Touchdowns" },
+  { key: "interceptions", label: "INT", name: "Intercepciones" },
+  { key: "passTouchdowns", label: "PA", name: "Pases de anotación" },
+  { key: "sacks", label: "Sacks", name: "Sacks" },
+]
 
 type ResolvedSeasonInfo = {
   seasonValue: string
@@ -595,6 +818,11 @@ const selectedSeason = ref(`SEASON_${JUEVES_DEFAULT_SEASON_ID}`)
 const selectedCategory = ref("ALL")
 const selectedBranch = ref("ALL")
 const onlyActive = ref(true)
+
+const selectedPlayerStat = ref<PlayerStatKey>(playerStatOptions[0]!.key)
+const selectedPlayerStatOption = computed<PlayerStatOption>(() => {
+  return playerStatOptions.find((opt) => opt.key === selectedPlayerStat.value) ?? playerStatOptions[0]!
+})
 
 const teamPage = ref(1)
 const playerPage = ref(1)
@@ -647,7 +875,9 @@ const {
 } = await useAsyncData(
   "jueves-stats-team-meta",
   async () => {
-    return await $fetch<unknown>("/api/t5/teams", {
+    // teams/list (a diferencia de /teams) trae categoryGender, categoryCode y
+    // seasonId de cada equipo; sin eso los jugadores quedaban "Sin categoría".
+    return await $fetch<unknown>("/api/t5/teams/list", {
       query: { leagueId: JUEVES_LEAGUE_ID },
     }).catch(() => [])
   }
@@ -807,12 +1037,33 @@ const teamRows = computed<TeamStanding[]>(() => {
   })
 })
 
+const requestedSeasonInfo = computed(() => {
+  if (selectedSeason.value === "ALL") return null
+  const match = normalizeCollection(seasonsRaw.value)
+    .map((row) => resolveSeasonInfo(row))
+    .find((info) => info.seasonValue === selectedSeason.value)
+  return {
+    seasonValue: selectedSeason.value,
+    season: match?.season || JUEVES_DEFAULT_SEASON_LABEL,
+  }
+})
+
 const playerRows = computed<PlayerSeasonRow[]>(() => {
   const rows = normalizeCollection(playersData.value)
+  const requested = requestedSeasonInfo.value
 
   return rows.map((row, index) => {
     const meta = resolveMetaForStatsRow(row)
-    return buildPlayerRow(row, meta, index)
+    const built = buildPlayerRow(row, meta, index)
+
+    // /stats/players se pide con seasonId, así que una fila sin temporada
+    // pertenece a la temporada solicitada.
+    if (requested && (!built.seasonValue || built.seasonValue === "NO_SEASON")) {
+      built.seasonValue = requested.seasonValue
+      built.season = requested.season
+    }
+
+    return built
   })
 })
 
@@ -932,34 +1183,127 @@ const filteredTeams = computed<TeamStanding[]>(() => {
     })
 })
 
-const filteredPlayers = computed<PlayerSeasonRow[]>(() => {
-  const query = normalizeText(search.value)
+// Categoría de la tabla de líderes. null = automática (la primera disponible,
+// normalmente Varonil). "ALL" = todas juntas.
+const leaderCategory = ref<string | null>(null)
 
+const CATEGORY_ORDER = ["VARONIL", "FEMENIL", "MIXTO"]
+
+const leaderCategoryTabs = computed<OptionItem[]>(() => {
+  const tabs = categoryOptions.value.slice().sort((a, b) => {
+    const ia = CATEGORY_ORDER.indexOf(a.value)
+    const ib = CATEGORY_ORDER.indexOf(b.value)
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.label.localeCompare(b.label, "es")
+  })
+  return [...tabs, { value: "ALL", label: "Todas" }]
+})
+
+const activeLeaderCategory = computed<string>(() => {
+  const tabs = leaderCategoryTabs.value
+  if (leaderCategory.value && tabs.some((tab) => tab.value === leaderCategory.value)) return leaderCategory.value
+  return tabs[0]?.value ?? "ALL"
+})
+
+const leaderCategoryLabel = computed(() => {
+  if (activeLeaderCategory.value === "ALL") return "Todas las categorías"
+  return leaderCategoryTabs.value.find((tab) => tab.value === activeLeaderCategory.value)?.label ?? activeLeaderCategory.value
+})
+
+// Jugadores de la categoría/rama/temporada elegidas, ordenados por líder.
+// La búsqueda se aplica después, para que el lugar de cada jugador sea el real.
+const rankedPlayers = computed<PlayerSeasonRow[]>(() => {
   return [...playerRows.value]
     .filter((item) => selectedSeason.value === "ALL" || item.seasonValue === selectedSeason.value)
-    .filter((item) => selectedCategory.value === "ALL" || item.categoryValue === selectedCategory.value)
+    .filter((item) => activeLeaderCategory.value === "ALL" || item.categoryValue === activeLeaderCategory.value)
     .filter((item) => selectedBranch.value === "ALL" || item.branchValue === selectedBranch.value)
     .filter((item) => !onlyActive.value || item.active)
-    .filter((item) => {
-      if (!query) return true
-      return normalizeText([item.playerName, item.teamName, item.category, item.branch, item.season].join(" ")).includes(query)
-    })
     .sort((a, b) => {
-      const yardsA = a.passingYards + a.rushingYards + a.receivingYards
-      const yardsB = b.passingYards + b.rushingYards + b.receivingYards
+      const key = selectedPlayerStat.value
 
+      // Líder = más de la estadística seleccionada. En empate, gana quien lo
+      // logró en menos partidos; después, orden alfabético.
       return (
-        b.touchdowns - a.touchdowns ||
-        yardsB - yardsA ||
-        b.interceptions - a.interceptions ||
-        b.sacks - a.sacks ||
+        b[key] - a[key] ||
+        a.gamesPlayed - b.gamesPlayed ||
         a.playerName.localeCompare(b.playerName, "es")
       )
     })
 })
 
+// Lugar de cada jugador. Empates comparten lugar (1, 2, 2, 4...).
+const playerRankByKey = computed(() => {
+  const key = selectedPlayerStat.value
+  const ranks = new Map<string, number>()
+  let prevValue: number | null = null
+  let prevRank = 0
+
+  rankedPlayers.value.forEach((item, index) => {
+    const rank = prevValue !== null && item[key] === prevValue ? prevRank : index + 1
+    ranks.set(item.rowKey, rank)
+    prevValue = item[key]
+    prevRank = rank
+  })
+
+  return ranks
+})
+
+const filteredPlayers = computed<PlayerSeasonRow[]>(() => {
+  const query = normalizeText(search.value)
+  if (!query) return rankedPlayers.value
+
+  return rankedPlayers.value.filter((item) =>
+    normalizeText([item.playerName, item.teamName, item.category, item.branch, item.season].join(" ")).includes(query)
+  )
+})
+
+// Temporadas reales (sin "Todas" ni "Sin temporada").
+const realSeasonOptions = computed(() =>
+  seasonOptions.value.filter((opt) => opt.value !== "ALL" && opt.value !== "NO_SEASON")
+)
+
+// Ramas que existen dentro de la categoría elegida.
+const leaderBranchTabs = computed<OptionItem[]>(() => {
+  const map = new Map<string, string>()
+  for (const row of playerRows.value) {
+    if (activeLeaderCategory.value !== "ALL" && row.categoryValue !== activeLeaderCategory.value) continue
+    if (!row.branchValue || map.has(row.branchValue)) continue
+    const label = row.branch.toUpperCase() === "LIBRE" ? "Libre" : row.branch
+    map.set(row.branchValue, label)
+  }
+
+  const tabs = Array.from(map.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "es", { numeric: true }))
+
+  return [{ value: "ALL", label: "Todas" }, ...tabs]
+})
+
+const leaderTitleLabel = computed(() => {
+  if (selectedBranch.value === "ALL") return leaderCategoryLabel.value
+  const branch = leaderBranchTabs.value.find((tab) => tab.value === selectedBranch.value)?.label
+  return branch ? `${leaderCategoryLabel.value} ${branch}` : leaderCategoryLabel.value
+})
+
+const hasPlayerFilters = computed(() => !!search.value.trim() || selectedBranch.value !== "ALL" || !onlyActive.value)
+
+function clearPlayerFilters(): void {
+  search.value = ""
+  selectedBranch.value = "ALL"
+  onlyActive.value = true
+}
+
+// Al cambiar de categoría, si la rama elegida no existe ahí se quita.
+watch(activeLeaderCategory, () => {
+  if (
+    view.value === "jugadores" &&
+    selectedBranch.value !== "ALL" &&
+    !leaderBranchTabs.value.some((tab) => tab.value === selectedBranch.value)
+  ) {
+    selectedBranch.value = "ALL"
+  }
+})
+
 const activeTeamsCount = computed(() => filteredTeams.value.filter((item) => item.active).length)
-const activePlayersCount = computed(() => filteredPlayers.value.filter((item) => item.active).length)
 
 const viewDescription = computed(() => {
   return view.value === "equipos"
@@ -1000,6 +1344,7 @@ const paginatedPlayers = computed(() => {
     .map((item, index) => ({
       ...item,
       position: playerStartIndex.value + index + 1,
+      rank: playerRankByKey.value.get(item.rowKey) ?? playerStartIndex.value + index + 1,
     }))
 })
 
@@ -1016,7 +1361,7 @@ watch(juevesCurrentSeasonId, (id) => {
   }
 })
 
-watch([search, selectedSeason, selectedCategory, selectedBranch, onlyActive, view], () => {
+watch([search, selectedSeason, selectedCategory, selectedBranch, onlyActive, view, selectedPlayerStat, activeLeaderCategory], () => {
   teamPage.value = 1
   playerPage.value = 1
 })
@@ -1124,6 +1469,7 @@ function clearFilters(): void {
   selectedSeason.value = preferredSeasonValue.value
   selectedCategory.value = "ALL"
   selectedBranch.value = "ALL"
+  leaderCategory.value = null
   onlyActive.value = true
 }
 
@@ -1178,6 +1524,15 @@ function signedNumber(value: number): string {
 function formatPct(value: number): string {
   const safe = Number.isFinite(value) ? value : 0
   return `${safe.toFixed(safe % 1 === 0 ? 0 : 1)}%`
+}
+
+function rankBadgeClass(rank: number, value = 1): string {
+  // Sin la estadística no hay posición ni medalla.
+  if (value <= 0) return "text-slate-600"
+  if (rank === 1) return "bg-amber-400 text-slate-950"
+  if (rank === 2) return "bg-slate-300 text-slate-950"
+  if (rank === 3) return "bg-orange-400/90 text-slate-950"
+  return "border border-white/10 bg-white/5 text-slate-300"
 }
 
 function branchBadgeClass(branch: string): string {
@@ -1842,7 +2197,8 @@ function buildPlayerRow(row: AnyRow, meta: TeamMeta | undefined, index: number):
     passingYards: toNumber(pick(row, ["passingYards", "passYards", "ydsPass", "passing_yds"]), 0),
     rushingYards: toNumber(pick(row, ["rushingYards", "rushYards", "ydsRush", "rushing_yds"]), 0),
     receivingYards: toNumber(pick(row, ["receivingYards", "recYards", "ydsRec", "receiving_yds"]), 0),
-    interceptions: toNumber(pick(row, ["interceptions", "ints", "defInterceptions"]), 0),
+    passTouchdowns: toNumber(pick(row, ["pa", "passTd", "passingTd", "passing_td", "passTds"]), 0),
+    interceptions: toNumber(pick(row, ["interceptions", "intercep", "int", "ints", "defInterceptions"]), 0),
     sacks: toNumber(pick(row, ["sacks", "qbSacks"]), 0),
     active: meta ? meta.active : resolveActiveState(row, false),
   }

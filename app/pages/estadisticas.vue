@@ -43,11 +43,12 @@
             </p>
           </div>
 
-          <div class="rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-xs text-slate-300 shadow-lg backdrop-blur">
+          <div
+            v-if="view === 'equipos'"
+            class="rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-xs text-slate-300 shadow-lg backdrop-blur"
+          >
             <p class="font-semibold text-slate-100">
-              {{ view === 'equipos'
-                ? `${filteredRows.length} equipo${filteredRows.length === 1 ? '' : 's'}`
-                : `${sortedPlayers.length} jugador${sortedPlayers.length === 1 ? '' : 'es'}` }}
+              {{ `${filteredRows.length} equipo${filteredRows.length === 1 ? '' : 's'}` }}
             </p>
             <p class="mt-0.5">
               Filtros:
@@ -58,8 +59,8 @@
           </div>
         </header>
 
-        <!-- FILTROS GLOBALES -->
-        <section class="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-4 sm:p-5 shadow-lg backdrop-blur">
+        <!-- FILTROS DE EQUIPOS (en jugadores viven dentro del panel de líderes) -->
+        <section v-if="view === 'equipos'" class="mt-8 rounded-2xl border border-slate-700 bg-slate-900/60 p-4 sm:p-5 shadow-lg backdrop-blur">
           <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
               <!-- Rama -->
@@ -117,7 +118,7 @@
               </div>
 
               <!-- Buscar -->
-              <div v-if="view === 'equipos'">
+              <div>
                 <label class="block text-xs font-semibold text-slate-300 mb-1">Buscar equipo</label>
                 <div class="relative">
                   <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500 text-xs">
@@ -132,20 +133,6 @@
                 </div>
               </div>
 
-              <div v-else>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Buscar jugador</label>
-                <div class="relative">
-                  <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500 text-xs">
-                    🔍
-                  </span>
-                  <input
-                    v-model="playerNameQuery"
-                    type="text"
-                    placeholder="Buscar jugador..."
-                    class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-8 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
             </div>
 
             <div class="flex items-center justify-end gap-2">
@@ -164,31 +151,6 @@
               >
                 Refrescar
               </button>
-            </div>
-          </div>
-
-          <div v-if="view === 'jugadores'" class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Equipo</label>
-              <select
-                v-model="teamPick"
-                class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="ALL">Todos</option>
-                <option v-for="team in playerTeamOptions" :key="team.teamId" :value="String(team.teamId)">
-                  {{ team.name }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Número</label>
-              <input
-                v-model.trim="playerNumberQuery"
-                inputmode="numeric"
-                placeholder="Ej. 7"
-                class="w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
             </div>
           </div>
 
@@ -213,27 +175,11 @@
             </span>
 
             <span
-              v-if="view === 'equipos' && searchQuery.trim()"
+              v-if="searchQuery.trim()"
               class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
             >
               Búsqueda: <strong class="text-slate-100">"{{ searchQuery.trim() }}"</strong>
               <button type="button" class="text-slate-300 hover:text-white" @click="clearSearch">✕</button>
-            </span>
-
-            <span
-              v-if="view === 'jugadores' && playerNameQuery.trim()"
-              class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
-            >
-              Jugador: <strong class="text-slate-100">"{{ playerNameQuery.trim() }}"</strong>
-              <button type="button" class="text-slate-300 hover:text-white" @click="clearPlayerName">✕</button>
-            </span>
-
-            <span
-              v-if="view === 'jugadores' && playerNumberQuery.trim()"
-              class="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/50 px-3 py-1"
-            >
-              Número: <strong class="text-slate-100">{{ playerNumberQuery.trim() }}</strong>
-              <button type="button" class="text-slate-300 hover:text-white" @click="clearPlayerNumber">✕</button>
             </span>
 
             <span
@@ -434,6 +380,168 @@
              VIEW: JUGADORES
              ========================= -->
         <div v-else class="mt-6">
+          <!-- PANEL DE LÍDERES: categoría → rama → estadística, y búsqueda -->
+          <section class="mb-4 rounded-2xl border border-slate-700 bg-slate-900/60 shadow-lg backdrop-blur">
+            <div class="p-4 sm:p-5">
+              <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div class="min-w-0">
+                  <p class="text-[11px] uppercase tracking-[0.2em] text-slate-400">Líderes</p>
+                  <h2 class="mt-1 font-display text-xl md:text-2xl font-extrabold text-white">
+                    <span :class="selectedPlayerStatOption.textClass">{{ selectedPlayerStatOption.name }}</span>
+                    <span class="text-slate-600"> · </span>
+                    <span>{{ leaderTitleLabel }}</span>
+                  </h2>
+                  <p class="mt-1 text-xs text-slate-400">
+                    <template v-if="pendingPlayersAny">Cargando jugadores…</template>
+                    <template v-else>
+                      {{ sortedPlayers.length }} jugador{{ sortedPlayers.length === 1 ? '' : 'es' }}
+                    </template>
+                  </p>
+                </div>
+
+                <div
+                  class="flex w-full md:w-auto rounded-2xl border border-slate-700 bg-slate-950/60 p-1"
+                  role="tablist"
+                  aria-label="Categoría"
+                >
+                  <button
+                    v-for="tab in leaderCategoriaTabs"
+                    :key="tab.value"
+                    type="button"
+                    role="tab"
+                    :aria-selected="activeLeaderCategoria === tab.value"
+                    class="flex-1 md:flex-none rounded-xl px-3 sm:px-4 py-2 text-sm font-semibold transition whitespace-nowrap"
+                    :class="activeLeaderCategoria === tab.value
+                      ? 'bg-white text-slate-900 shadow'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'"
+                    @click="leaderCategoria = tab.value"
+                  >
+                    {{ tab.label }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-4 space-y-3 border-t border-slate-700/70 pt-4">
+                <!-- Rama: solo las que existen en la categoría elegida -->
+                <div v-if="leaderRamaTabs.length > 2" class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                  <p class="shrink-0 text-[10px] uppercase tracking-[0.22em] text-slate-500 sm:w-24">Rama</p>
+                  <div
+                    class="-mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible"
+                    role="tablist"
+                    aria-label="Rama"
+                  >
+                    <button
+                      v-for="tab in leaderRamaTabs"
+                      :key="tab.value"
+                      type="button"
+                      role="tab"
+                      :aria-selected="selectedRama === tab.value"
+                      class="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap"
+                      :class="selectedRama === tab.value
+                        ? 'border-white/70 bg-white/10 text-white'
+                        : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-white'"
+                      @click="selectedRama = tab.value"
+                    >
+                      {{ tab.label }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                  <p class="shrink-0 text-[10px] uppercase tracking-[0.22em] text-slate-500 sm:w-24">Estadística</p>
+                  <div
+                    class="-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible"
+                    role="tablist"
+                    aria-label="Estadística a mostrar"
+                  >
+                    <button
+                      v-for="opt in playerStatOptions"
+                      :key="opt.key"
+                      type="button"
+                      role="tab"
+                      :aria-selected="selectedPlayerStat === opt.key"
+                      :title="opt.name"
+                      class="shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition"
+                      :class="selectedPlayerStat === opt.key
+                        ? opt.activeClass
+                        : 'border-slate-700 bg-slate-900/70 text-slate-300 hover:border-slate-500 hover:text-white'"
+                      @click="selectedPlayerStat = opt.key"
+                    >
+                      {{ opt.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Búsqueda y equipo -->
+            <div class="flex flex-col gap-2 rounded-b-2xl border-t border-slate-700/70 bg-slate-950/40 p-3 sm:flex-row sm:items-center sm:px-5">
+              <div class="relative min-w-0 flex-1">
+                <svg
+                  class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <circle cx="9" cy="9" r="6" />
+                  <path d="m14 14 4 4" stroke-linecap="round" />
+                </svg>
+                <input
+                  v-model="playerNameQuery"
+                  type="search"
+                  placeholder="Buscar por nombre o número"
+                  aria-label="Buscar jugador por nombre o número"
+                  class="w-full rounded-xl border border-slate-700 bg-slate-950/60 py-2.5 pl-9 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+              </div>
+
+              <div class="flex items-center gap-2">
+                <select
+                  v-model="teamPick"
+                  aria-label="Equipo"
+                  class="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:w-56 sm:flex-none"
+                >
+                  <option value="ALL">Todos los equipos</option>
+                  <option v-for="team in playerTeamOptions" :key="team.teamId" :value="String(team.teamId)">
+                    {{ team.name }}
+                  </option>
+                </select>
+
+                <button
+                  v-if="hasPlayerFilters"
+                  type="button"
+                  class="shrink-0 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+                  @click="clearPlayerFilters"
+                >
+                  Limpiar
+                </button>
+
+                <button
+                  type="button"
+                  class="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white disabled:opacity-50"
+                  :disabled="pendingPlayersAny"
+                  title="Refrescar"
+                  aria-label="Refrescar"
+                  @click="refreshAll"
+                >
+                  <svg
+                    class="h-4 w-4"
+                    :class="pendingPlayersAny ? 'animate-spin' : ''"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path d="M16 10a6 6 0 1 1-1.76-4.24M16 3v4h-4" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </section>
+
           <div v-if="pendingPlayersAny" class="text-sm text-slate-400">
             Cargando estadísticas de jugadores...
           </div>
@@ -451,8 +559,16 @@
           >
             <p class="font-semibold text-slate-100">Sin resultados</p>
             <p class="mt-1 text-slate-300">
-              No hay jugadores para la combinación seleccionada.
+              No hay jugadores en {{ leaderTitleLabel }}<template v-if="hasPlayerFilters"> con esos filtros</template>.
             </p>
+            <button
+              v-if="hasPlayerFilters"
+              type="button"
+              class="mt-3 rounded-xl border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 hover:border-slate-500"
+              @click="clearPlayerFilters"
+            >
+              Limpiar filtros
+            </button>
           </div>
 
           <div v-else class="space-y-3">
@@ -461,15 +577,18 @@
               :key="player.key"
               class="rounded-2xl border border-slate-700 bg-slate-900/90 p-4 shadow-lg hover:border-slate-500 transition"
             >
-              <div class="flex flex-col md:flex-row md:items-center gap-4">
+              <div class="flex items-center gap-3 md:gap-4">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
-                  <div class="h-10 w-10 rounded-2xl border border-slate-700 bg-slate-950/70 grid place-items-center shrink-0">
-                    <span class="text-sm font-extrabold text-slate-200 tabular-nums">
-                      {{ pageStartIndex + idx + 1 }}
+                  <div
+                    class="h-10 w-10 rounded-2xl border grid place-items-center shrink-0"
+                    :class="rankBoxClass(playerRankByKey.get(player.key) ?? pageStartIndex + idx + 1, player.stats[selectedPlayerStat])"
+                  >
+                    <span class="text-sm font-extrabold tabular-nums">
+                      {{ player.stats[selectedPlayerStat] > 0 ? (playerRankByKey.get(player.key) ?? pageStartIndex + idx + 1) : '–' }}
                     </span>
                   </div>
 
-                  <div class="h-12 w-12 rounded-2xl border border-slate-700 bg-slate-950/70 overflow-hidden flex items-center justify-center shrink-0">
+                  <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl border border-slate-700 bg-slate-950/70 overflow-hidden flex items-center justify-center shrink-0">
                     <img
                       v-if="player.photoUrl"
                       :src="player.photoUrl"
@@ -484,7 +603,7 @@
 
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <p class="font-semibold text-white truncate max-w-[420px]">
+                      <p class="font-semibold text-white leading-snug break-words sm:truncate sm:max-w-[420px]">
                         {{ player.fullName }}
                       </p>
 
@@ -493,10 +612,6 @@
                         class="text-slate-400 font-semibold"
                       >
                         #{{ player.number }}
-                      </span>
-
-                      <span class="inline-flex items-center rounded-full bg-white/10 text-white px-2 py-0.5 text-[11px] font-semibold border border-white/10">
-                        IMP: {{ impact(player) }}
                       </span>
 
                       <button
@@ -524,27 +639,18 @@
                   </div>
                 </div>
 
-                <div class="w-full md:w-auto">
-                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div class="rounded-2xl border border-fuchsia-500/20 bg-fuchsia-500/10 px-3 py-2">
-                      <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">INT</p>
-                      <p class="mt-0.5 text-lg font-extrabold text-fuchsia-200 tabular-nums">{{ player.stats.int }}</p>
-                    </div>
-
-                    <div class="rounded-2xl border border-violet-500/20 bg-violet-500/10 px-3 py-2">
-                      <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">TD</p>
-                      <p class="mt-0.5 text-lg font-extrabold text-violet-200 tabular-nums">{{ player.stats.td }}</p>
-                    </div>
-
-                    <div class="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-3 py-2">
-                      <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">PA</p>
-                      <p class="mt-0.5 text-lg font-extrabold text-sky-200 tabular-nums">{{ player.stats.pa }}</p>
-                    </div>
-
-                    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
-                      <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">SACK</p>
-                      <p class="mt-0.5 text-lg font-extrabold text-emerald-200 tabular-nums">{{ player.stats.sack }}</p>
-                    </div>
+                <div class="shrink-0">
+                  <div
+                    class="rounded-2xl border px-3 py-2 min-w-[64px] md:min-w-[110px] md:px-4 text-center"
+                    :class="selectedPlayerStatOption.boxClass"
+                  >
+                    <p class="text-[10px] uppercase tracking-[0.22em] text-slate-400">{{ selectedPlayerStatOption.label }}</p>
+                    <p
+                      class="mt-0.5 text-xl md:text-2xl font-extrabold tabular-nums"
+                      :class="player.stats[selectedPlayerStat] > 0 ? selectedPlayerStatOption.textClass : 'text-slate-500'"
+                    >
+                      {{ player.stats[selectedPlayerStat] }}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -559,11 +665,11 @@
                 </p>
 
                 <div
-                  v-for="b in player.breakdown"
+                  v-for="b in sortedBreakdown(player)"
                   :key="`${player.key}-${b.teamId ?? 'x'}`"
-                  class="rounded-xl border border-slate-700/70 bg-slate-950/50 p-3"
+                  class="rounded-xl border border-slate-700/70 bg-slate-950/50 p-3 flex items-center justify-between gap-3"
                 >
-                  <div class="min-w-0 mb-2">
+                  <div class="min-w-0">
                     <p class="text-[12px] font-semibold text-slate-200 truncate">
                       {{ b.teamName || '—' }}
                     </p>
@@ -572,23 +678,14 @@
                     </p>
                   </div>
 
-                  <div class="grid grid-cols-4 gap-2">
-                    <div class="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/10 px-2 py-1 text-center">
-                      <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">INT</p>
-                      <p class="text-sm font-bold text-fuchsia-200 tabular-nums">{{ b.stats.int }}</p>
-                    </div>
-                    <div class="rounded-lg border border-violet-500/20 bg-violet-500/10 px-2 py-1 text-center">
-                      <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">TD</p>
-                      <p class="text-sm font-bold text-violet-200 tabular-nums">{{ b.stats.td }}</p>
-                    </div>
-                    <div class="rounded-lg border border-sky-500/20 bg-sky-500/10 px-2 py-1 text-center">
-                      <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">PA</p>
-                      <p class="text-sm font-bold text-sky-200 tabular-nums">{{ b.stats.pa }}</p>
-                    </div>
-                    <div class="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-center">
-                      <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">SACK</p>
-                      <p class="text-sm font-bold text-emerald-200 tabular-nums">{{ b.stats.sack }}</p>
-                    </div>
+                  <div
+                    class="rounded-lg border px-3 py-1 text-center shrink-0"
+                    :class="selectedPlayerStatOption.boxClass"
+                  >
+                    <p class="text-[9px] uppercase tracking-[0.18em] text-slate-400">{{ selectedPlayerStatOption.label }}</p>
+                    <p class="text-sm font-bold tabular-nums" :class="selectedPlayerStatOption.textClass">
+                      {{ b.stats[selectedPlayerStat] }}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -725,6 +822,26 @@ interface PlayerStats {
   sack: number
   rec: number
 }
+
+type PlayerStatKey = 'td' | 'int' | 'pa' | 'sack'
+
+interface PlayerStatOption {
+  key: PlayerStatKey
+  label: string
+  name: string
+  boxClass: string
+  textClass: string
+  activeClass: string
+}
+
+// Estadísticas que se pueden ver en la lista de jugadores (una a la vez).
+// La primera es la que aparece seleccionada por defecto.
+const playerStatOptions: PlayerStatOption[] = [
+  { key: 'td', label: 'TD', name: 'Touchdowns', boxClass: 'border-violet-500/20 bg-violet-500/10', textClass: 'text-violet-200', activeClass: 'border-violet-300 bg-violet-300 text-slate-950' },
+  { key: 'int', label: 'INT', name: 'Intercepciones', boxClass: 'border-fuchsia-500/20 bg-fuchsia-500/10', textClass: 'text-fuchsia-200', activeClass: 'border-fuchsia-300 bg-fuchsia-300 text-slate-950' },
+  { key: 'pa', label: 'PA', name: 'Pases de anotación', boxClass: 'border-sky-500/20 bg-sky-500/10', textClass: 'text-sky-200', activeClass: 'border-sky-300 bg-sky-300 text-slate-950' },
+  { key: 'sack', label: 'SACK', name: 'Sacks', boxClass: 'border-emerald-500/20 bg-emerald-500/10', textClass: 'text-emerald-200', activeClass: 'border-emerald-300 bg-emerald-300 text-slate-950' },
+]
 
 // Desglose de un jugador dentro de UN equipo/categoría concreto
 interface PlayerTeamStat {
@@ -1239,6 +1356,86 @@ const playerNumberQuery = ref('')
 const teamPick = ref<'ALL' | string>('ALL')
 const page = ref(1)
 
+// Categoría de la tabla de líderes. null = automática (la primera disponible,
+// normalmente Varonil). 'all' = todas juntas.
+const leaderCategoria = ref<string | null>(null)
+
+const CATEGORIA_ORDER = ['VARONIL', 'FEMENIL', 'MIXTO']
+
+const leaderCategoriaTabs = computed(() => {
+  const tabs = categoriaOptions.value
+    .slice()
+    .sort((a, b) => {
+      const ia = CATEGORIA_ORDER.indexOf(a)
+      const ib = CATEGORIA_ORDER.indexOf(b)
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b, 'es')
+    })
+    .map((g) => ({ value: g, label: niceGender(g) }))
+  return [...tabs, { value: 'all', label: 'Todas' }]
+})
+
+const activeLeaderCategoria = computed<string>(() => {
+  const tabs = leaderCategoriaTabs.value
+  if (leaderCategoria.value && tabs.some((t) => t.value === leaderCategoria.value)) return leaderCategoria.value
+  return tabs[0]?.value ?? 'all'
+})
+
+// Ramas disponibles dentro de la categoría elegida (p. ej. Mixto no tiene 35+).
+function prettyRamaCode(code: unknown): string {
+  const c = String(code ?? '').trim()
+  return c.toUpperCase() === 'LIBRE' ? 'Libre' : c
+}
+
+function ramaSortKey(key: string): [number, number, string] {
+  const [code = '', level = ''] = key.split('|')
+  const c = code.toUpperCase()
+  if (c === 'LIBRE') return [0, level.charCodeAt(0) || 0, '']
+  const plus = c.match(/^(\d+)\+$/)
+  if (plus) return [1, -Number(plus[1]), '']
+  const under = c.match(/^U(\d+)$/)
+  if (under) return [2, -Number(under[1]), '']
+  return [3, 0, c]
+}
+
+const leaderRamaTabs = computed(() => {
+  const gender = activeLeaderCategoria.value
+  const map = new Map<string, string>()
+
+  for (const c of categoriesList.value) {
+    if (gender !== 'all' && normalizeUpper(c?.gender) !== gender) continue
+    const level = normLevel(c?.levelOrder)
+    const key = ramaKeyOf(c?.code, level)
+    if (key && !map.has(key)) map.set(key, level ? `${prettyRamaCode(c?.code)} ${level}` : prettyRamaCode(c?.code))
+  }
+
+  const tabs = Array.from(map.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => {
+      const ka = ramaSortKey(a.value)
+      const kb = ramaSortKey(b.value)
+      return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2], 'es')
+    })
+
+  return [{ value: 'all', label: 'Todas' }, ...tabs]
+})
+
+const leaderCategoriaLabel = computed(() =>
+  activeLeaderCategoria.value === 'all' ? 'Todas las categorías' : niceGender(activeLeaderCategoria.value)
+)
+
+// "Varonil · Libre A" → se usa en el título del panel.
+const leaderTitleLabel = computed(() => {
+  const rama = selectedRama.value === 'all'
+    ? ''
+    : leaderRamaTabs.value.find((t) => t.value === selectedRama.value)?.label ?? ''
+  return rama ? `${leaderCategoriaLabel.value} ${rama}` : leaderCategoriaLabel.value
+})
+
+const selectedPlayerStat = ref<PlayerStatKey>(playerStatOptions[0]!.key)
+const selectedPlayerStatOption = computed<PlayerStatOption>(() => {
+  return playerStatOptions.find((opt) => opt.key === selectedPlayerStat.value) ?? playerStatOptions[0]!
+})
+
 // Desglose por persona expandido/colapsado (por key de agrupación)
 const expandedPlayers = ref<Set<string>>(new Set())
 function isPlayerExpanded(key: string): boolean {
@@ -1264,7 +1461,7 @@ const playerTeamOptions = computed(() => {
       ) {
         return false
       }
-      if (selectedCategoria.value !== 'all' && gender !== normalizeUpper(selectedCategoria.value)) return false
+      if (activeLeaderCategoria.value !== 'all' && gender !== normalizeUpper(activeLeaderCategoria.value)) return false
       return true
     })
     .slice()
@@ -1402,7 +1599,7 @@ const playersVm = computed<PlayerVM[]>(() => {
     ) {
       continue
     }
-    if (selectedCategoria.value !== 'all' && gender !== normalizeUpper(selectedCategoria.value)) continue
+    if (activeLeaderCategoria.value !== 'all' && gender !== normalizeUpper(activeLeaderCategoria.value)) continue
 
     const explicitId = toNum(raw?.playerId ?? raw?.player_id ?? raw?.id)
     const syntheticId = stringHash(`${fullName}|${teamId ?? 'x'}|${raw?.number ?? raw?.jerseyNumber ?? raw?.jersey_number ?? ''}`)
@@ -1504,8 +1701,13 @@ const filteredPlayers = computed<PlayerVM[]>(() => {
     }
 
     if (nameQ) {
+      // Un solo campo: si es un número, también busca por número de jersey exacto.
       const full = String(player.fullName || '').toLowerCase()
-      if (!full.includes(nameQ)) return false
+      const isNumber = /^\d+$/.test(nameQ)
+      const numberHit =
+        isNumber &&
+        (String(player.number ?? '') === nameQ || player.breakdown.some((b) => String(b.number ?? '') === nameQ))
+      if (!full.includes(nameQ) && !numberHit) return false
     }
 
     if (numQ) {
@@ -1519,15 +1721,50 @@ const filteredPlayers = computed<PlayerVM[]>(() => {
   })
 })
 
-const sortedPlayers = computed<PlayerVM[]>(() => {
-  return filteredPlayers.value
-    .slice()
-    .sort((a, b) => {
-      const byImpact = impact(b) - impact(a)
-      if (byImpact !== 0) return byImpact
-      return a.fullName.localeCompare(b.fullName, 'es')
-    })
+// Líder = más de la estadística seleccionada. En empate, desempata el
+// impacto total y luego el nombre.
+function comparePlayers(a: PlayerVM, b: PlayerVM): number {
+  const key = selectedPlayerStat.value
+  const byStat = b.stats[key] - a.stats[key]
+  if (byStat !== 0) return byStat
+  const byImpact = impact(b) - impact(a)
+  if (byImpact !== 0) return byImpact
+  return a.fullName.localeCompare(b.fullName, 'es')
+}
+
+const sortedPlayers = computed<PlayerVM[]>(() => filteredPlayers.value.slice().sort(comparePlayers))
+
+// Posición real dentro de la categoría/rama (sin contar búsqueda ni equipo),
+// para que al buscar a alguien se vea su lugar verdadero. Empates comparten
+// lugar (1, 2, 2, 4...).
+const playerRankByKey = computed(() => {
+  const key = selectedPlayerStat.value
+  const list = playersVm.value.slice().sort(comparePlayers)
+  const ranks = new Map<string, number>()
+  let prevValue: number | null = null
+  let prevRank = 0
+  list.forEach((p, i) => {
+    const rank = prevValue !== null && p.stats[key] === prevValue ? prevRank : i + 1
+    ranks.set(p.key, rank)
+    prevValue = p.stats[key]
+    prevRank = rank
+  })
+  return ranks
 })
+
+function sortedBreakdown(player: PlayerVM): PlayerTeamStat[] {
+  const key = selectedPlayerStat.value
+  return player.breakdown.slice().sort((a, b) => b.stats[key] - a.stats[key])
+}
+
+function rankBoxClass(rank: number, value = 1): string {
+  // Sin la estadística no hay posición ni medalla.
+  if (value <= 0) return 'border-slate-800 bg-slate-950/40 text-slate-600'
+  if (rank === 1) return 'border-amber-300 bg-amber-400 text-slate-950'
+  if (rank === 2) return 'border-slate-200 bg-slate-300 text-slate-950'
+  if (rank === 3) return 'border-orange-300 bg-orange-400/90 text-slate-950'
+  return 'border-slate-700 bg-slate-950/70 text-slate-200'
+}
 
 const pageSize = 10
 
@@ -1539,9 +1776,32 @@ const pagedPlayers = computed<PlayerVM[]>(() => {
   return sortedPlayers.value.slice(pageStartIndex.value, pageEndIndex.value)
 })
 
-watch([selectedRama, selectedCategoria, playerNameQuery, playerNumberQuery, teamPick], () => {
+watch([selectedRama, selectedCategoria, playerNameQuery, playerNumberQuery, teamPick, selectedPlayerStat, activeLeaderCategoria], () => {
   page.value = 1
 })
+
+// Al cambiar de categoría: si la rama o el equipo elegidos no existen ahí, se quitan.
+watch(activeLeaderCategoria, () => {
+  if (view.value === 'jugadores' && selectedRama.value !== 'all' && !leaderRamaTabs.value.some((t) => t.value === selectedRama.value)) {
+    selectedRama.value = 'all'
+  }
+})
+
+watch([activeLeaderCategoria, selectedRama], () => {
+  if (teamPick.value === 'ALL') return
+  if (!playerTeamOptions.value.some((t) => String(t.teamId) === teamPick.value)) teamPick.value = 'ALL'
+})
+
+const hasPlayerFilters = computed(
+  () => !!playerNameQuery.value.trim() || teamPick.value !== 'ALL' || selectedRama.value !== 'all'
+)
+
+function clearPlayerFilters() {
+  playerNameQuery.value = ''
+  playerNumberQuery.value = ''
+  teamPick.value = 'ALL'
+  selectedRama.value = 'all'
+}
 
 watch(totalPlayerPages, (tp) => {
   if (page.value > tp) page.value = tp
@@ -1571,14 +1831,6 @@ const clearSearch = () => {
   searchQuery.value = ''
 }
 
-const clearPlayerName = () => {
-  playerNameQuery.value = ''
-}
-
-const clearPlayerNumber = () => {
-  playerNumberQuery.value = ''
-}
-
 const clearFilters = () => {
   selectedRama.value = 'all'
   selectedCategoria.value = 'all'
@@ -1586,6 +1838,7 @@ const clearFilters = () => {
   playerNameQuery.value = ''
   playerNumberQuery.value = ''
   teamPick.value = 'ALL'
+  leaderCategoria.value = null
   currentTeamPage.value = 1
   page.value = 1
 }
