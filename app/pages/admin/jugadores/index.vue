@@ -1119,7 +1119,8 @@ const filteredCurps = computed(() => {
     .map((p) => ({
       fullName: String(p.fullName || '').trim(),
       curp: String(p.curp || '').trim(),
-      teamName: String(p.teamName || '').trim()
+      teamName: String(p.teamName || '').trim(),
+      photoUrl: p.photoUrl ? String(p.photoUrl).trim() : ''
     }))
     .filter((x) => x.curp.length > 0)
 
@@ -1135,6 +1136,76 @@ const filteredCurps = computed(() => {
   return unique
 })
 
+// Foto del jugador -> dataURL JPEG cuadrado (recorte centrado) para el PDF.
+// Pasa por /api/curp-photo porque media.tochero5.mx no permite CORS.
+// Si la foto no carga (404, HEIC en Chrome, timeout) regresa null.
+function loadCurpPhoto(url: string, sizePx = 120, timeoutMs = 15000): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const timer = window.setTimeout(() => finish(null), timeoutMs)
+
+    function finish(value: string | null) {
+      window.clearTimeout(timer)
+      img.onload = null
+      img.onerror = null
+      resolve(value)
+    }
+
+    img.onload = () => {
+      try {
+        const side = Math.min(img.naturalWidth, img.naturalHeight)
+        if (!side) return finish(null)
+
+        const canvas = document.createElement('canvas')
+        canvas.width = sizePx
+        canvas.height = sizePx
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return finish(null)
+
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, sizePx, sizePx)
+        ctx.drawImage(
+          img,
+          (img.naturalWidth - side) / 2,
+          (img.naturalHeight - side) / 2,
+          side,
+          side,
+          0,
+          0,
+          sizePx,
+          sizePx
+        )
+        finish(canvas.toDataURL('image/jpeg', 0.85))
+      } catch {
+        finish(null)
+      }
+    }
+    img.onerror = () => finish(null)
+    img.src = `/api/curp-photo?url=${encodeURIComponent(url)}`
+  })
+}
+
+async function loadCurpPhotos(urls: string[], concurrency = 8): Promise<(string | null)[]> {
+  const out: (string | null)[] = new Array(urls.length).fill(null)
+  let next = 0
+  let done = 0
+
+  async function worker() {
+    while (next < urls.length) {
+      const i = next++
+      const url = urls[i]
+      out[i] = url ? await loadCurpPhoto(url) : null
+      done++
+      if (done % 25 === 0 || done === urls.length) {
+        setNotice('info', `Cargando fotos para el PDF: ${done} / ${urls.length}`)
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, urls.length) }, worker))
+  return out
+}
+
 async function downloadCurpPdf() {
   try {
     if (typeof window === 'undefined') return
@@ -1144,6 +1215,9 @@ async function downloadCurpPdf() {
       setNotice('err', 'No hay CURP en los resultados actuales.')
       return
     }
+
+    setNotice('info', `Cargando fotos para el PDF: 0 / ${rows.length}`)
+    const photos = await loadCurpPhotos(rows.map((r) => r.photoUrl))
 
     const { jsPDF } = await import('jspdf')
     const autoTableMod: any = await import('jspdf-autotable')
@@ -1167,19 +1241,28 @@ async function downloadCurpPdf() {
     doc.text(`Fecha: ${dateStr}`, 40, 66)
     doc.text(filtros.join(' · '), 40, 82)
 
-    const body = rows.map((r, idx) => [String(idx + 1), r.fullName || '—', r.curp, r.teamName || '—'])
+    const PHOTO_PT = 40
+    const body = rows.map((r, idx) => [photos[idx] ? '' : 'Sin foto', r.fullName || '—', r.curp, r.teamName || '—'])
 
     autoTable(doc, {
       startY: 100,
-      head: [['#', 'Nombre', 'CURP', 'Equipo']],
+      head: [['Foto', 'Nombre', 'CURP', 'Equipo']],
       body,
-      styles: { fontSize: 10, cellPadding: 6 },
+      styles: { fontSize: 10, cellPadding: 6, valign: 'middle' },
       headStyles: { fontSize: 10 },
+      bodyStyles: { minCellHeight: PHOTO_PT + 8 },
       columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 220 },
-        2: { cellWidth: 170 },
-        3: { cellWidth: 140 }
+        0: { cellWidth: PHOTO_PT + 12, fontSize: 7, halign: 'center', textColor: 150 },
+        1: { cellWidth: 190 },
+        2: { cellWidth: 150 }
+      },
+      didDrawCell: (data: any) => {
+        if (data.section !== 'body' || data.column.index !== 0) return
+        const photo = photos[data.row.index]
+        if (!photo) return
+        const x = data.cell.x + (data.cell.width - PHOTO_PT) / 2
+        const y = data.cell.y + (data.cell.height - PHOTO_PT) / 2
+        doc.addImage(photo, 'JPEG', x, y, PHOTO_PT, PHOTO_PT)
       },
       didDrawPage: () => {
         const pageCount = doc.getNumberOfPages()
