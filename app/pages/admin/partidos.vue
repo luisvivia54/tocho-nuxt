@@ -1709,12 +1709,15 @@ const filteredGamesVm = computed(() => {
 
   if (!q && s === 'ALL') return src
 
-  return src.filter((g) => {
+  const filtered = src.filter((g) => {
     const st = upper(g.status)
     if (s !== 'ALL' && st !== s) return false
     if (!q) return true
     return (g._search || '').includes(q)
   })
+
+  // En "FINAL" mostramos primero los más recientes (gamesVm viene ascendente por fecha)
+  return s === 'FINAL' ? filtered.reverse() : filtered
 })
 
 const pageSize = 5
