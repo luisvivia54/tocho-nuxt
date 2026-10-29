@@ -11,7 +11,7 @@
             </p>
             <h1 class="font-display text-3xl md:text-4xl font-extrabold text-white">Equipos</h1>
             <p class="text-sm text-slate-300/80">
-              Lista equipos y permite desactivarlos con API segura y token.
+              Edita los datos y la división de cada equipo, o desactívalo.
             </p>
           </div>
 
@@ -71,14 +71,6 @@
             </p>
           </div>
 
-          <!-- Nota -->
-          <div class="mt-4 text-xs text-slate-300/70">
-            ⚠️ El “borrado” aquí es <span class="font-semibold">soft-delete</span>:
-            primero intenta <span class="font-semibold">PATCH /teams/{id}/active</span> con
-            <span class="font-semibold">{ isActive:false }</span>.
-            <br />
-            Si ese endpoint no existe, intenta también <span class="font-semibold">PATCH /teams/{id}</span>.
-          </div>
         </div>
 
         <!-- Tabla -->
@@ -121,15 +113,178 @@
               </p>
             </div>
 
-            <div class="col-span-4 md:col-span-3 flex justify-end">
+            <div class="col-span-4 md:col-span-3 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-xl border border-blue-400/25 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-100 hover:bg-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="dangerOpen || editOpen"
+                @click="openEdit(t)"
+              >
+                Editar
+              </button>
               <button
                 type="button"
                 class="inline-flex items-center justify-center rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-100 hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="deletingId === String(t.id) || dangerOpen"
+                :disabled="deletingId === String(t.id) || dangerOpen || editOpen"
                 @click="openDanger(t)"
               >
                 {{ deletingId === String(t.id) ? 'Eliminando…' : 'Borrar' }}
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal editar -->
+        <div v-if="editOpen && editTeam" class="fixed inset-0 z-50">
+          <div class="absolute inset-0 bg-black/60" @click="closeEdit" />
+
+          <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div
+              class="max-h-full w-full max-w-xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0B1220] shadow-[0_30px_90px_rgba(0,0,0,0.6)]"
+            >
+              <div class="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4">
+                <div class="min-w-0">
+                  <p class="text-[11px] font-semibold uppercase tracking-[0.25em] text-blue-200/90">
+                    editar equipo
+                  </p>
+                  <h3 class="mt-1 truncate text-base font-extrabold text-white sm:text-lg">
+                    {{ editTeam.name }}
+                  </h3>
+                  <p class="mt-1 text-xs text-slate-400">
+                    ID: {{ editTeam.id }}
+                    <template v-if="editTeam.categoryLabel"> · {{ editTeam.categoryLabel }}</template>
+                    <template v-if="editTeam.gender"> · {{ niceGender(editTeam.gender) }}</template>
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  class="inline-flex shrink-0 items-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10"
+                  :disabled="saving"
+                  @click="closeEdit"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              <form class="space-y-4 p-5" @submit.prevent="saveEdit">
+                <div>
+                  <label class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Nombre
+                  </label>
+                  <input
+                    v-model="editForm.name"
+                    type="text"
+                    maxlength="80"
+                    class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-50 focus:border-blue-400/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    :disabled="saving"
+                  />
+                </div>
+
+                <div>
+                  <label class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Nombre corto
+                  </label>
+                  <input
+                    v-model="editForm.shortName"
+                    type="text"
+                    maxlength="20"
+                    placeholder="Opcional"
+                    class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-50 placeholder:text-slate-500 focus:border-blue-400/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    :disabled="saving"
+                  />
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Color primario
+                    </label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model="editForm.colorPrimary"
+                        type="color"
+                        class="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-slate-950"
+                        :disabled="saving"
+                      />
+                      <input
+                        v-model="editForm.colorPrimary"
+                        type="text"
+                        maxlength="7"
+                        class="w-full min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-50 focus:border-blue-400/60 focus:outline-none"
+                        :disabled="saving"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Color secundario
+                    </label>
+                    <div class="flex items-center gap-2">
+                      <input
+                        v-model="editForm.colorSecondary"
+                        type="color"
+                        class="h-9 w-12 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-slate-950"
+                        :disabled="saving"
+                      />
+                      <input
+                        v-model="editForm.colorSecondary"
+                        type="text"
+                        maxlength="7"
+                        class="w-full min-w-0 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-50 focus:border-blue-400/60 focus:outline-none"
+                        :disabled="saving"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="mb-1 block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    División
+                  </label>
+                  <select
+                    v-if="divisionChoices.length > 1"
+                    v-model.number="editForm.categoryId"
+                    class="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-50 focus:border-blue-400/60 focus:outline-none"
+                    :disabled="saving"
+                  >
+                    <option v-for="c in divisionChoices" :key="c.id" :value="c.id">
+                      {{ c.label }}
+                    </option>
+                  </select>
+                  <p v-else class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-400">
+                    {{ editTeam.categoryId ? 'Esta categoría no tiene divisiones A/B.' : 'El equipo no tiene inscripción.' }}
+                  </p>
+                  <p v-if="divisionChanged" class="mt-2 text-[11px] text-amber-200/90">
+                    Vas a mover al equipo de división. Solo se puede si todavía no tiene partidos en esta temporada.
+                  </p>
+                </div>
+
+                <div
+                  v-if="editError"
+                  class="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-100"
+                >
+                  {{ editError }}
+                </div>
+
+                <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
+                    :disabled="saving"
+                    @click="closeEdit"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    class="rounded-xl bg-blue-600 px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="saving || !editForm.name.trim()"
+                  >
+                    {{ saving ? 'Guardando…' : 'Guardar cambios' }}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -247,8 +402,23 @@ function niceGender(g: string) {
 type Team = {
   id: number | string
   name: string
+  shortName: string
+  colorPrimary: string
+  colorSecondary: string
+  leagueId: number | null
+  categoryId: number | null
+  categoryCode: string
   categoryLabel: string
   gender: string
+}
+
+type Category = {
+  id: number
+  leagueId: number | null
+  code: string
+  gender: string
+  levelOrder: string | null
+  label: string
 }
 
 type FetchSource = {
@@ -305,8 +475,8 @@ function buildSources(): FetchSource[] {
   const api = API_BASE.value
 
   return [
-    { label: 'API principal · /teams', url: `${api}/teams` },
     { label: 'API principal · /teams/list', url: `${api}/teams/list` },
+    { label: 'API principal · /teams', url: `${api}/teams` },
     { label: 'Render legacy · /api/teams', url: 'https://tocho5-webservice.onrender.com/api/teams' },
     { label: 'Render legacy · /api/teams/list', url: 'https://tocho5-webservice.onrender.com/api/teams/list' },
   ]
@@ -329,9 +499,18 @@ function normalizeTeams(payload: any): Team[] {
       const rawLevel = String(t?.categoryLevelOrder ?? t?.category_level_order ?? '').trim()
       const level = !rawLevel || rawLevel === '0' ? null : rawLevel.toUpperCase()
 
+      const rawCategoryId = Number(t?.categoryId ?? t?.category_id ?? t?.category?.id ?? 0)
+      const rawLeagueId = Number(t?.leagueId ?? t?.league_id ?? 0)
+
       return {
         id: t?.id ?? t?.teamId ?? t?.team_id,
         name: t?.name ?? t?.teamName ?? t?.team_name ?? 'Sin nombre',
+        shortName: String(t?.shortName ?? t?.short_name ?? '').trim(),
+        colorPrimary: String(t?.colorPrimary ?? t?.color_primary ?? '').trim(),
+        colorSecondary: String(t?.colorSecondary ?? t?.color_secondary ?? '').trim(),
+        leagueId: rawLeagueId || null,
+        categoryId: rawCategoryId || null,
+        categoryCode: code,
         categoryLabel: code ? (level ? `${code} ${level}` : code) : '',
         gender: String(t?.categoryGender ?? t?.category?.gender ?? t?.gender ?? '').trim().toUpperCase(),
       }
@@ -364,6 +543,9 @@ async function refresh() {
 
   const sources = buildSources()
 
+  // Las categorias solo se necesitan para el selector de division del modal.
+  fetchCategories()
+
   for (const s of sources) {
     try {
       const data = await fetchFromSource(s)
@@ -388,6 +570,181 @@ async function refresh() {
   }
 
   loading.value = false
+}
+
+// ======================== CATEGORIAS (para divisiones) ========================
+const categories = ref<Category[]>([])
+
+async function fetchCategories() {
+  try {
+    const raw = await $fetch<any>(`${API_BASE.value}/categories`, { method: 'GET', timeout: 12000 })
+    const arr: any[] = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : []
+
+    categories.value = arr
+      .map((c: any) => {
+        const rawLevel = String(c?.levelOrder ?? c?.level_order ?? '').trim()
+        const levelOrder = !rawLevel || rawLevel === '0' ? null : rawLevel.toUpperCase()
+        const name = String(c?.displayName ?? c?.name ?? '').trim()
+        return {
+          id: Number(c?.id ?? c?.categoryId ?? 0),
+          leagueId: Number(c?.leagueId ?? c?.league_id ?? 0) || null,
+          code: String(c?.code ?? '').trim(),
+          gender: String(c?.gender ?? '').trim().toUpperCase(),
+          levelOrder,
+          label: levelOrder ? `División ${levelOrder}` : name || `Categoría #${c?.id}`,
+        }
+      })
+      .filter((c: Category) => c.id > 0)
+  } catch {
+    categories.value = []
+  }
+}
+
+// ======================== EDITAR ========================
+const editOpen = ref(false)
+const editTeam = ref<Team | null>(null)
+const saving = ref(false)
+const editError = ref('')
+const editForm = ref({
+  name: '',
+  shortName: '',
+  colorPrimary: '#1D4ED8',
+  colorSecondary: '#FFFFFF',
+  categoryId: 0,
+})
+
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
+
+function safeHex(value: string, fallback: string) {
+  const v = String(value || '').trim()
+  return HEX_RE.test(v) ? v.toUpperCase() : fallback
+}
+
+// Divisiones de la misma rama que la categoria actual del equipo (A, B, ...).
+const divisionChoices = computed<Category[]>(() => {
+  const team = editTeam.value
+  if (!team?.categoryId) return []
+
+  const current = categories.value.find((c) => c.id === team.categoryId)
+  if (!current) return []
+
+  return categories.value
+    .filter(
+      (c) =>
+        c.leagueId === current.leagueId &&
+        c.code.toUpperCase() === current.code.toUpperCase() &&
+        c.gender === current.gender
+    )
+    .sort((a, b) => (a.levelOrder ?? '').localeCompare(b.levelOrder ?? ''))
+})
+
+const divisionChanged = computed(
+  () =>
+    !!editTeam.value?.categoryId &&
+    !!editForm.value.categoryId &&
+    editForm.value.categoryId !== editTeam.value.categoryId
+)
+
+function openEdit(team: Team) {
+  editError.value = ''
+  editTeam.value = team
+  editForm.value = {
+    name: team.name,
+    shortName: team.shortName,
+    colorPrimary: safeHex(team.colorPrimary, '#1D4ED8'),
+    colorSecondary: safeHex(team.colorSecondary, '#FFFFFF'),
+    categoryId: team.categoryId ?? 0,
+  }
+  editOpen.value = true
+  if (!categories.value.length) fetchCategories()
+}
+
+function closeEdit() {
+  if (saving.value) return
+  editOpen.value = false
+  editTeam.value = null
+  editError.value = ''
+}
+
+async function saveEdit() {
+  const team = editTeam.value
+  if (!team) return
+
+  editError.value = ''
+  const name = editForm.value.name.trim()
+  if (!name) {
+    editError.value = 'El nombre del equipo es obligatorio.'
+    return
+  }
+
+  const colorPrimary = editForm.value.colorPrimary.trim()
+  const colorSecondary = editForm.value.colorSecondary.trim()
+  if (!HEX_RE.test(colorPrimary) || !HEX_RE.test(colorSecondary)) {
+    editError.value = 'Los colores deben tener formato #RRGGBB.'
+    return
+  }
+
+  const body: Record<string, any> = {
+    name,
+    shortName: editForm.value.shortName.trim(),
+    colorPrimary,
+    colorSecondary,
+  }
+  if (divisionChanged.value) body.categoryId = editForm.value.categoryId
+
+  saving.value = true
+  try {
+    const token = await getAccessToken()
+    if (!token) throw new Error('No hay token. Inicia sesión otra vez.')
+
+    await $fetch(`${API_BASE.value}/admin/teams/${encodeURIComponent(String(team.id))}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body,
+      timeout: 12000,
+    })
+
+    // Reflejar el cambio en la lista sin recargar todo.
+    const newCategory = body.categoryId
+      ? categories.value.find((c) => c.id === body.categoryId)
+      : null
+
+    teams.value = teams.value.map((t) => {
+      if (String(t.id) !== String(team.id)) return t
+      return {
+        ...t,
+        name,
+        shortName: body.shortName,
+        colorPrimary,
+        colorSecondary,
+        ...(newCategory
+          ? {
+              categoryId: newCategory.id,
+              categoryLabel: newCategory.levelOrder
+                ? `${t.categoryCode} ${newCategory.levelOrder}`
+                : t.categoryCode,
+            }
+          : {}),
+      }
+    })
+
+    saving.value = false
+    closeEdit()
+  } catch (e: any) {
+    const status = getStatusCode(e)
+    const msg = e?.data?.message || e?.response?._data?.message || e?.message || 'Error guardando cambios'
+
+    if (status === 401) editError.value = 'Tu sesión expiró. Vuelve a iniciar sesión.'
+    else if (status === 403) editError.value = 'No autorizado. Revisa que tu usuario sea admin.'
+    else if (status === 404) editError.value = 'No se encontró el equipo o el endpoint de edición (¿ya se desplegó el backend?).'
+    else editError.value = msg
+  } finally {
+    saving.value = false
+  }
 }
 
 // ======================== ELIMINAR (SOFT DELETE) ========================

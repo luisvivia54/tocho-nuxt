@@ -286,7 +286,7 @@
                       </select>
                     </div>
 
-                    <div v-if="divisionOptions.length">
+                    <div v-if="divisionOptions.length && isAdmin">
                       <label class="mb-1 block text-xs font-semibold text-slate-700">División</label>
                       <select
                         v-model.number="selectedDivisionId"
@@ -302,6 +302,9 @@
 
                   <p v-if="needsDivision" class="mt-2 text-[11px] font-semibold text-amber-600">
                     Esta rama tiene División A y B. Elige una para continuar.
+                  </p>
+                  <p v-else-if="divisionOptions.length && !isAdmin" class="mt-2 text-[11px] font-semibold text-slate-600">
+                    Tu equipo se inscribe en División A. El cambio a División B lo hace la liga.
                   </p>
 
                   <div v-if="selectedCategory" class="mt-2 text-[11px] text-slate-500">
@@ -773,7 +776,7 @@ const API_BASE = normalizeApiBase(
 )
 
 const kcReady = useState<boolean>('kcReady', () => false)
-const { isAuthenticated } = useAuthz()
+const { isAuthenticated, isAdmin } = useAuthz()
 const { summary, loading, error, loadMyTeam } = useMyTeam()
 
 const authOk = computed(() => {
@@ -1044,8 +1047,9 @@ const divisionOptions = computed(() => {
     }))
 })
 
+// Solo el admin elige division; un capitan siempre entra en la A.
 const needsDivision = computed(
-  () => divisionOptions.value.length > 0 && !selectedDivisionId.value
+  () => isAdmin.value && divisionOptions.value.length > 0 && !selectedDivisionId.value
 )
 
 const selectedCategory = computed<CategoryDto | null>(() => {
@@ -1054,6 +1058,12 @@ const selectedCategory = computed<CategoryDto | null>(() => {
 
   // Sin divisiones el comportamiento es el de siempre: una sola categoria posible.
   if (group.length === 1) return group[0] ?? null
+
+  // Capitan: siempre la Division A (el back tambien lo fuerza).
+  if (!isAdmin.value) {
+    const divA = group.find((c) => (c.levelOrder ?? '').toUpperCase() === 'A')
+    return divA ?? group.slice().sort((a, b) => a.id - b.id)[0] ?? null
+  }
 
   return group.find((c) => c.id === selectedDivisionId.value) ?? null
 })
